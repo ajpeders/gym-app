@@ -189,6 +189,26 @@ export interface ParseResult {
   items: ParsedItem[];
 }
 
+// ---- Athlete profile + coach check-in ----
+
+export interface AthleteProfile {
+  experience_level: string | null;
+  goals: string | null;
+  injuries: string[];
+  equipment: string | null;
+  preferences: string | null;
+  notes: string | null;
+  session_note: string | null;
+}
+
+export interface CheckinResult {
+  provider: string;
+  model: string;
+  latency_ms: number;
+  acknowledgement: string;
+  profile: AthleteProfile;
+}
+
 export interface StatsSummary {
   total_workouts: number;
   this_week: number;

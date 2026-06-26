@@ -12,6 +12,7 @@ import { Text } from '@/components/ui/Text';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Loading } from '@/components/ui/Feedback';
+import { CoachCheckin } from '@/components/coach/CoachCheckin';
 import { formatWeight, relativeTime } from '@/lib/format';
 
 function StatTile({ value, label }: { value: string | number; label: string }) {
@@ -120,6 +121,10 @@ export default function HomeScreen() {
             onPress={onStartBlank}
           />
         )}
+
+        <View className="mt-4">
+          <CoachCheckin />
+        </View>
 
         {loading ? (
           <Loading />

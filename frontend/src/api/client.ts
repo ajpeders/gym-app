@@ -1,7 +1,9 @@
 import { getItem, TOKEN_KEY } from '@/lib/storage';
 import type {
   AiProviders,
+  AthleteProfile,
   AuthResponse,
+  CheckinResult,
   Exercise,
   ExerciseQuery,
   Metric,
@@ -179,4 +181,11 @@ export const api = {
   aiProviders: () => request<AiProviders>('/ai/providers'),
   parseSets: (input: { text: string; workout_id?: number }) =>
     request<ParseResult>('/ai/parse-sets', { method: 'POST', body: input }),
+
+  // ---- athlete profile + coach check-in ----
+  getProfile: () => request<AthleteProfile>('/profile'),
+  updateProfile: (patch: Partial<AthleteProfile>) =>
+    request<AthleteProfile>('/profile', { method: 'PATCH', body: patch }),
+  checkIn: (text: string) =>
+    request<CheckinResult>('/ai/check-in', { method: 'POST', body: { text } }),
 };

@@ -147,6 +147,7 @@ Checkbox = not started. Phases are ordered; later phases assume earlier ones.
 - [x] **Natural-language logging**: "bench 3x8 @60kg, felt easy" → structured sets *(built)*
 - [x] **Routine import from notes**: paste a multi-day program → structured routines *(built)*
 - [ ] **Voice companion** (moat #5): speak to the AI, not just type — voice → NL logging, and a spoken pre-session check-in that updates the athlete profile ("shoulder's tight, going lighter"); on-device speech where available
+- [ ] **Siri / App Intents (iOS)** (moat #5): "Hey Siri, tell my coach my shoulder's tight" / "Hey Siri, log bench 3x8 @60" → hands-free check-in + logging without opening the app, via App Intents + Shortcuts (needs an EAS dev/native build — not available in Expo Go)
 - [ ] Robustness: validation/repair of model output, fallbacks, cost/latency display
 - [ ] **Exercise→catalog matching v2**: stemming (raise/raises) + bidirectional token overlap so "cable triceps pushdown" matches "Triceps Pushdown" (current matcher too strict)
 

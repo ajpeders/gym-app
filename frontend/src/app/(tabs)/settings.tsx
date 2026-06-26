@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, Switch, TextInput, View } from 'react-native';
+import { useRouter } from 'expo-router';
 
 import { api } from '@/api/client';
 import type { AiProvider, AiProviders, Units } from '@/api/types';
@@ -77,6 +78,7 @@ function Row({
 export default function SettingsScreen() {
   const { user, logout } = useAuth();
   const { settings, update } = useSettings();
+  const router = useRouter();
   const [saving, setSaving] = useState(false);
 
   async function patch(fn: () => Promise<void>) {
@@ -102,6 +104,18 @@ export default function SettingsScreen() {
           {user?.display_name}
         </Text>
         <Text variant="muted">{user?.email}</Text>
+      </Card>
+
+      <Card className="mb-4" onPress={() => router.push('/profile')}>
+        <View className="flex-row items-center justify-between">
+          <View className="flex-1 pr-3">
+            <Text variant="subheading">Your profile</Text>
+            <Text variant="muted" className="mt-0.5">
+              Level, goals, injuries, equipment — what your coach remembers.
+            </Text>
+          </View>
+          <Text className="text-xl text-brand">›</Text>
+        </View>
       </Card>
 
       <Text variant="label" className="mb-2">
