@@ -23,6 +23,12 @@ accumulated context, cost structure, and data asymmetry.
 **Thesis: easy to enter, learned-in to stay, and an AI you can afford to run constantly
 because it's yours.** Tracking is table stakes; the companion is the product.
 
+**Adaptive depth — serves beginner → advanced.** One engine, different surface: a novice
+sees "here's how to do an RDL, you skipped legs"; a bodybuilder sees "back at MAV, rear
+delts undertrained, quad:ham 3:1 — add face pulls." The level is known via athlete memory,
+so the app grows from your first workout to your 1000th instead of picking a lane (Hevy =
+simple, RP/Dr. Muscle = hardcore-only).
+
 Building deliberately:
 - **Athlete memory (Tier 1).** A persistent per-user profile the AI reads + writes every
   session — injuries, what cues landed, RPE→weight calibration, equipment, preferences,
@@ -146,6 +152,8 @@ Checkbox = not started. Phases are ordered; later phases assume earlier ones.
 
 ### Phase 4 — AI insights & coaching
 - [ ] **Progress analysis**: trends, PRs, plateaus, volume per muscle, frequency
+- [ ] **Muscle coverage & volume analysis** *(lower priority — pro depth, after the core companion + memory)*: per session + per week, hard sets per muscle (primary = full, secondary = partial credit using the exercise DB's muscle tags), coverage gaps, balance ratios (push/pull, quad/ham), neglected muscles, and volume vs landmarks (MEV/MAV/MRV). Deterministic math; AI interprets + recommends the fix
+- [ ] **Advanced metrics** *(lower priority)*: e1RM trends, tonnage, rep-PRs, double progression, RIR/RPE autoregulation, periodization/deload tracking
 - [ ] Charts/dashboard (volume over time, est 1RM, body metrics)
 - [ ] **Workout generation** from goals + equipment + recent fatigue
 - [ ] Progressive-overload suggestions for the next session
