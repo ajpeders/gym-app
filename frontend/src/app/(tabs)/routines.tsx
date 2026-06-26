@@ -48,14 +48,14 @@ export default function RoutinesScreen() {
         }>
         <View className="flex-row items-center justify-between mt-2 mb-3">
           <Text variant="title">Routines</Text>
-          <Button title="＋ New" size="sm" onPress={() => router.push('/routine/new')} />
+          <Button title="New" size="sm" onPress={() => router.push('/routine/new')} />
         </View>
 
         {loading ? (
           <Loading />
         ) : routines.length === 0 ? (
           <EmptyState
-            icon="🗂️"
+            icon="PLAN"
             title="No routines yet"
             subtitle="Create a routine to plan your sessions and start workouts faster."
           />

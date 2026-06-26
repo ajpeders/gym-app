@@ -101,7 +101,7 @@ export default function WorkoutDetailScreen() {
                     we.sets.map((s, i) => (
                       <View
                         key={s.id}
-                        className="flex-row items-center rounded-lg bg-neutral-100 dark:bg-neutral-800 px-3 py-2">
+                        className="flex-row items-center rounded-md bg-iron-800 px-3 py-2">
                         <Text variant="label" className="w-10">
                           {i + 1}
                         </Text>

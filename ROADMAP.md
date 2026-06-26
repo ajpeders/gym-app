@@ -91,7 +91,9 @@ Checkbox = not started. Phases are ordered; later phases assume earlier ones.
 - [ ] Log a workout: add exercises, log sets (reps / weight / RPE / set type)
 - [ ] Workout history + view/edit past workouts
 - [ ] Routines/templates: build reusable plans, start a workout from one
+- [ ] **User-defined routines**: users create their own routines, edit/add-to/duplicate existing ones, and import a routine (paste text or pick a template)
 - [ ] Units (kg/lb), basic settings screen
+- [ ] **Bottom nav: re-add Workouts / Exercises / Routines as tabs** — trimmed to Home + Settings during early dev; the screens still exist as routes (reachable from Home), just hidden from the tab bar
 
 ### Phase 2 — Live workout mode
 - [ ] Start session (blank or from routine); active-session screen
@@ -121,6 +123,7 @@ Checkbox = not started. Phases are ordered; later phases assume earlier ones.
 - [ ] Plate / warmup / 1RM calculators
 - [ ] Export/import (CSV/JSON); fold into homelab backup
 - [ ] Multi-user profiles (optional)
+- [ ] **Social / OAuth login** ("log in with other apps" — Google / Apple / GitHub) via expo-auth-session; optional alongside the existing email/password auth
 - [ ] Apple Health / Google Fit + Apple Watch (stretch)
 
 ### Cross-cutting (ongoing)

@@ -8,6 +8,8 @@ import { Screen } from '@/components/ui/Screen';
 import { Text } from '@/components/ui/Text';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
+import { Logo } from '@/components/ui/Logo';
+import { FormError } from '@/components/ui/Feedback';
 
 export default function LoginScreen() {
   const { login } = useAuth();
@@ -39,8 +41,10 @@ export default function LoginScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         className="flex-1 justify-center px-6">
         <View className="mb-10 items-center">
-          <Text className="text-6xl mb-3">🏋️</Text>
-          <Text variant="title">Welcome back</Text>
+          <Logo size="lg" />
+          <Text variant="title" className="mt-4">
+            Welcome back
+          </Text>
           <Text variant="muted" className="mt-1">
             Log in to your gym tracker
           </Text>
@@ -66,15 +70,15 @@ export default function LoginScreen() {
             onSubmitEditing={onSubmit}
           />
 
-          {error ? <Text className="text-red-500 text-sm">{error}</Text> : null}
+          {error ? <FormError message={error} /> : null}
 
           <Button title="Log in" size="lg" loading={submitting} onPress={onSubmit} />
         </View>
 
         <View className="mt-6 flex-row justify-center">
           <Text variant="muted">No account? </Text>
-          <Link href="/(auth)/register">
-            <Text className="text-brand font-semibold">Sign up</Text>
+          <Link href="/register">
+            <Text className="text-brand font-bold">Sign up</Text>
           </Link>
         </View>
       </KeyboardAvoidingView>

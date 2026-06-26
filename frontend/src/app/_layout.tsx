@@ -10,13 +10,15 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AuthProvider, useAuth } from '@/state/auth';
 import { SettingsProvider } from '@/state/settings';
 import { ActiveWorkoutProvider } from '@/state/active-workout';
-import { Text } from '@/components/ui/Text';
+import { Logo } from '@/components/ui/Logo';
 
 function Splash() {
   return (
-    <View className="flex-1 items-center justify-center bg-neutral-50 dark:bg-neutral-950">
-      <Text className="text-5xl mb-4">🏋️</Text>
-      <ActivityIndicator color="#3c87f7" />
+    <View className="flex-1 items-center justify-center bg-iron-950">
+      <View className="mb-4">
+        <Logo size="md" />
+      </View>
+      <ActivityIndicator color="#f97316" />
     </View>
   );
 }
@@ -39,7 +41,15 @@ function RootNavigator() {
   if (loading) return <Splash />;
 
   return (
-    <Stack screenOptions={{ headerShown: false }}>
+    <Stack
+      screenOptions={{
+        headerShown: false,
+        headerStyle: { backgroundColor: '#080706' },
+        headerTintColor: '#f5f5f4',
+        headerTitleStyle: { fontWeight: '900' },
+        headerShadowVisible: false,
+        contentStyle: { backgroundColor: '#080706' },
+      }}>
       <Stack.Screen name="(auth)" />
       <Stack.Screen name="(tabs)" />
       <Stack.Screen name="exercise/[id]" options={{ presentation: 'card' }} />
@@ -59,7 +69,7 @@ export default function RootLayout() {
         <AuthProvider>
           <SettingsProvider>
             <ActiveWorkoutProvider>
-              <StatusBar style="auto" />
+              <StatusBar style="light" />
               <RootNavigator />
             </ActiveWorkoutProvider>
           </SettingsProvider>

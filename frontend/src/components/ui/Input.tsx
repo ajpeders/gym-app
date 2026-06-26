@@ -12,14 +12,14 @@ export function Input({ label, error, className, containerClassName, ...rest }: 
   return (
     <View className={containerClassName}>
       {label ? (
-        <Text className="mb-1.5 text-sm font-semibold text-neutral-700 dark:text-neutral-300">
+        <Text className="mb-1.5 text-sm font-bold text-iron-100">
           {label}
         </Text>
       ) : null}
       <TextInput
-        placeholderTextColor="#9ca3af"
-        className={`rounded-xl border px-4 py-3 text-base text-neutral-900 dark:text-white bg-white dark:bg-neutral-900 ${
-          error ? 'border-red-500' : 'border-neutral-300 dark:border-neutral-700'
+        placeholderTextColor="#78716c"
+        className={`rounded-lg border px-4 py-3 text-base text-iron-50 bg-iron-900 ${
+          error ? 'border-red-500' : 'border-iron-700'
         } ${className ?? ''}`}
         {...rest}
       />

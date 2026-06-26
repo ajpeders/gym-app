@@ -19,19 +19,19 @@ function Segmented<T extends string>({
   onChange: (v: T) => void;
 }) {
   return (
-    <View className="flex-row rounded-xl bg-neutral-200 dark:bg-neutral-800 p-1">
+    <View className="flex-row rounded-lg border border-iron-700 bg-iron-950 p-1">
       {options.map((opt) => {
         const active = opt.value === value;
         return (
           <Pressable
             key={opt.value}
             onPress={() => onChange(opt.value)}
-            className={`flex-1 items-center rounded-lg py-2 ${
-              active ? 'bg-white dark:bg-neutral-700' : ''
+            className={`flex-1 items-center rounded-md py-2 ${
+              active ? 'bg-brand' : ''
             }`}>
             <Text
-              className={`text-sm font-semibold ${
-                active ? 'text-brand' : 'text-neutral-600 dark:text-neutral-400'
+              className={`text-sm font-bold ${
+                active ? 'text-iron-950' : 'text-iron-400'
               }`}>
               {opt.label}
             </Text>
@@ -66,7 +66,8 @@ function Row({
       <Switch
         value={value}
         onValueChange={onValueChange}
-        trackColor={{ true: '#3c87f7' }}
+        trackColor={{ false: '#292524', true: '#f97316' }}
+        thumbColor={value ? '#080706' : '#78716c'}
       />
     </View>
   );
@@ -82,7 +83,7 @@ export default function SettingsScreen() {
     try {
       await fn();
     } catch {
-      // ignore — optimistic update keeps UI responsive
+      // Optimistic update keeps UI responsive.
     } finally {
       setSaving(false);
     }
@@ -117,7 +118,7 @@ export default function SettingsScreen() {
       </Card>
 
       <Text variant="label" className="mb-2">
-        FEATURES
+        TRAINING
       </Text>
       <Card className="mb-4 gap-3">
         <Row
@@ -132,7 +133,7 @@ export default function SettingsScreen() {
             )
           }
         />
-        <View className="h-px bg-neutral-200 dark:bg-neutral-800" />
+        <View className="h-px bg-iron-800" />
         <Row
           title="In-set AI prompts"
           subtitle="Show AI coaching cards between sets (preview)."
@@ -162,7 +163,7 @@ export default function SettingsScreen() {
         />
       </Card>
       <Text variant="caption" className="mb-4">
-        AI features are not active yet — this only stores your preference.
+        AI features are not active yet - this only stores your preference.
       </Text>
 
       <Text variant="label" className="mb-2">

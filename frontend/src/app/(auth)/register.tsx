@@ -8,12 +8,15 @@ import { Screen } from '@/components/ui/Screen';
 import { Text } from '@/components/ui/Text';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
+import { Logo } from '@/components/ui/Logo';
+import { FormError } from '@/components/ui/Feedback';
 
 export default function RegisterScreen() {
   const { register } = useAuth();
   const [displayName, setDisplayName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -25,6 +28,10 @@ export default function RegisterScreen() {
     }
     if (password.length < 6) {
       setError('Password must be at least 6 characters.');
+      return;
+    }
+    if (password !== confirmPassword) {
+      setError('Passwords do not match.');
       return;
     }
     setSubmitting(true);
@@ -43,8 +50,10 @@ export default function RegisterScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         className="flex-1 justify-center px-6">
         <View className="mb-10 items-center">
-          <Text className="text-6xl mb-3">💪</Text>
-          <Text variant="title">Create account</Text>
+          <Logo size="lg" />
+          <Text variant="title" className="mt-4">
+            Create account
+          </Text>
           <Text variant="muted" className="mt-1">
             Start tracking your workouts
           </Text>
@@ -73,18 +82,25 @@ export default function RegisterScreen() {
             onChangeText={setPassword}
             secureTextEntry
             placeholder="At least 6 characters"
+          />
+          <Input
+            label="Confirm password"
+            value={confirmPassword}
+            onChangeText={setConfirmPassword}
+            secureTextEntry
+            placeholder="Re-enter your password"
             onSubmitEditing={onSubmit}
           />
 
-          {error ? <Text className="text-red-500 text-sm">{error}</Text> : null}
+          {error ? <FormError message={error} /> : null}
 
           <Button title="Sign up" size="lg" loading={submitting} onPress={onSubmit} />
         </View>
 
         <View className="mt-6 flex-row justify-center">
           <Text variant="muted">Already have an account? </Text>
-          <Link href="/(auth)/login">
-            <Text className="text-brand font-semibold">Log in</Text>
+          <Link href="/login">
+            <Text className="text-brand font-bold">Log in</Text>
           </Link>
         </View>
       </KeyboardAvoidingView>

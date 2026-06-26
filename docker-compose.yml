@@ -13,6 +13,11 @@ services:
       GYM_CLAUDE_API_KEY: ${GYM_CLAUDE_API_KEY:-}
     volumes:
       - ../../state/gym-app/api:/data
+    # Published on the LAN so the Expo dev client (phone) can hit the API by
+    # direct IP over HTTP, bypassing DNS/TLS/Traefik. Prod traffic still goes
+    # through Traefik on 443 via the labels below.
+    ports:
+      - "8000:8000"
     labels:
       - traefik.enable=true
       - traefik.docker.network=web
@@ -32,7 +37,8 @@ services:
     build:
       context: ./frontend
       args:
-        EXPO_PUBLIC_API_URL: "https://${GYM_DOMAIN}/api"
+        # Bare origin — the client appends the `/api` prefix itself.
+        EXPO_PUBLIC_API_URL: "https://${GYM_DOMAIN}"
     restart: unless-stopped
     labels:
       - traefik.enable=true

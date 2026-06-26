@@ -97,7 +97,7 @@ export default function ActiveWorkoutScreen() {
 
   if (!ready || !workout) {
     return (
-      <SafeAreaView className="flex-1 bg-neutral-50 dark:bg-neutral-950">
+      <SafeAreaView className="flex-1 bg-iron-950">
         <Stack.Screen options={{ headerShown: true, title: 'Workout' }} />
         <Loading label="Loading workout…" />
       </SafeAreaView>
@@ -111,7 +111,7 @@ export default function ActiveWorkoutScreen() {
   );
 
   return (
-    <SafeAreaView edges={['left', 'right', 'bottom']} className="flex-1 bg-neutral-50 dark:bg-neutral-950">
+    <SafeAreaView edges={['left', 'right', 'bottom']} className="flex-1 bg-iron-950">
       <Stack.Screen
         options={{
           headerShown: true,
@@ -141,19 +141,19 @@ export default function ActiveWorkoutScreen() {
 
         {/* in-set AI prompt stub */}
         {settings.feature_flags.in_set_prompts ? (
-          <Card className="mb-3 border-brand bg-brand-50 dark:bg-brand/10">
+          <Card className="mb-3 border-brand bg-iron-900">
             <Text variant="label" className="text-brand">
-              🤖 AI coaching · on
+              AI coaching · on
             </Text>
             <Text variant="muted" className="mt-1">
-              Between-set coaching prompts will appear here once AI is connected. (Preview — no
+              Between-set coaching prompts will appear here once AI is connected. (Preview - no
               suggestions are generated yet.)
             </Text>
           </Card>
         ) : (
           <Card className="mb-3">
-            <Text variant="label" className="text-neutral-500">
-              🤖 AI coaching · off
+            <Text variant="label" className="text-iron-400">
+              AI coaching · off
             </Text>
             <Text variant="muted" className="mt-1">
               Enable in-set prompts in Settings to preview AI coaching.
@@ -191,7 +191,7 @@ export default function ActiveWorkoutScreen() {
         )}
 
         <Button
-          title="＋  Add exercise"
+          title="Add exercise"
           variant="secondary"
           size="lg"
           className="mt-1"
@@ -200,7 +200,7 @@ export default function ActiveWorkoutScreen() {
       </ScrollView>
 
       {/* finish bar */}
-      <View className="absolute bottom-0 left-0 right-0 px-4 pb-6 pt-3 bg-neutral-50/95 dark:bg-neutral-950/95 border-t border-neutral-200 dark:border-neutral-800">
+      <View className="absolute bottom-0 left-0 right-0 px-4 pb-6 pt-3 bg-iron-950/95 border-t border-iron-800">
         <Button title="Finish workout" size="lg" loading={finishing} onPress={onFinish} />
       </View>
     </SafeAreaView>

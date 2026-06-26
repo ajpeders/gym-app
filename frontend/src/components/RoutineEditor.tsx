@@ -32,7 +32,7 @@ interface RoutineEditorProps {
 }
 
 const smallInput =
-  'rounded-lg border border-neutral-300 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-950 px-2 py-2 text-center text-base text-neutral-900 dark:text-white';
+  'rounded-md border border-iron-700 bg-iron-950 px-2 py-2 text-center text-base text-iron-50';
 
 export function RoutineEditor({
   title,
@@ -109,7 +109,7 @@ export function RoutineEditor({
   }
 
   return (
-    <SafeAreaView edges={['left', 'right', 'bottom']} className="flex-1 bg-neutral-50 dark:bg-neutral-950">
+    <SafeAreaView edges={['left', 'right', 'bottom']} className="flex-1 bg-iron-950">
       <Stack.Screen options={{ headerShown: true, title }} />
       <ScrollView className="flex-1" contentContainerClassName="px-4 pt-3 pb-28" keyboardShouldPersistTaps="handled">
         <Input label="Name" value={name} onChangeText={setName} placeholder="e.g. Push Day" />
@@ -140,13 +140,13 @@ export function RoutineEditor({
                 </Text>
                 <View className="flex-row items-center gap-3">
                   <Pressable onPress={() => move(idx, -1)} hitSlop={6}>
-                    <Text className="text-lg text-neutral-500">▲</Text>
+                    <Text className="text-lg text-iron-400">UP</Text>
                   </Pressable>
                   <Pressable onPress={() => move(idx, 1)} hitSlop={6}>
-                    <Text className="text-lg text-neutral-500">▼</Text>
+                    <Text className="text-lg text-iron-400">DN</Text>
                   </Pressable>
                   <Pressable onPress={() => remove(idx)} hitSlop={6}>
-                    <Text className="text-sm font-semibold text-red-500">Remove</Text>
+                    <Text className="text-sm font-bold text-red-500">Remove</Text>
                   </Pressable>
                 </View>
               </View>
@@ -179,7 +179,7 @@ export function RoutineEditor({
         )}
 
         <Button
-          title="＋  Add exercise"
+          title="Add exercise"
           variant="secondary"
           onPress={() => setPicking(true)}
           className="mt-1"
@@ -195,16 +195,16 @@ export function RoutineEditor({
       </ScrollView>
 
       <Modal visible={picking} animationType="slide" onRequestClose={() => setPicking(false)}>
-        <SafeAreaView edges={['top', 'left', 'right']} className="flex-1 bg-neutral-50 dark:bg-neutral-950">
+        <SafeAreaView edges={['top', 'left', 'right']} className="flex-1 bg-iron-950">
           <View className="flex-row items-center justify-between px-4 py-3">
             <Text variant="heading">Add exercise</Text>
             <Pressable onPress={() => setPicking(false)} hitSlop={8}>
-              <Text className="text-brand font-semibold">Close</Text>
+              <Text className="text-brand font-bold">Close</Text>
             </Pressable>
           </View>
           <ExerciseBrowser
             onSelect={addExercise}
-            renderTrailing={() => <Text className="text-2xl text-brand">＋</Text>}
+            renderTrailing={() => <Text className="text-xl font-black text-brand">ADD</Text>}
           />
         </SafeAreaView>
       </Modal>
@@ -232,8 +232,8 @@ function Field({
         value={value}
         onChangeText={onChangeText}
         keyboardType={decimal ? 'decimal-pad' : 'number-pad'}
-        placeholder="—"
-        placeholderTextColor="#9ca3af"
+        placeholder="-"
+        placeholderTextColor="#78716c"
         className={smallInput}
       />
     </View>

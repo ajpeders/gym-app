@@ -20,12 +20,12 @@ export function ExerciseRow({ exercise, onPress, subtitle, trailing }: ExerciseR
   return (
     <Pressable
       onPress={onPress}
-      className="flex-row items-center gap-3 py-2.5 active:opacity-60">
-      <View className="h-14 w-14 overflow-hidden rounded-xl bg-neutral-200 dark:bg-neutral-800 items-center justify-center">
+      className="flex-row items-center gap-3 border-b border-iron-800 py-3 active:opacity-60">
+      <View className="h-14 w-14 overflow-hidden rounded-lg bg-iron-800 items-center justify-center">
         {thumb ? (
           <Image source={{ uri: thumb }} style={{ width: 56, height: 56 }} contentFit="cover" />
         ) : (
-          <Text className="text-2xl">🏋️</Text>
+          <Text className="text-lg font-black text-brand">EX</Text>
         )}
       </View>
       <View className="flex-1">

@@ -9,11 +9,11 @@ export function RestTimerBar({ timer }: { timer: RestTimer }) {
   const progress = timer.duration > 0 ? timer.remaining / timer.duration : 0;
 
   return (
-    <View className="rounded-2xl bg-neutral-900 dark:bg-neutral-800 p-4">
+    <View className="rounded-lg border border-iron-700 bg-iron-900 p-4">
       <View className="flex-row items-center justify-between">
         <View>
-          <Text className="text-xs font-semibold uppercase text-neutral-400">Rest timer</Text>
-          <Text className="text-4xl font-bold text-white tabular-nums mt-0.5">
+          <Text className="text-xs font-bold uppercase text-iron-400">Rest timer</Text>
+          <Text className="text-4xl font-black text-iron-50 tabular-nums mt-0.5">
             {formatClock(active ? timer.remaining : timer.duration)}
           </Text>
         </View>
@@ -34,7 +34,7 @@ export function RestTimerBar({ timer }: { timer: RestTimer }) {
           )}
         </View>
       </View>
-      <View className="mt-3 h-1.5 rounded-full bg-neutral-700 overflow-hidden">
+      <View className="mt-3 h-2 rounded-full bg-iron-800 overflow-hidden">
         <View
           className="h-full rounded-full bg-brand"
           style={{ width: `${Math.round(progress * 100)}%` }}
@@ -57,9 +57,9 @@ function Pill({
     <Pressable
       onPress={onPress}
       className={`rounded-lg px-2.5 py-1.5 active:opacity-70 ${
-        primary ? 'bg-brand' : 'bg-neutral-700'
+        primary ? 'bg-brand' : 'bg-iron-800 border border-iron-700'
       }`}>
-      <Text className="text-xs font-semibold text-white">{label}</Text>
+      <Text className={`text-xs font-bold ${primary ? 'text-iron-950' : 'text-iron-100'}`}>{label}</Text>
     </Pressable>
   );
 }

@@ -90,7 +90,7 @@ export default function WorkoutsScreen() {
           />
         ) : (
           <Button
-            title="＋  Start blank workout"
+            title="Start blank workout"
             size="lg"
             loading={busy}
             className="mb-3"
@@ -109,7 +109,7 @@ export default function WorkoutsScreen() {
                   <Card
                     key={r.id}
                     onPress={() => startFromRoutine(r)}
-                    className="w-44">
+                    className="w-44 border-iron-700 bg-iron-900">
                     <Text variant="subheading" numberOfLines={1}>
                       {r.name}
                     </Text>
@@ -131,7 +131,7 @@ export default function WorkoutsScreen() {
           <Loading />
         ) : completed.length === 0 ? (
           <EmptyState
-            icon="📋"
+            icon="LOG"
             title="No completed workouts"
             subtitle="Finish a session and it will show up here."
           />

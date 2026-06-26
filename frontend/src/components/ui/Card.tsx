@@ -8,7 +8,7 @@ interface CardProps extends ViewProps {
 
 export function Card({ children, onPress, className, ...rest }: CardProps) {
   const base =
-    'rounded-2xl bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 p-4';
+    'rounded-lg bg-iron-900 border border-iron-700 p-4';
 
   if (onPress) {
     return (

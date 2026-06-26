@@ -20,7 +20,7 @@ function StatTile({ value, label }: { value: string | number; label: string }) {
       <Text variant="title" className="text-brand">
         {value}
       </Text>
-      <Text variant="muted" className="mt-0.5">
+      <Text variant="caption" className="mt-0.5 uppercase tracking-wide">
         {label}
       </Text>
     </Card>
@@ -85,14 +85,21 @@ export default function HomeScreen() {
             }}
           />
         }>
-        <Text variant="muted" className="mt-2">
-          Welcome back
-        </Text>
-        <Text variant="title">{user?.display_name ?? 'Athlete'}</Text>
+        <View className="mt-2 rounded-lg border border-iron-700 bg-iron-900 p-4">
+          <Text variant="label" className="text-brand">
+            TRAINING DECK
+          </Text>
+          <Text variant="title" className="mt-1">
+            {user?.display_name ?? 'Athlete'}
+          </Text>
+          <Text variant="muted" className="mt-1">
+            Log the work. Beat the last session.
+          </Text>
+        </View>
 
         {active ? (
           <Card
-            className="mt-4 border-brand bg-brand-50 dark:bg-brand/10"
+            className="mt-4 border-brand bg-iron-900"
             onPress={() => router.push(`/workout/active/${active.id}`)}>
             <Text variant="label" className="text-brand">
               Workout in progress
@@ -101,12 +108,12 @@ export default function HomeScreen() {
               {active.name ?? 'Active workout'} · {active.exercises.length} exercises
             </Text>
             <Text variant="muted" className="mt-1">
-              Tap to resume →
+              Tap to resume
             </Text>
           </Card>
         ) : (
           <Button
-            title="＋  Start a workout"
+            title="Start workout"
             size="lg"
             className="mt-4"
             loading={starting}

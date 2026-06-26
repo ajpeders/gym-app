@@ -16,7 +16,7 @@ interface Props {
 }
 
 const numInput =
-  'w-16 rounded-lg border border-neutral-300 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-950 px-2 py-2 text-center text-base text-neutral-900 dark:text-white';
+  'w-16 rounded-md border border-iron-700 bg-iron-950 px-2 py-2 text-center text-base text-iron-50';
 
 export function ActiveExerciseCard({
   workoutExercise,
@@ -76,7 +76,7 @@ export function ActiveExerciseCard({
           {name}
         </Text>
         <Pressable onPress={onRemoveExercise} hitSlop={8} className="active:opacity-60">
-          <Text className="text-sm text-red-500 font-semibold">Remove</Text>
+          <Text className="text-sm text-red-500 font-bold">Remove</Text>
         </Pressable>
       </View>
       {workoutExercise.exercise?.primary_muscles?.length ? (
@@ -106,7 +106,7 @@ export function ActiveExerciseCard({
           {sets.map((s, i) => (
             <View
               key={s.id}
-              className="flex-row items-center rounded-lg bg-neutral-100 dark:bg-neutral-800 px-1 py-2">
+              className="flex-row items-center rounded-md bg-iron-800 px-1 py-2">
               <Text variant="label" className="w-10 text-center">
                 {i + 1}
               </Text>
@@ -117,7 +117,7 @@ export function ActiveExerciseCard({
                 {s.reps}
               </Text>
               <Text variant="body" className="w-12">
-                {s.rpe ?? '—'}
+                {s.rpe ?? '-'}
               </Text>
               <Pressable
                 onPress={() => onRemoveSet(s.id)}
@@ -145,7 +145,7 @@ export function ActiveExerciseCard({
             onChangeText={setWeight}
             keyboardType="decimal-pad"
             placeholder={last ? String(last.weight) : '0'}
-            placeholderTextColor="#9ca3af"
+            placeholderTextColor="#78716c"
             className={numInput}
           />
         </View>
@@ -158,7 +158,7 @@ export function ActiveExerciseCard({
             onChangeText={setReps}
             keyboardType="number-pad"
             placeholder={last ? String(last.reps) : '0'}
-            placeholderTextColor="#9ca3af"
+            placeholderTextColor="#78716c"
             className={numInput}
           />
         </View>
@@ -170,16 +170,16 @@ export function ActiveExerciseCard({
             value={rpe}
             onChangeText={setRpe}
             keyboardType="decimal-pad"
-            placeholder="—"
-            placeholderTextColor="#9ca3af"
+            placeholder="-"
+            placeholderTextColor="#78716c"
             className={numInput}
           />
         </View>
         <Pressable
           disabled={saving}
           onPress={addFromInputs}
-          className="flex-1 items-center justify-center rounded-lg bg-brand py-3 active:bg-brand-600">
-          <Text className="font-semibold text-white">Log set</Text>
+          className="flex-1 items-center justify-center rounded-md bg-brand py-3 active:bg-brand-600">
+          <Text className="font-bold text-iron-950">Log set</Text>
         </Pressable>
       </View>
 
@@ -189,8 +189,8 @@ export function ActiveExerciseCard({
           <Pressable
             disabled={saving}
             onPress={repeatLast}
-            className="flex-1 items-center rounded-lg border border-brand py-2 active:opacity-70">
-            <Text className="text-sm font-semibold text-brand">
+            className="flex-1 items-center rounded-md border border-brand py-2 active:opacity-70">
+            <Text className="text-sm font-bold text-brand">
               ↻ Repeat last ({last.weight}
               {units} × {last.reps})
             </Text>

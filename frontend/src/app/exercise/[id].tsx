@@ -80,7 +80,7 @@ export default function ExerciseDetailScreen() {
                   <Image
                     key={uri}
                     source={{ uri }}
-                    style={{ width: imgWidth, height: imgWidth * 0.66, borderRadius: 16 }}
+                    style={{ width: imgWidth, height: imgWidth * 0.66, borderRadius: 8 }}
                     contentFit="cover"
                   />
                 ))}
@@ -129,7 +129,7 @@ export default function ExerciseDetailScreen() {
 
           {activeId ? (
             <Button
-              title="＋  Add to active workout"
+              title="Add to active workout"
               size="lg"
               loading={adding}
               onPress={onAddToWorkout}

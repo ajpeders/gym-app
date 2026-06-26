@@ -27,7 +27,7 @@ export function Screen({
   const pad = padded ? 'px-4' : '';
 
   return (
-    <SafeAreaView edges={edges} className="flex-1 bg-neutral-50 dark:bg-neutral-950">
+    <SafeAreaView edges={edges} className="flex-1 bg-iron-950">
       {scroll ? (
         <ScrollView
           className="flex-1"

@@ -25,7 +25,7 @@ export default function AddExerciseScreen() {
   }
 
   return (
-    <SafeAreaView edges={['top', 'left', 'right']} className="flex-1 bg-neutral-50 dark:bg-neutral-950">
+    <SafeAreaView edges={['top', 'left', 'right']} className="flex-1 bg-iron-950">
       <Stack.Screen options={{ headerShown: true, title: 'Add exercise' }} />
       <View className="px-4 pt-2 pb-1">
         <Text variant="muted">Tap an exercise to add it to your workout</Text>
@@ -34,9 +34,9 @@ export default function AddExerciseScreen() {
         onSelect={onSelect}
         renderTrailing={(ex) =>
           addingId === ex.id ? (
-            <ActivityIndicator color="#3c87f7" />
+            <ActivityIndicator color="#f97316" />
           ) : (
-            <Text className="text-2xl text-brand">＋</Text>
+            <Text className="text-xl font-black text-brand">ADD</Text>
           )
         }
       />

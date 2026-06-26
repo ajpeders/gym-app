@@ -14,14 +14,14 @@ export function Chip({ label, active = false, onPress, className }: ChipProps) {
       onPress={onPress}
       accessibilityRole="button"
       accessibilityState={{ selected: active }}
-      className={`mr-2 mb-2 rounded-full px-3 py-1.5 border ${
+      className={`mr-2 mb-2 rounded-md px-3 py-1.5 border ${
         active
           ? 'bg-brand border-brand'
-          : 'bg-white dark:bg-neutral-900 border-neutral-300 dark:border-neutral-700'
+          : 'bg-iron-900 border-iron-700'
       } ${className ?? ''}`}>
       <Text
         className={`text-sm font-medium ${
-          active ? 'text-white' : 'text-neutral-700 dark:text-neutral-300'
+          active ? 'text-iron-950' : 'text-iron-100'
         }`}>
         {label}
       </Text>

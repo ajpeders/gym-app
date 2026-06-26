@@ -78,7 +78,7 @@ export default function EditRoutineScreen() {
 
   if (loading || error || !routine) {
     return (
-      <SafeAreaView className="flex-1 bg-neutral-50 dark:bg-neutral-950">
+      <SafeAreaView className="flex-1 bg-iron-950">
         <Stack.Screen options={{ headerShown: true, title: 'Routine' }} />
         {loading ? <Loading /> : <ErrorState message={error ?? 'Not found'} onRetry={fetch} />}
       </SafeAreaView>

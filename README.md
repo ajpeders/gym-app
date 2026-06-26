@@ -20,7 +20,7 @@ uvicorn app.main:app --reload
 Run the app (from `frontend/`), pointing it at the API:
 
 ```sh
-EXPO_PUBLIC_API_URL=http://localhost:8000/api npx expo start
+EXPO_PUBLIC_API_URL=http://localhost:8000 npx expo start
 ```
 
 ## Deploy

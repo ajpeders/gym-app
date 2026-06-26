@@ -6,7 +6,7 @@ import { Text } from './Text';
 export function Loading({ label }: { label?: string }) {
   return (
     <View className="flex-1 items-center justify-center py-16">
-      <ActivityIndicator color="#3c87f7" />
+      <ActivityIndicator color="#f97316" />
       {label ? <Text variant="muted" className="mt-3">{label}</Text> : null}
     </View>
   );
@@ -23,7 +23,7 @@ export function EmptyState({
 }) {
   return (
     <View className="items-center justify-center py-16 px-6">
-      {icon ? <Text className="text-5xl mb-3">{icon}</Text> : null}
+      {icon ? <Text className="text-4xl mb-3 text-brand">{icon}</Text> : null}
       <Text variant="subheading" className="text-center">
         {title}
       </Text>
@@ -36,10 +36,19 @@ export function EmptyState({
   );
 }
 
+/** Compact inline error banner for forms (e.g. auth screens). */
+export function FormError({ message }: { message: string }) {
+  return (
+    <View className="rounded-lg border border-red-500/40 bg-red-500/10 px-3 py-2.5">
+      <Text className="text-sm font-medium text-red-400">{message}</Text>
+    </View>
+  );
+}
+
 export function ErrorState({ message, onRetry }: { message: string; onRetry?: () => void }) {
   return (
     <View className="items-center justify-center py-16 px-6">
-      <Text className="text-5xl mb-3">⚠️</Text>
+      <Text className="text-4xl mb-3 text-red-500">!</Text>
       <Text variant="subheading" className="text-center">
         Something went wrong
       </Text>
