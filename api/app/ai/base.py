@@ -186,3 +186,6 @@ class Provider(Protocol):
 
     async def complete_json(self, *, system: str, user: str, schema: dict) -> dict:
         ...
+
+    async def complete_text(self, *, system: str, messages: list[dict]) -> str:
+        ...

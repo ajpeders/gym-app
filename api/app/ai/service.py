@@ -9,7 +9,15 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from ..config import get_settings
-from ..models import AthleteProfile, Exercise, Settings, User, WorkoutExercise
+from ..models import (
+    AthleteProfile,
+    CoachMessage,
+    Exercise,
+    Settings,
+    User,
+    Workout,
+    WorkoutExercise,
+)
 from . import prompts
 from .base import (
     CHECKIN_SCHEMA,
@@ -258,6 +266,83 @@ async def check_in(db: Session, user: User, text: str) -> dict:
     }
 
 
+# --- Coach (per-user, grounded in memory + history + past chats) ---
+
+
+def _recent_training_summary(db: Session, user_id: int, limit: int = 6) -> str:
+    workouts = db.scalars(
+        select(Workout)
+        .where(Workout.owner_id == user_id)
+        .order_by(Workout.started_at.desc())
+        .limit(limit)
+    ).all()
+    lines = []
+    for w in workouts:
+        parts = []
+        for we in w.exercises:
+            ex_name = we.exercise.name if we.exercise else "?"
+            sets = list(we.sets)
+            if sets:
+                best = max(sets, key=lambda s: (s.weight or 0))
+                load = "bw" if best.weight is None else f"{best.weight:g}"
+                parts.append(f"{ex_name} {len(sets)}x{best.reps or '?'}@{load}")
+            else:
+                parts.append(ex_name)
+        date = w.started_at.strftime("%b %d") if w.started_at else "?"
+        label = w.name or "Workout"
+        lines.append(f"- {date} {label}: " + "; ".join(parts[:8]))
+    return "\n".join(lines)
+
+
+def _recent_coach_messages(db: Session, user_id: int, limit: int = 10) -> list[dict]:
+    rows = db.scalars(
+        select(CoachMessage)
+        .where(CoachMessage.user_id == user_id)
+        .order_by(CoachMessage.created_at.desc())
+        .limit(limit)
+    ).all()
+    return [{"role": m.role, "content": m.content} for m in reversed(rows)]
+
+
+def coach_history(db: Session, user_id: int, limit: int = 50) -> list[dict]:
+    rows = db.scalars(
+        select(CoachMessage)
+        .where(CoachMessage.user_id == user_id)
+        .order_by(CoachMessage.created_at.desc())
+        .limit(limit)
+    ).all()
+    return [
+        {"role": m.role, "content": m.content, "created_at": m.created_at.isoformat()}
+        for m in reversed(rows)
+    ]
+
+
+async def coach(db: Session, user: User, message: str) -> dict:
+    provider, _units = _resolve(db, user)
+    profile = get_or_create_profile(db, user.id)
+    system = prompts.coach_system_prompt(
+        user.display_name,
+        profile_summary(profile),
+        _recent_training_summary(db, user.id),
+    )
+    convo = _recent_coach_messages(db, user.id) + [{"role": "user", "content": message}]
+
+    t0 = time.monotonic()
+    reply = await provider.complete_text(system=system, messages=convo)
+    latency_ms = int((time.monotonic() - t0) * 1000)
+
+    db.add(CoachMessage(user_id=user.id, role="user", content=message))
+    db.add(CoachMessage(user_id=user.id, role="assistant", content=reply))
+    db.commit()
+
+    return {
+        "provider": provider.name,
+        "model": provider.model,
+        "latency_ms": latency_ms,
+        "reply": reply,
+    }
+
+
 __all__ = [
     "available_providers",
     "parse_sets",
@@ -267,5 +352,7 @@ __all__ = [
     "profile_dict",
     "profile_summary",
     "check_in",
+    "coach",
+    "coach_history",
     "AIError",
 ]

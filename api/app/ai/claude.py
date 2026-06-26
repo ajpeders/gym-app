@@ -43,3 +43,25 @@ class ClaudeProvider:
             return json.loads(raw)
         except json.JSONDecodeError as exc:
             raise AIError(f"Claude returned unparseable JSON: {exc}") from exc
+
+    async def complete_text(self, *, system: str, messages: list[dict]) -> str:
+        try:
+            from anthropic import AsyncAnthropic
+        except ImportError as exc:  # pragma: no cover
+            raise AIError("anthropic SDK not installed") from exc
+        try:
+            async with AsyncAnthropic(api_key=self.api_key, timeout=self.timeout) as client:
+                resp = await client.messages.create(
+                    model=self.model,
+                    max_tokens=1024,
+                    system=system,
+                    messages=messages,
+                )
+        except Exception as exc:  # noqa: BLE001
+            raise AIError(f"Claude request failed: {exc!r}") from exc
+        text = "".join(
+            getattr(b, "text", "") for b in resp.content if getattr(b, "type", None) == "text"
+        ).strip()
+        if not text:
+            raise AIError("Claude returned no text content")
+        return text

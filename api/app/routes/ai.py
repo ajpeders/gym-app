@@ -27,6 +27,10 @@ class CheckinRequest(BaseModel):
     text: str
 
 
+class CoachRequest(BaseModel):
+    message: str
+
+
 @router.get("/providers")
 def providers(user: User = Depends(get_current_user)) -> dict:
     return service.available_providers()
@@ -73,5 +77,27 @@ async def check_in(
         raise HTTPException(status_code=400, detail="text is required")
     try:
         return await service.check_in(db, user, text)
+    except AIError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+
+@router.get("/coach/history")
+def coach_history(
+    db: Session = Depends(get_db), user: User = Depends(get_current_user)
+) -> dict:
+    return {"messages": service.coach_history(db, user.id)}
+
+
+@router.post("/coach")
+async def coach(
+    body: CoachRequest,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> dict:
+    message = (body.message or "").strip()
+    if not message:
+        raise HTTPException(status_code=400, detail="message is required")
+    try:
+        return await service.coach(db, user, message)
     except AIError as exc:
         raise HTTPException(status_code=502, detail=str(exc)) from exc

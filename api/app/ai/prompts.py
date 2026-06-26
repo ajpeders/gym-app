@@ -86,6 +86,23 @@ def checkin_user_prompt(current_profile_json: str, text: str) -> str:
     return f"Current profile:\n{current_profile_json}\n\nCheck-in:\n{text}"
 
 
+def coach_system_prompt(display_name: str | None, profile_summary: str, history_summary: str) -> str:
+    name = display_name or "the athlete"
+    profile = f"\n\nAthlete profile: {profile_summary}" if profile_summary else ""
+    history = f"\n\nRecent training:\n{history_summary}" if history_summary else ""
+    return (
+        f"You are {name}'s personal strength & hypertrophy coach inside their training app. "
+        "Talk like a knowledgeable, direct coach — concise and practical, not a chatbot. "
+        "Ground your advice in their profile and recent training; reference real numbers when "
+        "relevant. ALWAYS respect flagged injuries/limitations — modify or substitute, never "
+        "program straight through them — and use only the equipment they have. If they ask what "
+        "to train today, give a concrete ordered session (exercise — sets×reps — rough load) they "
+        "can start now. Don't make medical claims; for real pain, suggest seeing a professional. "
+        "Keep replies short unless they ask for detail."
+        f"{profile}{history}"
+    )
+
+
 def user_prompt(text: str, hint_names: list[str]) -> str:
     hint = ""
     if hint_names:

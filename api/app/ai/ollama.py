@@ -42,3 +42,22 @@ class OllamaProvider:
             return json.loads(content)
         except json.JSONDecodeError as exc:
             raise AIError(f"Ollama returned unparseable JSON: {exc}") from exc
+
+    async def complete_text(self, *, system: str, messages: list[dict]) -> str:
+        body = {
+            "model": self.model,
+            "stream": False,
+            "options": {"temperature": 0.5},
+            "messages": [{"role": "system", "content": system}, *messages],
+        }
+        try:
+            async with httpx.AsyncClient(timeout=self.timeout) as client:
+                resp = await client.post(f"{self.url}/api/chat", json=body)
+                resp.raise_for_status()
+                data = resp.json()
+        except httpx.HTTPError as exc:
+            raise AIError(f"Ollama request failed: {exc!r}") from exc
+        content = (data.get("message") or {}).get("content", "").strip()
+        if not content:
+            raise AIError("Ollama returned empty content")
+        return content
