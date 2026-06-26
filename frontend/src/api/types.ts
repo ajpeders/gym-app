@@ -148,6 +148,47 @@ export interface Settings {
   rest_timer_default: number;
 }
 
+// ---- AI (Phase 3) ----
+
+export interface AiProviderInfo {
+  configured: boolean;
+  model: string;
+}
+
+export interface AiProviders {
+  default: 'ollama' | 'claude';
+  providers: {
+    ollama: AiProviderInfo;
+    claude: AiProviderInfo;
+  };
+}
+
+export type ParsedSetType = 'warmup' | 'working' | 'drop' | 'failure';
+export type ParsedMatch = 'exact' | 'fuzzy' | 'none';
+
+export interface ParsedSet {
+  reps: number;
+  weight: number | null;
+  rpe: number | null;
+  set_type: ParsedSetType;
+}
+
+export interface ParsedItem {
+  exercise_name: string;
+  exercise_id: number | null;
+  match: ParsedMatch;
+  sets: ParsedSet[];
+  notes: string | null;
+}
+
+export interface ParseResult {
+  provider: string;
+  model: string;
+  units: string;
+  latency_ms: number;
+  items: ParsedItem[];
+}
+
 export interface StatsSummary {
   total_workouts: number;
   this_week: number;

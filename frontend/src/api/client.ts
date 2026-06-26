@@ -1,11 +1,13 @@
 import { getItem, TOKEN_KEY } from '@/lib/storage';
 import type {
+  AiProviders,
   AuthResponse,
   Exercise,
   ExerciseQuery,
   Metric,
   MetricInput,
   Paginated,
+  ParseResult,
   Routine,
   RoutineInput,
   Settings,
@@ -172,4 +174,9 @@ export const api = {
 
   // ---- stats ----
   statsSummary: () => request<StatsSummary>('/stats/summary'),
+
+  // ---- ai (Phase 3) ----
+  aiProviders: () => request<AiProviders>('/ai/providers'),
+  parseSets: (input: { text: string; workout_id?: number }) =>
+    request<ParseResult>('/ai/parse-sets', { method: 'POST', body: input }),
 };

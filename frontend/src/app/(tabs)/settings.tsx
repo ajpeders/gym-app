@@ -1,7 +1,8 @@
-import { useState } from 'react';
-import { Pressable, Switch, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { ActivityIndicator, Pressable, Switch, TextInput, View } from 'react-native';
 
-import type { AiProvider, Units } from '@/api/types';
+import { api } from '@/api/client';
+import type { AiProvider, AiProviders, Units } from '@/api/types';
 import { useAuth } from '@/state/auth';
 import { useSettings } from '@/state/settings';
 import { Screen } from '@/components/ui/Screen';
@@ -151,20 +152,7 @@ export default function SettingsScreen() {
       <Text variant="label" className="mb-2">
         AI PROVIDER
       </Text>
-      <Card className="mb-1">
-        <Segmented<AiProvider>
-          options={[
-            { label: 'Ollama', value: 'ollama' },
-            { label: 'Claude', value: 'claude' },
-            { label: 'On-device', value: 'on-device' },
-          ]}
-          value={settings.ai_provider}
-          onChange={(ai_provider) => patch(() => update({ ai_provider }))}
-        />
-      </Card>
-      <Text variant="caption" className="mb-4">
-        AI features are not active yet - this only stores your preference.
-      </Text>
+      <AiProviderControl patch={patch} />
 
       <Text variant="label" className="mb-2">
         REST TIMER
@@ -184,5 +172,177 @@ export default function SettingsScreen() {
 
       <Button title="Log out" variant="danger" onPress={() => void logout()} />
     </Screen>
+  );
+}
+
+const PROVIDER_OPTIONS: { label: string; value: AiProvider; disabled?: boolean }[] = [
+  { label: 'Ollama', value: 'ollama' },
+  { label: 'Claude', value: 'claude' },
+  { label: 'On-device', value: 'on-device', disabled: true },
+];
+
+function AiProviderControl({
+  patch,
+}: {
+  patch: (fn: () => Promise<void>) => Promise<void>;
+}) {
+  const { settings, update } = useSettings();
+  const [providers, setProviders] = useState<AiProviders | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [model, setModel] = useState(settings.ai_model ?? '');
+
+  useEffect(() => {
+    setModel(settings.ai_model ?? '');
+  }, [settings.ai_model]);
+
+  useEffect(() => {
+    let alive = true;
+    setLoading(true);
+    api
+      .aiProviders()
+      .then((p) => {
+        if (alive) setProviders(p);
+      })
+      .catch(() => {
+        if (alive) setProviders(null);
+      })
+      .finally(() => {
+        if (alive) setLoading(false);
+      });
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  const selected = settings.ai_provider;
+  const selectedInfo =
+    selected === 'ollama'
+      ? providers?.providers.ollama
+      : selected === 'claude'
+        ? providers?.providers.claude
+        : undefined;
+  const selectedUnconfigured = selectedInfo ? !selectedInfo.configured : false;
+  const placeholderModel = selectedInfo?.model ?? 'server default';
+
+  function commitModel() {
+    const trimmed = model.trim();
+    const next = trimmed === '' ? null : trimmed;
+    if (next === (settings.ai_model ?? null)) return;
+    void patch(() => update({ ai_model: next }));
+  }
+
+  function ProviderStatus({
+    name,
+    info,
+  }: {
+    name: string;
+    info?: { configured: boolean; model: string };
+  }) {
+    return (
+      <View className="flex-row items-center justify-between py-1">
+        <View className="flex-1 pr-3">
+          <Text variant="subheading">{name}</Text>
+          <Text variant="caption" className="mt-0.5">
+            {info ? `model: ${info.model}` : 'unavailable'}
+          </Text>
+        </View>
+        {info ? (
+          info.configured ? (
+            <Text variant="caption" className="font-bold text-green-400">
+              ● ready
+            </Text>
+          ) : (
+            <Text variant="caption" className="font-bold text-iron-400">
+              ○ not configured
+            </Text>
+          )
+        ) : null}
+      </View>
+    );
+  }
+
+  return (
+    <>
+      <Card className="mb-3 gap-1">
+        {loading ? (
+          <View className="flex-row items-center py-1">
+            <ActivityIndicator color="#f97316" />
+            <Text variant="muted" className="ml-2">
+              Checking providers…
+            </Text>
+          </View>
+        ) : providers ? (
+          <>
+            <ProviderStatus name="Ollama" info={providers.providers.ollama} />
+            <View className="h-px bg-iron-800" />
+            <ProviderStatus name="Claude" info={providers.providers.claude} />
+            {!providers.providers.claude.configured ? (
+              <Text variant="caption" className="mt-0.5 text-iron-400">
+                Claude needs GYM_CLAUDE_API_KEY set on the server.
+              </Text>
+            ) : null}
+          </>
+        ) : (
+          <Text variant="muted">Couldn’t reach the AI service.</Text>
+        )}
+      </Card>
+
+      <Card className="mb-1">
+        <View className="flex-row rounded-lg border border-iron-700 bg-iron-950 p-1">
+          {PROVIDER_OPTIONS.map((opt) => {
+            const active = opt.value === selected;
+            return (
+              <Pressable
+                key={opt.value}
+                disabled={opt.disabled}
+                onPress={() => patch(() => update({ ai_provider: opt.value }))}
+                className={`flex-1 items-center rounded-md py-2 ${active ? 'bg-brand' : ''} ${
+                  opt.disabled ? 'opacity-40' : ''
+                }`}>
+                <Text
+                  className={`text-sm font-bold ${active ? 'text-iron-950' : 'text-iron-400'}`}>
+                  {opt.label}
+                </Text>
+                {opt.disabled ? (
+                  <Text className="text-[10px] text-iron-500">soon</Text>
+                ) : null}
+              </Pressable>
+            );
+          })}
+        </View>
+      </Card>
+
+      {selectedUnconfigured ? (
+        <View className="mb-1 mt-1 rounded-lg border border-red-500/40 bg-red-500/10 px-3 py-2">
+          <Text className="text-sm font-medium text-red-400">
+            {selected === 'claude'
+              ? 'Claude isn’t configured — set GYM_CLAUDE_API_KEY on the server.'
+              : `${selected} isn’t configured on the server.`}
+          </Text>
+        </View>
+      ) : null}
+
+      <Text variant="caption" className="mb-2 mt-1">
+        Parse sets from plain English on the active-workout screen.
+      </Text>
+
+      <Card className="mb-6">
+        <Text className="mb-1.5 text-sm font-bold text-iron-100">Model override (optional)</Text>
+        <TextInput
+          value={model}
+          onChangeText={setModel}
+          onEndEditing={commitModel}
+          onBlur={commitModel}
+          autoCapitalize="none"
+          autoCorrect={false}
+          placeholder={placeholderModel}
+          placeholderTextColor="#78716c"
+          className="rounded-lg border border-iron-700 bg-iron-900 px-4 py-3 text-base text-iron-50"
+        />
+        <Text variant="caption" className="mt-1.5">
+          Leave empty to use the server default for the selected provider.
+        </Text>
+      </Card>
+    </>
   );
 }

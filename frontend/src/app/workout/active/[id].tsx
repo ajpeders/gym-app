@@ -13,6 +13,7 @@ import { Card } from '@/components/ui/Card';
 import { Loading } from '@/components/ui/Feedback';
 import { RestTimerBar } from '@/components/workout/RestTimerBar';
 import { ActiveExerciseCard } from '@/components/workout/ActiveExerciseCard';
+import { NaturalLanguageLog } from '@/components/workout/NaturalLanguageLog';
 import { formatDuration } from '@/lib/format';
 
 function confirm(title: string, message: string, onConfirm: () => void, destructive = false) {
@@ -35,6 +36,7 @@ export default function ActiveWorkoutScreen() {
     workout,
     activeId,
     load,
+    refresh,
     addSet,
     removeSet,
     removeExercise,
@@ -138,6 +140,9 @@ export default function ActiveWorkoutScreen() {
         <View className="mb-3">
           <RestTimerBar timer={timer} />
         </View>
+
+        {/* natural-language set logging */}
+        <NaturalLanguageLog workoutId={workout.id} units={settings.units} onApplied={refresh} />
 
         {/* in-set AI prompt stub */}
         {settings.feature_flags.in_set_prompts ? (
