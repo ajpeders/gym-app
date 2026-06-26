@@ -10,6 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from .config import get_settings
 from .db import SessionLocal, init_db
 from .routes import (
+    ai,
     auth,
     exercises,
     health,
@@ -63,6 +64,6 @@ app.add_middleware(
 )
 
 api = APIRouter(prefix="/api")
-for module in (health, auth, exercises, routines, workouts, metrics, settings, stats):
+for module in (health, auth, exercises, routines, workouts, metrics, settings, stats, ai):
     api.include_router(module.router)
 app.include_router(api)

@@ -18,6 +18,15 @@ class Settings(BaseSettings):
     cors_origins: str = "*"
     seed_on_start: bool = True
 
+    # --- AI (Phase 3) ---
+    # Default provider when a user hasn't chosen one in their settings.
+    ai_provider: str = "ollama"
+    ollama_url: str = "http://192.168.0.40:11434"
+    ollama_model: str = "qwen2.5:7b-instruct"
+    claude_api_key: str = ""
+    claude_model: str = "claude-opus-4-8"  # configurable; claude-haiku-4-5 is the cheap option
+    ai_timeout: float = 120.0  # generous for cold model loads on first request
+
     @property
     def database_url(self) -> str:
         return f"sqlite:///{self.data_dir.rstrip('/')}/gym.db"
