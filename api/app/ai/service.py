@@ -1,4 +1,4 @@
-"""Provider selection, exercise matching, and the parse entrypoint."""
+"""Provider selection, exercise matching, and the parse entrypoints."""
 from __future__ import annotations
 
 import re
@@ -9,7 +9,15 @@ from sqlalchemy.orm import Session
 
 from ..config import get_settings
 from ..models import Exercise, Settings, User, WorkoutExercise
-from .base import AIError, Provider
+from . import prompts
+from .base import (
+    PARSE_SCHEMA,
+    PROGRAM_SCHEMA,
+    AIError,
+    ParsedProgram,
+    ParsedWorkout,
+    Provider,
+)
 from .claude import ClaudeProvider
 from .ollama import OllamaProvider
 
@@ -29,14 +37,8 @@ def available_providers() -> dict:
     return {
         "default": cfg.ai_provider,
         "providers": {
-            "ollama": {
-                "configured": bool(cfg.ollama_url),
-                "model": cfg.ollama_model,
-            },
-            "claude": {
-                "configured": bool(cfg.claude_api_key),
-                "model": cfg.claude_model,
-            },
+            "ollama": {"configured": bool(cfg.ollama_url), "model": cfg.ollama_model},
+            "claude": {"configured": bool(cfg.claude_api_key), "model": cfg.claude_model},
         },
     }
 
@@ -69,8 +71,7 @@ def match_exercise(db: Session, user_id: int, name: str) -> tuple[int | None, st
         toks = _norm(ex_name)
         if " ".join(toks) == tstr:
             return ex_id, "exact"
-        # All target words present in the catalog name -> fuzzy; prefer the shortest name.
-        if tset.issubset(set(toks)):
+        if tset.issubset(set(toks)):  # all target words present -> fuzzy; prefer shortest name
             if best is None or len(toks) < best[2]:
                 best = (ex_id, "fuzzy", len(toks))
     if best:
@@ -93,8 +94,17 @@ async def parse_sets(db: Session, user: User, text: str, workout_id: int | None 
         ]
 
     t0 = time.monotonic()
-    parsed = await provider.parse(text=text, units=units, hint_names=hint_names)
+    data = await provider.complete_json(
+        system=prompts.system_prompt(units),
+        user=prompts.user_prompt(text, hint_names),
+        schema=PARSE_SCHEMA,
+    )
     latency_ms = int((time.monotonic() - t0) * 1000)
+
+    try:
+        parsed = ParsedWorkout.model_validate(data)
+    except Exception as exc:  # noqa: BLE001
+        raise AIError(f"Model output did not match the expected shape: {exc}") from exc
 
     items = []
     for ex in parsed.exercises:
@@ -103,12 +113,11 @@ async def parse_sets(db: Session, user: User, text: str, workout_id: int | None 
             {
                 "exercise_name": ex.exercise,
                 "exercise_id": ex_id,
-                "match": match,  # exact | fuzzy | none
+                "match": match,
                 "sets": [s.model_dump() for s in ex.sets],
                 "notes": ex.notes,
             }
         )
-
     return {
         "provider": provider.name,
         "model": provider.model,
@@ -118,4 +127,54 @@ async def parse_sets(db: Session, user: User, text: str, workout_id: int | None 
     }
 
 
-__all__ = ["available_providers", "parse_sets", "match_exercise", "AIError"]
+async def parse_routine(db: Session, user: User, text: str) -> dict:
+    """Parse a multi-day program (notes-app text) into structured routines."""
+    provider, units = _resolve(db, user)
+
+    t0 = time.monotonic()
+    data = await provider.complete_json(
+        system=prompts.routine_system_prompt(units),
+        user=prompts.routine_user_prompt(text),
+        schema=PROGRAM_SCHEMA,
+    )
+    latency_ms = int((time.monotonic() - t0) * 1000)
+
+    try:
+        program = ParsedProgram.model_validate(data)
+    except Exception as exc:  # noqa: BLE001
+        raise AIError(f"Model output did not match the expected shape: {exc}") from exc
+
+    routines = []
+    for r in program.routines:
+        exercises = []
+        for e in r.exercises:
+            ex_id, match = match_exercise(db, user.id, e.exercise)
+            exercises.append(
+                {
+                    "exercise_name": e.exercise,
+                    "exercise_id": ex_id,
+                    "match": match,
+                    "target_sets": e.target_sets,
+                    "target_reps": e.target_reps,
+                    "target_weight": e.target_weight,
+                    "notes": e.notes,
+                }
+            )
+        routines.append(
+            {
+                "name": r.name,
+                "notes": r.notes,
+                "rest_day": r.rest_day,
+                "exercises": exercises,
+            }
+        )
+    return {
+        "provider": provider.name,
+        "model": provider.model,
+        "units": units,
+        "latency_ms": latency_ms,
+        "routines": routines,
+    }
+
+
+__all__ = ["available_providers", "parse_sets", "parse_routine", "match_exercise", "AIError"]

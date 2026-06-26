@@ -36,6 +36,29 @@ def system_prompt(units: str) -> str:
     return _RULES.format(units=units) + "\n\n" + _EXAMPLE
 
 
+_ROUTINE_RULES = (
+    "You convert a multi-day workout PROGRAM (pasted from a notes app) into structured "
+    "routines. Each training day becomes one routine; keep the day's heading as the routine name.\n"
+    "Rules:\n"
+    "- Rest or walk days: set rest_day true and leave exercises empty.\n"
+    "- For each exercise, capture the name and any target weight in {units}.\n"
+    "- A weight range like '50-60' or '50 lb - 60lb' -> use the higher number for target_weight "
+    "and note the range in notes.\n"
+    "- Vague or non-numeric detail ('tbd', 'shake at top', 'or walking lunges', a time like "
+    "'45-60 seconds') -> leave the numeric fields null and put that detail in notes.\n"
+    "- Sets and reps are usually NOT given -> leave target_sets/target_reps null unless stated.\n"
+    "- Never invent numbers. Preserve the user's exercise names."
+)
+
+
+def routine_system_prompt(units: str) -> str:
+    return _ROUTINE_RULES.format(units=units)
+
+
+def routine_user_prompt(text: str) -> str:
+    return f"Program:\n{text}"
+
+
 def user_prompt(text: str, hint_names: list[str]) -> str:
     hint = ""
     if hint_names:

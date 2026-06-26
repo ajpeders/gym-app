@@ -70,9 +70,74 @@ PARSE_SCHEMA: dict = {
 }
 
 
+# --- Routine/program import (multi-day plan from a notes app) ---
+
+
+class ParsedRoutineExercise(BaseModel):
+    exercise: str
+    target_sets: Optional[int] = None
+    target_reps: Optional[int] = None
+    target_weight: Optional[float] = None
+    notes: Optional[str] = None
+
+
+class ParsedRoutine(BaseModel):
+    name: str
+    notes: Optional[str] = None
+    rest_day: bool = False
+    exercises: list[ParsedRoutineExercise] = Field(default_factory=list)
+
+
+class ParsedProgram(BaseModel):
+    routines: list[ParsedRoutine] = Field(default_factory=list)
+
+
+PROGRAM_SCHEMA: dict = {
+    "type": "object",
+    "additionalProperties": False,
+    "properties": {
+        "routines": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "additionalProperties": False,
+                "properties": {
+                    "name": {"type": "string"},
+                    "notes": {"anyOf": [{"type": "string"}, {"type": "null"}]},
+                    "rest_day": {"type": "boolean"},
+                    "exercises": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "additionalProperties": False,
+                            "properties": {
+                                "exercise": {"type": "string"},
+                                "target_sets": {"anyOf": [{"type": "integer"}, {"type": "null"}]},
+                                "target_reps": {"anyOf": [{"type": "integer"}, {"type": "null"}]},
+                                "target_weight": {"anyOf": [{"type": "number"}, {"type": "null"}]},
+                                "notes": {"anyOf": [{"type": "string"}, {"type": "null"}]},
+                            },
+                            "required": [
+                                "exercise",
+                                "target_sets",
+                                "target_reps",
+                                "target_weight",
+                                "notes",
+                            ],
+                        },
+                    },
+                },
+                "required": ["name", "notes", "rest_day", "exercises"],
+            },
+        }
+    },
+    "required": ["routines"],
+}
+
+
 class Provider(Protocol):
     name: str
     model: str
 
-    async def parse(self, *, text: str, units: str, hint_names: list[str]) -> ParsedWorkout:
+    async def complete_json(self, *, system: str, user: str, schema: dict) -> dict:
         ...
