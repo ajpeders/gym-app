@@ -64,6 +64,25 @@ class Settings(Base):
     user: Mapped["User"] = relationship(back_populates="settings")
 
 
+class AthleteProfile(Base):
+    """Persistent per-user memory the AI reads + writes — the companion's backbone."""
+
+    __tablename__ = "athlete_profile"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("user.id", ondelete="CASCADE"), unique=True, nullable=False
+    )
+    experience_level: Mapped[Optional[str]] = mapped_column(String, nullable=True)  # beginner|intermediate|advanced
+    goals: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    injuries: Mapped[list[str]] = mapped_column(JSON, default=list)
+    equipment: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    preferences: Mapped[Optional[str]] = mapped_column(Text, nullable=True)  # cues that land, likes/dislikes
+    notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)        # durable AI-maintained memory
+    session_note: Mapped[Optional[str]] = mapped_column(Text, nullable=True) # transient pre-session check-in
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, onupdate=utcnow)
+
+
 class Exercise(Base):
     __tablename__ = "exercise"
 

@@ -23,6 +23,10 @@ class RoutineRequest(BaseModel):
     text: str
 
 
+class CheckinRequest(BaseModel):
+    text: str
+
+
 @router.get("/providers")
 def providers(user: User = Depends(get_current_user)) -> dict:
     return service.available_providers()
@@ -54,5 +58,20 @@ async def parse_routine(
         raise HTTPException(status_code=400, detail="text is required")
     try:
         return await service.parse_routine(db, user, text)
+    except AIError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+
+@router.post("/check-in")
+async def check_in(
+    body: CheckinRequest,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> dict:
+    text = (body.text or "").strip()
+    if not text:
+        raise HTTPException(status_code=400, detail="text is required")
+    try:
+        return await service.check_in(db, user, text)
     except AIError as exc:
         raise HTTPException(status_code=502, detail=str(exc)) from exc

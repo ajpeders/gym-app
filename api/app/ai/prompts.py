@@ -59,6 +59,33 @@ def routine_user_prompt(text: str) -> str:
     return f"Program:\n{text}"
 
 
+_CHECKIN_SYSTEM = (
+    "You maintain a strength athlete's persistent training profile for a coaching app. "
+    "Given the current profile (JSON) and a new check-in message, return the UPDATED profile.\n"
+    "Rules:\n"
+    "- Preserve every existing fact unless the message changes it.\n"
+    "- Merge new info: add to injuries, refine goals / preferences / equipment / experience_level.\n"
+    "- Any pain, niggle, or limitation ('tweaky', 'tight', 'bad knee', 'go lighter because X') is a "
+    "DURABLE fact -> add a short phrase to injuries, e.g. 'left shoulder - tweaky on overhead press'. "
+    "Only remove an injury if the athlete says it's fully resolved/healed (feeling good for one day is "
+    "not resolved -> keep it, and note the good day in session_note).\n"
+    "- Put anything specific to *today's* session ('shoulder tight, going lighter', 'short on time') "
+    "into session_note. If the message clearly starts a fresh session with no transient note, you may "
+    "set session_note to null.\n"
+    "- 'notes' is concise durable memory (cues that land, recurring patterns) — keep it tight.\n"
+    "- Never invent facts. Return all fields (unchanged ones as their current value).\n"
+    "- Also return a one-sentence friendly acknowledgement of what you recorded."
+)
+
+
+def checkin_system_prompt() -> str:
+    return _CHECKIN_SYSTEM
+
+
+def checkin_user_prompt(current_profile_json: str, text: str) -> str:
+    return f"Current profile:\n{current_profile_json}\n\nCheck-in:\n{text}"
+
+
 def user_prompt(text: str, hint_names: list[str]) -> str:
     hint = ""
     if hint_names:

@@ -1,6 +1,7 @@
 """Provider selection, exercise matching, and the parse entrypoints."""
 from __future__ import annotations
 
+import json
 import re
 import time
 
@@ -8,12 +9,14 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from ..config import get_settings
-from ..models import Exercise, Settings, User, WorkoutExercise
+from ..models import AthleteProfile, Exercise, Settings, User, WorkoutExercise
 from . import prompts
 from .base import (
+    CHECKIN_SCHEMA,
     PARSE_SCHEMA,
     PROGRAM_SCHEMA,
     AIError,
+    CheckinResult,
     ParsedProgram,
     ParsedWorkout,
     Provider,
@@ -177,4 +180,92 @@ async def parse_routine(db: Session, user: User, text: str) -> dict:
     }
 
 
-__all__ = ["available_providers", "parse_sets", "parse_routine", "match_exercise", "AIError"]
+# --- Athlete memory ---
+
+_PROFILE_FIELDS = (
+    "experience_level",
+    "goals",
+    "injuries",
+    "equipment",
+    "preferences",
+    "notes",
+    "session_note",
+)
+
+
+def get_or_create_profile(db: Session, user_id: int) -> AthleteProfile:
+    p = db.scalar(select(AthleteProfile).where(AthleteProfile.user_id == user_id))
+    if p is None:
+        p = AthleteProfile(user_id=user_id)
+        db.add(p)
+        db.commit()
+        db.refresh(p)
+    return p
+
+
+def profile_dict(p: AthleteProfile) -> dict:
+    return {f: getattr(p, f) for f in _PROFILE_FIELDS}
+
+
+def profile_summary(p: AthleteProfile) -> str:
+    """Compact natural-language summary for injecting into coach/parse prompts."""
+    parts = []
+    if p.experience_level:
+        parts.append(f"Level: {p.experience_level}.")
+    if p.goals:
+        parts.append(f"Goals: {p.goals}.")
+    if p.injuries:
+        parts.append(f"Injuries/limitations: {', '.join(p.injuries)}.")
+    if p.equipment:
+        parts.append(f"Equipment: {p.equipment}.")
+    if p.preferences:
+        parts.append(f"Preferences: {p.preferences}.")
+    if p.session_note:
+        parts.append(f"Today: {p.session_note}.")
+    return " ".join(parts)
+
+
+async def check_in(db: Session, user: User, text: str) -> dict:
+    """Update the athlete profile from a natural-language check-in via the AI."""
+    provider, _units = _resolve(db, user)
+    p = get_or_create_profile(db, user.id)
+    current_json = json.dumps(profile_dict(p), ensure_ascii=False)
+
+    t0 = time.monotonic()
+    data = await provider.complete_json(
+        system=prompts.checkin_system_prompt(),
+        user=prompts.checkin_user_prompt(current_json, text),
+        schema=CHECKIN_SCHEMA,
+    )
+    latency_ms = int((time.monotonic() - t0) * 1000)
+
+    try:
+        result = CheckinResult.model_validate(data)
+    except Exception as exc:  # noqa: BLE001
+        raise AIError(f"Model output did not match the expected shape: {exc}") from exc
+
+    for f in _PROFILE_FIELDS:
+        setattr(p, f, getattr(result, f))
+    db.commit()
+    db.refresh(p)
+
+    return {
+        "provider": provider.name,
+        "model": provider.model,
+        "latency_ms": latency_ms,
+        "acknowledgement": result.acknowledgement,
+        "profile": profile_dict(p),
+    }
+
+
+__all__ = [
+    "available_providers",
+    "parse_sets",
+    "parse_routine",
+    "match_exercise",
+    "get_or_create_profile",
+    "profile_dict",
+    "profile_summary",
+    "check_in",
+    "AIError",
+]

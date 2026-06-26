@@ -135,6 +135,51 @@ PROGRAM_SCHEMA: dict = {
 }
 
 
+# --- Athlete-memory check-in (AI updates the persistent profile) ---
+
+
+class CheckinResult(BaseModel):
+    experience_level: Optional[str] = None
+    goals: Optional[str] = None
+    injuries: list[str] = Field(default_factory=list)
+    equipment: Optional[str] = None
+    preferences: Optional[str] = None
+    notes: Optional[str] = None
+    session_note: Optional[str] = None
+    acknowledgement: str = ""
+
+
+CHECKIN_SCHEMA: dict = {
+    "type": "object",
+    "additionalProperties": False,
+    "properties": {
+        "experience_level": {
+            "anyOf": [
+                {"type": "string", "enum": ["beginner", "intermediate", "advanced"]},
+                {"type": "null"},
+            ]
+        },
+        "goals": {"anyOf": [{"type": "string"}, {"type": "null"}]},
+        "injuries": {"type": "array", "items": {"type": "string"}},
+        "equipment": {"anyOf": [{"type": "string"}, {"type": "null"}]},
+        "preferences": {"anyOf": [{"type": "string"}, {"type": "null"}]},
+        "notes": {"anyOf": [{"type": "string"}, {"type": "null"}]},
+        "session_note": {"anyOf": [{"type": "string"}, {"type": "null"}]},
+        "acknowledgement": {"type": "string"},
+    },
+    "required": [
+        "experience_level",
+        "goals",
+        "injuries",
+        "equipment",
+        "preferences",
+        "notes",
+        "session_note",
+        "acknowledgement",
+    ],
+}
+
+
 class Provider(Protocol):
     name: str
     model: str
