@@ -49,14 +49,24 @@ def _user_settings(db: Session, user_id: int) -> Settings | None:
     return db.scalar(select(Settings).where(Settings.user_id == user_id))
 
 
+def _normalize_url(url: str | None) -> str:
+    url = (url or "").strip().rstrip("/")
+    if url and not url.startswith(("http://", "https://")):
+        url = "http://" + url  # tolerate "host:11434" without a scheme
+    return url
+
+
+def _is_claude_model(m: str | None) -> bool:
+    return bool(m) and m.strip().lower().startswith("claude")
+
+
 async def list_models(db: Session, user: User) -> dict:
     """Discover which models are installed on the user's (or default) Ollama."""
     cfg = get_settings()
     s = _user_settings(db, user.id)
-    url = s.ollama_url if s and s.ollama_url else None
-    if not url:
+    if not (s and s.ollama_url):
         raise AIError("Add your Ollama server URL in Settings first.")
-    url = url.rstrip("/")
+    url = _normalize_url(s.ollama_url)
     try:
         async with httpx.AsyncClient(timeout=8.0) as client:
             resp = await client.get(f"{url}/api/tags")
@@ -69,8 +79,8 @@ async def list_models(db: Session, user: User) -> dict:
         for m in data.get("models", [])
         if m.get("name") and "embed" not in (m.get("name") or "")
     ]
-    s = _user_settings(db, user.id)
-    current = (s.ai_model if s and s.ai_model else None) or cfg.ollama_model
+    ollama_model = s.ai_model if s and s.ai_model and not _is_claude_model(s.ai_model) else None
+    current = ollama_model or cfg.ollama_model
     return {"provider": "ollama", "url": url, "current": current, "models": models}
 
 
@@ -107,7 +117,10 @@ def available_providers(db: Session, user: User) -> dict:
             "ollama": {
                 "configured": ollama_configured,
                 "url": (s.ollama_url if s and s.ollama_url else None),
-                "model": (s.ai_model if s and s.ai_model else None) or cfg.ollama_model,
+                "model": (
+                    s.ai_model if s and s.ai_model and not _is_claude_model(s.ai_model) else None
+                )
+                or cfg.ollama_model,
             },
             "claude": {"configured": claude_configured, "model": cfg.claude_model},
         },
@@ -121,15 +134,18 @@ def _resolve(db: Session, user: User) -> tuple[Provider, str]:
     model = s.ai_model if s and s.ai_model else None
     units = (s.units if s and s.units else "kg")
     if provider == "claude":
-        key = s.claude_api_key if s and s.claude_api_key else None
+        key = s.claude_api_key.strip() if s and s.claude_api_key else None
         if not key:
             raise AIError("Claude isn't set up yet — add your API key in Settings.")
-        return ClaudeProvider(key, model or cfg.claude_model, cfg.ai_timeout), units
+        # ai_model is shared across providers; only honor it for Claude if it IS a Claude model.
+        cmodel = model if _is_claude_model(model) else cfg.claude_model
+        return ClaudeProvider(key, cmodel, cfg.ai_timeout), units
     # No silent default: each user brings their own Ollama. Not set up -> error.
-    ollama_url = s.ollama_url if s and s.ollama_url else None
+    ollama_url = _normalize_url(s.ollama_url) if s and s.ollama_url else None
     if not ollama_url:
         raise AIError("Local AI isn't set up yet — add your Ollama server in Settings.")
-    return OllamaProvider(ollama_url, model or cfg.ollama_model, cfg.ai_timeout), units
+    omodel = model if (model and not _is_claude_model(model)) else cfg.ollama_model
+    return OllamaProvider(ollama_url, omodel, cfg.ai_timeout), units
 
 
 def match_exercise(db: Session, user_id: int, name: str) -> tuple[int | None, str]:
