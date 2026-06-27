@@ -35,6 +35,7 @@ SessionLocal = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False
 # so new columns on existing tables must be ALTERed in. Idempotent.
 _ADDED_COLUMNS: list[tuple[str, str, str]] = [
     ("settings", "ollama_url", "VARCHAR"),
+    ("settings", "claude_api_key", "VARCHAR"),
 ]
 
 

@@ -58,6 +58,7 @@ class Settings(Base):
     ai_provider: Mapped[str] = mapped_column(String, default="ollama")
     ai_model: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     ollama_url: Mapped[Optional[str]] = mapped_column(String, nullable=True)  # per-user Ollama server
+    claude_api_key: Mapped[Optional[str]] = mapped_column(String, nullable=True)  # per-user, write-only
     feature_flags: Mapped[dict[str, Any]] = mapped_column(
         JSON, default=lambda: {"quick_buttons": True, "in_set_prompts": False}
     )

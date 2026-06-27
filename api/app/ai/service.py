@@ -96,7 +96,7 @@ def available_providers(db: Session, user: User) -> dict:
     s = _user_settings(db, user.id)
     provider = (s.ai_provider if s and s.ai_provider else cfg.ai_provider) or "ollama"
     ollama_configured = bool(s and s.ollama_url)
-    claude_configured = bool(cfg.claude_api_key)
+    claude_configured = bool(s and s.claude_api_key)
     configured = claude_configured if provider == "claude" else ollama_configured
     return {
         "default": cfg.ai_provider,
@@ -121,7 +121,10 @@ def _resolve(db: Session, user: User) -> tuple[Provider, str]:
     model = s.ai_model if s and s.ai_model else None
     units = (s.units if s and s.units else "kg")
     if provider == "claude":
-        return ClaudeProvider(cfg.claude_api_key, model or cfg.claude_model, cfg.ai_timeout), units
+        key = s.claude_api_key if s and s.claude_api_key else None
+        if not key:
+            raise AIError("Claude isn't set up yet — add your API key in Settings.")
+        return ClaudeProvider(key, model or cfg.claude_model, cfg.ai_timeout), units
     # No silent default: each user brings their own Ollama. Not set up -> error.
     ollama_url = s.ollama_url if s and s.ollama_url else None
     if not ollama_url:

@@ -265,6 +265,7 @@ class SettingsUpdate(BaseModel):
     ai_provider: Optional[str] = None
     ai_model: Optional[str] = None
     ollama_url: Optional[str] = None
+    claude_api_key: Optional[str] = None  # write-only; never returned in SettingsOut
     feature_flags: Optional[dict[str, Any]] = None
     rest_timer_default: Optional[int] = None
 
