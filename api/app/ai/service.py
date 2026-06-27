@@ -53,7 +53,10 @@ async def list_models(db: Session, user: User) -> dict:
     """Discover which models are installed on the user's (or default) Ollama."""
     cfg = get_settings()
     s = _user_settings(db, user.id)
-    url = (s.ollama_url if s and s.ollama_url else cfg.ollama_url).rstrip("/")
+    url = s.ollama_url if s and s.ollama_url else None
+    if not url:
+        raise AIError("Add your Ollama server URL in Settings first.")
+    url = url.rstrip("/")
     try:
         async with httpx.AsyncClient(timeout=8.0) as client:
             resp = await client.get(f"{url}/api/tags")
@@ -88,13 +91,25 @@ async def test_provider(db: Session, user: User) -> dict:
     }
 
 
-def available_providers() -> dict:
+def available_providers(db: Session, user: User) -> dict:
     cfg = get_settings()
+    s = _user_settings(db, user.id)
+    provider = (s.ai_provider if s and s.ai_provider else cfg.ai_provider) or "ollama"
+    ollama_configured = bool(s and s.ollama_url)
+    claude_configured = bool(cfg.claude_api_key)
+    configured = claude_configured if provider == "claude" else ollama_configured
     return {
         "default": cfg.ai_provider,
+        "provider": provider,
+        "configured": configured,  # is the user's active provider usable?
+        "suggested_ollama_url": cfg.ollama_url,  # a hint for the setup field, NOT applied
         "providers": {
-            "ollama": {"configured": bool(cfg.ollama_url), "model": cfg.ollama_model},
-            "claude": {"configured": bool(cfg.claude_api_key), "model": cfg.claude_model},
+            "ollama": {
+                "configured": ollama_configured,
+                "url": (s.ollama_url if s and s.ollama_url else None),
+                "model": (s.ai_model if s and s.ai_model else None) or cfg.ollama_model,
+            },
+            "claude": {"configured": claude_configured, "model": cfg.claude_model},
         },
     }
 
@@ -107,7 +122,10 @@ def _resolve(db: Session, user: User) -> tuple[Provider, str]:
     units = (s.units if s and s.units else "kg")
     if provider == "claude":
         return ClaudeProvider(cfg.claude_api_key, model or cfg.claude_model, cfg.ai_timeout), units
-    ollama_url = (s.ollama_url if s and s.ollama_url else cfg.ollama_url)
+    # No silent default: each user brings their own Ollama. Not set up -> error.
+    ollama_url = s.ollama_url if s and s.ollama_url else None
+    if not ollama_url:
+        raise AIError("Local AI isn't set up yet — add your Ollama server in Settings.")
     return OllamaProvider(ollama_url, model or cfg.ollama_model, cfg.ai_timeout), units
 
 

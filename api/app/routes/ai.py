@@ -32,8 +32,10 @@ class CoachRequest(BaseModel):
 
 
 @router.get("/providers")
-def providers(user: User = Depends(get_current_user)) -> dict:
-    return service.available_providers()
+def providers(
+    db: Session = Depends(get_db), user: User = Depends(get_current_user)
+) -> dict:
+    return service.available_providers(db, user)
 
 
 @router.get("/models")
