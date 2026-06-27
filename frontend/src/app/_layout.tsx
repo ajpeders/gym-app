@@ -59,6 +59,7 @@ function RootNavigator() {
       <Stack.Screen name="routine/[id]" />
       <Stack.Screen name="routine/new" />
       <Stack.Screen name="profile" />
+      <Stack.Screen name="coach" />
     </Stack>
   );
 }

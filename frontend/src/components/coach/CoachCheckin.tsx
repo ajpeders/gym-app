@@ -109,6 +109,15 @@ export function CoachCheckin({ onUpdated, className }: Props) {
             Your coach is thinking… this can take a few seconds.
           </Text>
         ) : null}
+
+        <Pressable
+          onPress={() => router.push('/coach')}
+          accessibilityRole="button"
+          className="mt-3 flex-row items-center justify-center active:opacity-60">
+          <Text variant="label" className="text-brand">
+            💬 Ask your coach ›
+          </Text>
+        </Pressable>
       </View>
 
       {result ? (

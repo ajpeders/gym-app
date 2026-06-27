@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react';
-import { RefreshControl, ScrollView, View } from 'react-native';
+import { Pressable, RefreshControl, ScrollView, View } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 
 import { api } from '@/api/client';
 import type { StatsSummary, Workout } from '@/api/types';
@@ -121,6 +122,22 @@ export default function HomeScreen() {
             onPress={onStartBlank}
           />
         )}
+
+        <Pressable
+          onPress={() => router.push('/coach')}
+          accessibilityRole="button"
+          className="mt-4 flex-row items-center rounded-lg border border-brand bg-brand px-4 py-3.5 active:bg-brand-600">
+          <View className="mr-3 h-10 w-10 items-center justify-center rounded-full bg-iron-950/20">
+            <Ionicons name="chatbubbles" size={22} color="#080706" />
+          </View>
+          <View className="flex-1">
+            <Text className="text-base font-black text-iron-950">Chat with your coach</Text>
+            <Text className="text-sm font-medium text-iron-950/80">
+              Ask what to train, work around injuries, plan your week
+            </Text>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color="#080706" />
+        </Pressable>
 
         <View className="mt-4">
           <CoachCheckin />

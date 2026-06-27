@@ -4,6 +4,8 @@ import type {
   AthleteProfile,
   AuthResponse,
   CheckinResult,
+  CoachMessage,
+  CoachReply,
   Exercise,
   ExerciseQuery,
   Metric,
@@ -188,4 +190,9 @@ export const api = {
     request<AthleteProfile>('/profile', { method: 'PATCH', body: patch }),
   checkIn: (text: string) =>
     request<CheckinResult>('/ai/check-in', { method: 'POST', body: { text } }),
+
+  // ---- coach chat ----
+  coachHistory: () => request<{ messages: CoachMessage[] }>('/ai/coach/history'),
+  coachSend: (message: string) =>
+    request<CoachReply>('/ai/coach', { method: 'POST', body: { message } }),
 };

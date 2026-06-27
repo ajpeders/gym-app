@@ -209,6 +209,21 @@ export interface CheckinResult {
   profile: AthleteProfile;
 }
 
+// ---- Coach chat ----
+
+export interface CoachMessage {
+  role: 'user' | 'assistant';
+  content: string;
+  created_at?: string;
+}
+
+export interface CoachReply {
+  provider: string;
+  model: string;
+  latency_ms: number;
+  reply: string;
+}
+
 export interface StatsSummary {
   total_workouts: number;
   this_week: number;
