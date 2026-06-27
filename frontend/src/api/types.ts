@@ -149,6 +149,13 @@ export interface Settings {
   rest_timer_default: number;
 }
 
+// Write-only settings patch. `claude_api_key` is accepted by PATCH /settings
+// (empty string clears it) but is never returned by GET /settings, so it lives
+// here rather than on the read-side `Settings` type.
+export interface SettingsUpdate extends Partial<Settings> {
+  claude_api_key?: string;
+}
+
 // ---- AI (Phase 3) ----
 
 export interface AiProviderInfo {

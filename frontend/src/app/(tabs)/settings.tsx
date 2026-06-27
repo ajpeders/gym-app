@@ -282,24 +282,61 @@ function AiProviderControl({
     }
   }
 
-  useEffect(() => {
-    let alive = true;
+  const loadProviders = useCallback(async () => {
     setLoading(true);
-    api
-      .aiProviders()
-      .then((p) => {
-        if (alive) setProviders(p);
-      })
-      .catch(() => {
-        if (alive) setProviders(null);
-      })
-      .finally(() => {
-        if (alive) setLoading(false);
-      });
-    return () => {
-      alive = false;
-    };
+    try {
+      const p = await api.aiProviders();
+      setProviders(p);
+    } catch {
+      setProviders(null);
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    void loadProviders();
+  }, [loadProviders]);
+
+  // ---- Claude API key (per-user, write-only) ----
+  const claudeConfigured = providers?.providers.claude.configured ?? false;
+  const [keyInput, setKeyInput] = useState('');
+  const [keySaving, setKeySaving] = useState(false);
+  const [keyReplacing, setKeyReplacing] = useState(false);
+  const [keyError, setKeyError] = useState<string | null>(null);
+
+  async function saveClaudeKey() {
+    const trimmed = keyInput.trim();
+    if (trimmed === '') return; // empty Save is a no-op; use Remove to clear.
+    setKeySaving(true);
+    setKeyError(null);
+    try {
+      await update({ claude_api_key: trimmed });
+      setKeyInput('');
+      setKeyReplacing(false);
+      // Re-fetch so `configured` flips and gates (Coach/Home) update.
+      await loadProviders();
+    } catch (err) {
+      setKeyError(err instanceof ApiError ? err.message : 'Failed to save key.');
+    } finally {
+      setKeySaving(false);
+    }
+  }
+
+  async function removeClaudeKey() {
+    setKeySaving(true);
+    setKeyError(null);
+    try {
+      await update({ claude_api_key: '' });
+      setKeyInput('');
+      setKeyReplacing(false);
+      await loadProviders();
+    } catch (err) {
+      setKeyError(err instanceof ApiError ? err.message : 'Failed to remove key.');
+    } finally {
+      setKeySaving(false);
+    }
+  }
 
   const selectedInfo =
     selected === 'ollama'
@@ -367,7 +404,7 @@ function AiProviderControl({
             <ProviderStatus name="Claude" info={providers.providers.claude} />
             {!providers.providers.claude.configured ? (
               <Text variant="caption" className="mt-0.5 text-iron-400">
-                Claude needs GYM_CLAUDE_API_KEY set on the server.
+                Claude needs your Anthropic API key — add it below.
               </Text>
             ) : null}
           </>
@@ -405,7 +442,7 @@ function AiProviderControl({
         selected === 'claude' ? (
           <View className="mb-1 mt-1 rounded-lg border border-red-500/40 bg-red-500/10 px-3 py-2">
             <Text className="text-sm font-medium text-red-400">
-              Claude isn’t configured — set GYM_CLAUDE_API_KEY on the server.
+              Claude isn’t set up yet — add your API key below.
             </Text>
           </View>
         ) : (
@@ -529,6 +566,78 @@ function AiProviderControl({
         </Card>
         </>
       ) : (
+        <>
+        {selected === 'claude' ? (
+          <Card className="mb-3">
+            <Text className="mb-1.5 text-sm font-bold text-iron-100">Claude API key</Text>
+            {claudeConfigured && !keyReplacing ? (
+              <>
+                <Text className="text-sm font-bold text-brand">✓ API key saved</Text>
+                <Text variant="caption" className="mt-1 text-iron-400">
+                  Stored securely on the server — it can’t be displayed again.
+                </Text>
+                <View className="mt-2.5 flex-row items-center gap-5">
+                  <Pressable
+                    onPress={() => {
+                      setKeyError(null);
+                      setKeyReplacing(true);
+                    }}
+                    disabled={keySaving}>
+                    <Text className="text-sm font-bold text-brand">Replace key</Text>
+                  </Pressable>
+                  <Pressable onPress={() => void removeClaudeKey()} disabled={keySaving}>
+                    <Text className="text-sm font-bold text-red-400">Remove</Text>
+                  </Pressable>
+                </View>
+                {keyError ? (
+                  <Text className="mt-2 text-sm font-medium text-red-400">{keyError}</Text>
+                ) : null}
+              </>
+            ) : (
+              <>
+                <TextInput
+                  value={keyInput}
+                  onChangeText={setKeyInput}
+                  secureTextEntry
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  placeholder="sk-ant-…"
+                  placeholderTextColor="#78716c"
+                  className="rounded-lg border border-iron-700 bg-iron-900 px-4 py-3 text-base text-iron-50"
+                />
+                <Text variant="caption" className="mt-1.5 text-iron-400">
+                  Paste your Anthropic API key (sk-ant-…)
+                </Text>
+                <Text variant="caption" className="mt-0.5 text-iron-500">
+                  Get one at console.anthropic.com
+                </Text>
+                <View className="mt-2.5 flex-row items-center gap-3">
+                  <Button
+                    title="Save"
+                    size="sm"
+                    loading={keySaving}
+                    disabled={keyInput.trim() === ''}
+                    onPress={() => void saveClaudeKey()}
+                  />
+                  {claudeConfigured ? (
+                    <Pressable
+                      onPress={() => {
+                        setKeyInput('');
+                        setKeyError(null);
+                        setKeyReplacing(false);
+                      }}
+                      disabled={keySaving}>
+                      <Text className="text-sm font-bold text-iron-400">Cancel</Text>
+                    </Pressable>
+                  ) : null}
+                </View>
+                {keyError ? (
+                  <Text className="mt-2 text-sm font-medium text-red-400">{keyError}</Text>
+                ) : null}
+              </>
+            )}
+          </Card>
+        ) : null}
         <Card className="mb-3">
           <Text className="mb-1.5 text-sm font-bold text-iron-100">Model override (optional)</Text>
           <TextInput
@@ -546,6 +655,7 @@ function AiProviderControl({
             Leave empty to use the server default for the selected provider.
           </Text>
         </Card>
+        </>
       )}
 
       <Card className="mb-6">

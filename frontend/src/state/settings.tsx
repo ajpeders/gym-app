@@ -1,7 +1,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 
 import { api } from '@/api/client';
-import type { Settings } from '@/api/types';
+import type { Settings, SettingsUpdate } from '@/api/types';
 import { useAuth } from './auth';
 
 const DEFAULT_SETTINGS: Settings = {
@@ -16,7 +16,7 @@ interface SettingsContextValue {
   settings: Settings;
   loading: boolean;
   refresh: () => Promise<void>;
-  update: (patch: Partial<Settings>) => Promise<void>;
+  update: (patch: SettingsUpdate) => Promise<void>;
 }
 
 const SettingsContext = createContext<SettingsContextValue | null>(null);
@@ -47,7 +47,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
   }, [user, refresh]);
 
   const update = useCallback(
-    async (patch: Partial<Settings>) => {
+    async (patch: SettingsUpdate) => {
       // optimistic
       setSettings((prev) => ({
         ...prev,

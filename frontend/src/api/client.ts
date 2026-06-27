@@ -18,6 +18,7 @@ import type {
   Routine,
   RoutineInput,
   Settings,
+  SettingsUpdate,
   SetInput,
   StatsSummary,
   User,
@@ -176,7 +177,7 @@ export const api = {
 
   // ---- settings ----
   settings: () => request<Settings>('/settings'),
-  updateSettings: (input: Partial<Settings>) =>
+  updateSettings: (input: SettingsUpdate) =>
     request<Settings>('/settings', { method: 'PATCH', body: input }),
 
   // ---- stats ----
