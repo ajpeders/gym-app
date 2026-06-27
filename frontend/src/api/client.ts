@@ -1,6 +1,8 @@
 import { getItem, TOKEN_KEY } from '@/lib/storage';
 import type {
+  AiModelsResult,
   AiProviders,
+  AiTestResult,
   AthleteProfile,
   AuthResponse,
   CheckinResult,
@@ -182,6 +184,8 @@ export const api = {
 
   // ---- ai (Phase 3) ----
   aiProviders: () => request<AiProviders>('/ai/providers'),
+  aiModels: () => request<AiModelsResult>('/ai/models'),
+  aiTest: () => request<AiTestResult>('/ai/test', { method: 'POST' }),
   parseSets: (input: { text: string; workout_id?: number }) =>
     request<ParseResult>('/ai/parse-sets', { method: 'POST', body: input }),
   parseRoutine: (text: string): Promise<ParseRoutineResult> =>

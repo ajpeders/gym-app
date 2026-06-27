@@ -145,6 +145,7 @@ export interface Settings {
   feature_flags: FeatureFlags;
   ai_provider: AiProvider;
   ai_model: string | null;
+  ollama_url?: string | null;
   rest_timer_default: number;
 }
 
@@ -161,6 +162,26 @@ export interface AiProviders {
     ollama: AiProviderInfo;
     claude: AiProviderInfo;
   };
+}
+
+export interface OllamaModel {
+  name: string;
+  size: string | null;
+}
+
+export interface AiModelsResult {
+  provider: string;
+  url: string;
+  current: string;
+  models: OllamaModel[];
+}
+
+export interface AiTestResult {
+  ok: boolean;
+  provider: string;
+  model: string;
+  latency_ms: number;
+  sample: string;
 }
 
 export type ParsedSetType = 'warmup' | 'working' | 'drop' | 'failure';

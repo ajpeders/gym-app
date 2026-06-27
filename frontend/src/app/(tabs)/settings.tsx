@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, Switch, TextInput, View } from 'react-native';
 import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 
-import { api } from '@/api/client';
-import type { AiProvider, AiProviders, Units } from '@/api/types';
+import { api, ApiError } from '@/api/client';
+import type { AiModelsResult, AiProvider, AiProviders, Units } from '@/api/types';
 import { useAuth } from '@/state/auth';
 import { useSettings } from '@/state/settings';
 import { Screen } from '@/components/ui/Screen';
@@ -204,10 +205,72 @@ function AiProviderControl({
   const [providers, setProviders] = useState<AiProviders | null>(null);
   const [loading, setLoading] = useState(true);
   const [model, setModel] = useState(settings.ai_model ?? '');
+  const [urlInput, setUrlInput] = useState(settings.ollama_url ?? '');
+
+  const selected = settings.ai_provider;
+  const isOllama = selected === 'ollama';
+
+  // Discovered local (Ollama) models.
+  const [models, setModels] = useState<AiModelsResult | null>(null);
+  const [modelsLoading, setModelsLoading] = useState(false);
+  const [modelsError, setModelsError] = useState<string | null>(null);
+  const [ollamaUrl, setOllamaUrl] = useState<string | null>(null);
+
+  // Test-connection result.
+  const [testing, setTesting] = useState(false);
+  const [testResult, setTestResult] = useState<{ ok: boolean; text: string } | null>(null);
+
+  const loadModels = useCallback(async () => {
+    setModelsLoading(true);
+    setModelsError(null);
+    try {
+      const res = await api.aiModels();
+      setModels(res);
+      setOllamaUrl(res.url);
+    } catch (err) {
+      setModels(null);
+      setModelsError(err instanceof ApiError ? err.message : 'Failed to load models.');
+    } finally {
+      setModelsLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     setModel(settings.ai_model ?? '');
   }, [settings.ai_model]);
+
+  useEffect(() => {
+    setUrlInput(settings.ollama_url ?? '');
+  }, [settings.ollama_url]);
+
+  async function commitOllamaUrl() {
+    const trimmed = urlInput.trim();
+    if (trimmed === (settings.ollama_url ?? '')) return;
+    await patch(() => update({ ollama_url: trimmed }));
+    // Re-resolve models/Test against the (possibly new) server.
+    await loadModels();
+  }
+
+  useEffect(() => {
+    if (isOllama) void loadModels();
+  }, [isOllama, loadModels]);
+
+  async function runTest() {
+    setTesting(true);
+    setTestResult(null);
+    try {
+      const res = await api.aiTest();
+      setTestResult({
+        ok: true,
+        text: `${res.model} responded in ${res.latency_ms} ms`,
+      });
+    } catch (err) {
+      const message = err instanceof ApiError ? err.message : 'Test failed.';
+      setTestResult({ ok: false, text: message });
+    } finally {
+      setTesting(false);
+    }
+  }
 
   useEffect(() => {
     let alive = true;
@@ -228,7 +291,6 @@ function AiProviderControl({
     };
   }, []);
 
-  const selected = settings.ai_provider;
   const selectedInfo =
     selected === 'ollama'
       ? providers?.providers.ollama
@@ -340,22 +402,143 @@ function AiProviderControl({
         Parse sets from plain English on the active-workout screen.
       </Text>
 
+      {isOllama ? (
+        <>
+        <Card className="mb-3">
+          <Text className="mb-1.5 text-sm font-bold text-iron-100">Ollama server URL</Text>
+          <TextInput
+            value={urlInput}
+            onChangeText={setUrlInput}
+            onEndEditing={() => void commitOllamaUrl()}
+            onBlur={() => void commitOllamaUrl()}
+            autoCapitalize="none"
+            autoCorrect={false}
+            keyboardType="url"
+            placeholder={ollamaUrl ?? 'http://localhost:11434'}
+            placeholderTextColor="#78716c"
+            className="rounded-lg border border-iron-700 bg-iron-900 px-4 py-3 text-base text-iron-50"
+          />
+          {urlInput.trim() === '' ? (
+            <Text variant="caption" className="mt-1.5 text-iron-400">
+              {`Using default${ollamaUrl ? ` (${ollamaUrl})` : ''}.`}
+            </Text>
+          ) : (
+            <Text variant="caption" className="mt-1.5">
+              {`Leave blank to use the default${ollamaUrl ? ` (${ollamaUrl})` : ''}.`}
+            </Text>
+          )}
+        </Card>
+        <Card className="mb-3">
+          <View className="mb-2 flex-row items-center justify-between">
+            <Text className="text-sm font-bold text-iron-100">Local model</Text>
+            {ollamaUrl ? (
+              <Text variant="caption" className="text-iron-500">
+                {ollamaUrl}
+              </Text>
+            ) : null}
+          </View>
+
+          {modelsLoading ? (
+            <View className="flex-row items-center py-2">
+              <ActivityIndicator color="#f97316" />
+              <Text variant="muted" className="ml-2">
+                Finding installed models…
+              </Text>
+            </View>
+          ) : modelsError ? (
+            <View className="rounded-lg border border-red-500/40 bg-red-500/10 px-3 py-2">
+              <Text className="text-sm font-medium text-red-400">
+                {`Can't reach your local AI${
+                  ollamaUrl ? ` at ${ollamaUrl}` : ''
+                } — is Ollama running?`}
+              </Text>
+              <Pressable onPress={() => void loadModels()} className="mt-2 self-start">
+                <Text className="text-sm font-bold text-brand">Retry</Text>
+              </Pressable>
+            </View>
+          ) : models && models.models.length > 0 ? (
+            <View className="gap-1.5">
+              {models.models.map((m) => {
+                const activeModel = settings.ai_model ?? models.current;
+                const active = m.name === activeModel;
+                return (
+                  <Pressable
+                    key={m.name}
+                    onPress={() => patch(() => update({ ai_model: m.name }))}
+                    className={`flex-row items-center justify-between rounded-lg border px-3 py-2.5 ${
+                      active ? 'border-brand bg-brand/10' : 'border-iron-700 bg-iron-900'
+                    }`}>
+                    <View className="flex-1 pr-2">
+                      <Text
+                        className={`text-sm font-bold ${active ? 'text-brand' : 'text-iron-100'}`}>
+                        {m.name}
+                        {m.size ? (
+                          <Text className="font-normal text-iron-500">{` · ${m.size}`}</Text>
+                        ) : null}
+                      </Text>
+                    </View>
+                    {active ? (
+                      <Ionicons name="checkmark-circle" size={18} color="#f97316" />
+                    ) : null}
+                  </Pressable>
+                );
+              })}
+            </View>
+          ) : (
+            <Text variant="muted" className="py-1">
+              No models installed. Pull one with `ollama pull` on the server.
+            </Text>
+          )}
+        </Card>
+        </>
+      ) : (
+        <Card className="mb-3">
+          <Text className="mb-1.5 text-sm font-bold text-iron-100">Model override (optional)</Text>
+          <TextInput
+            value={model}
+            onChangeText={setModel}
+            onEndEditing={commitModel}
+            onBlur={commitModel}
+            autoCapitalize="none"
+            autoCorrect={false}
+            placeholder={placeholderModel}
+            placeholderTextColor="#78716c"
+            className="rounded-lg border border-iron-700 bg-iron-900 px-4 py-3 text-base text-iron-50"
+          />
+          <Text variant="caption" className="mt-1.5">
+            Leave empty to use the server default for the selected provider.
+          </Text>
+        </Card>
+      )}
+
       <Card className="mb-6">
-        <Text className="mb-1.5 text-sm font-bold text-iron-100">Model override (optional)</Text>
-        <TextInput
-          value={model}
-          onChangeText={setModel}
-          onEndEditing={commitModel}
-          onBlur={commitModel}
-          autoCapitalize="none"
-          autoCorrect={false}
-          placeholder={placeholderModel}
-          placeholderTextColor="#78716c"
-          className="rounded-lg border border-iron-700 bg-iron-900 px-4 py-3 text-base text-iron-50"
-        />
-        <Text variant="caption" className="mt-1.5">
-          Leave empty to use the server default for the selected provider.
-        </Text>
+        <Pressable
+          onPress={() => void runTest()}
+          disabled={testing}
+          className={`flex-row items-center justify-center rounded-lg border border-iron-700 bg-iron-800 px-4 py-3 active:bg-iron-700 ${
+            testing ? 'opacity-60' : ''
+          }`}>
+          {testing ? (
+            <ActivityIndicator color="#f97316" />
+          ) : (
+            <>
+              <Ionicons name="flash-outline" size={16} color="#f97316" />
+              <Text className="ml-1.5 text-base font-semibold text-iron-50">Test connection</Text>
+            </>
+          )}
+        </Pressable>
+        {testResult ? (
+          <Text
+            className={`mt-2 text-sm font-medium ${
+              testResult.ok ? 'text-green-400' : 'text-red-400'
+            }`}>
+            {testResult.ok ? `✓ ${testResult.text}` : `✗ ${testResult.text}`}
+          </Text>
+        ) : (
+          <Text variant="caption" className="mt-2">
+            Runs a quick round-trip against your active provider and model.
+          </Text>
+        )}
       </Card>
     </>
   );
