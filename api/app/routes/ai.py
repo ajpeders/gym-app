@@ -36,6 +36,26 @@ def providers(user: User = Depends(get_current_user)) -> dict:
     return service.available_providers()
 
 
+@router.get("/models")
+async def models(
+    db: Session = Depends(get_db), user: User = Depends(get_current_user)
+) -> dict:
+    try:
+        return await service.list_models(db, user)
+    except AIError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+
+@router.post("/test")
+async def test(
+    db: Session = Depends(get_db), user: User = Depends(get_current_user)
+) -> dict:
+    try:
+        return await service.test_provider(db, user)
+    except AIError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+
 @router.post("/parse-sets")
 async def parse_sets(
     body: ParseRequest,

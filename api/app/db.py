@@ -30,11 +30,34 @@ engine = _make_engine()
 SessionLocal = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False, future=True)
 
 
+# Lightweight additive migrations for SQLite (no Alembic yet): columns added to
+# existing tables after first deploy. create_all() only creates missing *tables*,
+# so new columns on existing tables must be ALTERed in. Idempotent.
+_ADDED_COLUMNS: list[tuple[str, str, str]] = [
+    ("settings", "ollama_url", "VARCHAR"),
+]
+
+
+def _ensure_columns() -> None:
+    from sqlalchemy import inspect
+
+    inspector = inspect(engine)
+    existing_tables = set(inspector.get_table_names())
+    with engine.begin() as conn:
+        for table, column, coltype in _ADDED_COLUMNS:
+            if table not in existing_tables:
+                continue
+            cols = {c["name"] for c in inspector.get_columns(table)}
+            if column not in cols:
+                conn.exec_driver_sql(f"ALTER TABLE {table} ADD COLUMN {column} {coltype}")
+
+
 def init_db() -> None:
-    """Create all tables. TODO: migrations (Alembic) — using create_all for now."""
+    """Create all tables, then apply additive column migrations. TODO: Alembic."""
     from . import models  # noqa: F401  (ensure models are registered)
 
     Base.metadata.create_all(bind=engine)
+    _ensure_columns()
 
 
 def get_db() -> Generator[Session, None, None]:

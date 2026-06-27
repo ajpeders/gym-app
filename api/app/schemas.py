@@ -255,6 +255,7 @@ class SettingsOut(BaseModel):
     units: str
     ai_provider: str
     ai_model: Optional[str] = None
+    ollama_url: Optional[str] = None
     feature_flags: dict[str, Any] = {}
     rest_timer_default: int
 
@@ -263,6 +264,7 @@ class SettingsUpdate(BaseModel):
     units: Optional[str] = None
     ai_provider: Optional[str] = None
     ai_model: Optional[str] = None
+    ollama_url: Optional[str] = None
     feature_flags: Optional[dict[str, Any]] = None
     rest_timer_default: Optional[int] = None
 

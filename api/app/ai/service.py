@@ -5,6 +5,7 @@ import json
 import re
 import time
 
+import httpx
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -48,6 +49,45 @@ def _user_settings(db: Session, user_id: int) -> Settings | None:
     return db.scalar(select(Settings).where(Settings.user_id == user_id))
 
 
+async def list_models(db: Session, user: User) -> dict:
+    """Discover which models are installed on the user's (or default) Ollama."""
+    cfg = get_settings()
+    s = _user_settings(db, user.id)
+    url = (s.ollama_url if s and s.ollama_url else cfg.ollama_url).rstrip("/")
+    try:
+        async with httpx.AsyncClient(timeout=8.0) as client:
+            resp = await client.get(f"{url}/api/tags")
+            resp.raise_for_status()
+            data = resp.json()
+    except httpx.HTTPError as exc:
+        raise AIError(f"Could not reach Ollama at {url}: {exc!r}") from exc
+    models = [
+        {"name": m.get("name"), "size": m.get("details", {}).get("parameter_size")}
+        for m in data.get("models", [])
+        if m.get("name") and "embed" not in (m.get("name") or "")
+    ]
+    s = _user_settings(db, user.id)
+    current = (s.ai_model if s and s.ai_model else None) or cfg.ollama_model
+    return {"provider": "ollama", "url": url, "current": current, "models": models}
+
+
+async def test_provider(db: Session, user: User) -> dict:
+    """Quick round-trip to confirm the user's active provider/model responds."""
+    provider, _units = _resolve(db, user)
+    t0 = time.monotonic()
+    reply = await provider.complete_text(
+        system="You are a connectivity check. Reply with one short word.",
+        messages=[{"role": "user", "content": "Reply with exactly: ready"}],
+    )
+    return {
+        "ok": True,
+        "provider": provider.name,
+        "model": provider.model,
+        "latency_ms": int((time.monotonic() - t0) * 1000),
+        "sample": reply[:80],
+    }
+
+
 def available_providers() -> dict:
     cfg = get_settings()
     return {
@@ -67,7 +107,8 @@ def _resolve(db: Session, user: User) -> tuple[Provider, str]:
     units = (s.units if s and s.units else "kg")
     if provider == "claude":
         return ClaudeProvider(cfg.claude_api_key, model or cfg.claude_model, cfg.ai_timeout), units
-    return OllamaProvider(cfg.ollama_url, model or cfg.ollama_model, cfg.ai_timeout), units
+    ollama_url = (s.ollama_url if s and s.ollama_url else cfg.ollama_url)
+    return OllamaProvider(ollama_url, model or cfg.ollama_model, cfg.ai_timeout), units
 
 
 def match_exercise(db: Session, user_id: int, name: str) -> tuple[int | None, str]:
