@@ -12,6 +12,7 @@ from sqlalchemy import (
     Integer,
     String,
     Text,
+    UniqueConstraint,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.types import JSON
@@ -81,6 +82,23 @@ class AthleteProfile(Base):
     notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)        # durable AI-maintained memory
     session_note: Mapped[Optional[str]] = mapped_column(Text, nullable=True) # transient pre-session check-in
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, onupdate=utcnow)
+
+
+class ScheduleDay(Base):
+    """Weekly training schedule — one routine (or rest) per weekday, per user."""
+
+    __tablename__ = "schedule_day"
+    __table_args__ = (UniqueConstraint("user_id", "weekday", name="uq_schedule_user_weekday"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("user.id", ondelete="CASCADE"), index=True, nullable=False
+    )
+    weekday: Mapped[int] = mapped_column(Integer, nullable=False)  # 0=Mon .. 6=Sun
+    routine_id: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("routine.id", ondelete="SET NULL"), nullable=True
+    )
+    is_rest: Mapped[bool] = mapped_column(Boolean, default=False)
 
 
 class CoachMessage(Base):

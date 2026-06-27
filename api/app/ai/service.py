@@ -35,8 +35,13 @@ from .ollama import OllamaProvider
 _WORD_RE = re.compile(r"[^a-z0-9 ]+")
 
 
+def _stem(tok: str) -> str:
+    # crude plural strip so "raises" matches "raise", "curls" matches "curl"
+    return tok[:-1] if len(tok) > 3 and tok.endswith("s") else tok
+
+
 def _norm(s: str) -> list[str]:
-    return _WORD_RE.sub(" ", (s or "").lower()).split()
+    return [_stem(t) for t in _WORD_RE.sub(" ", (s or "").lower()).split()]
 
 
 def _user_settings(db: Session, user_id: int) -> Settings | None:
@@ -72,21 +77,26 @@ def match_exercise(db: Session, user_id: int, name: str) -> tuple[int | None, st
             (Exercise.owner_id.is_(None)) | (Exercise.owner_id == user_id)
         )
     ).all()
-    target = _norm(name)
+    target = set(_norm(name))
     if not target:
         return None, "none"
-    tstr = " ".join(target)
-    tset = set(target)
-    best: tuple[int, str, int] | None = None
+    best: tuple[tuple[int, int], int] | None = None  # ((overlap, -size_diff), ex_id)
     for ex_id, ex_name in rows:
-        toks = _norm(ex_name)
-        if " ".join(toks) == tstr:
+        toks = set(_norm(ex_name))
+        if toks == target:
             return ex_id, "exact"
-        if tset.issubset(set(toks)):  # all target words present -> fuzzy; prefer shortest name
-            if best is None or len(toks) < best[2]:
-                best = (ex_id, "fuzzy", len(toks))
+        if not toks:
+            continue
+        inter = len(target & toks)
+        if inter == 0:
+            continue
+        # accept when one name's words are contained in the other (either direction)
+        if target <= toks or toks <= target:
+            score = (inter, -abs(len(toks) - len(target)))
+            if best is None or score > best[0]:
+                best = (score, ex_id)
     if best:
-        return best[0], best[1]
+        return best[1], "fuzzy"
     return None, "none"
 
 

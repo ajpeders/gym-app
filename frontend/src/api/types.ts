@@ -189,6 +189,33 @@ export interface ParseResult {
   items: ParsedItem[];
 }
 
+// ---- AI routine import (parse a pasted routine into structured routines) ----
+
+export interface ParsedRoutineExercise {
+  exercise_name: string;
+  exercise_id: number | null;
+  match: ParsedMatch;
+  target_sets: number | null;
+  target_reps: number | null;
+  target_weight: number | null;
+  notes: string | null;
+}
+
+export interface ParsedRoutine {
+  name: string;
+  notes: string | null;
+  rest_day: boolean;
+  exercises: ParsedRoutineExercise[];
+}
+
+export interface ParseRoutineResult {
+  provider: string;
+  model: string;
+  units: string;
+  latency_ms: number;
+  routines: ParsedRoutine[];
+}
+
 // ---- Athlete profile + coach check-in ----
 
 export interface AthleteProfile {

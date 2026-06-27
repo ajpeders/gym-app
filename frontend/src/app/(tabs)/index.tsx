@@ -4,7 +4,7 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
 import { api } from '@/api/client';
-import type { StatsSummary, Workout } from '@/api/types';
+import type { StatsSummary } from '@/api/types';
 import { useAuth } from '@/state/auth';
 import { useActiveWorkout } from '@/state/active-workout';
 import { useSettings } from '@/state/settings';
@@ -13,8 +13,7 @@ import { Text } from '@/components/ui/Text';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Loading } from '@/components/ui/Feedback';
-import { CoachCheckin } from '@/components/coach/CoachCheckin';
-import { formatWeight, relativeTime } from '@/lib/format';
+import { formatWeight } from '@/lib/format';
 
 function StatTile({ value, label }: { value: string | number; label: string }) {
   return (
@@ -36,19 +35,14 @@ export default function HomeScreen() {
   const { workout: active, start } = useActiveWorkout();
 
   const [stats, setStats] = useState<StatsSummary | null>(null);
-  const [recent, setRecent] = useState<Workout[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [starting, setStarting] = useState(false);
 
   const fetchData = useCallback(async () => {
     try {
-      const [s, w] = await Promise.all([
-        api.statsSummary().catch(() => null),
-        api.workouts({ limit: 5 }).catch(() => ({ items: [], total: 0 })),
-      ]);
+      const s = await api.statsSummary().catch(() => null);
       if (s) setStats(s);
-      setRecent(w.items.filter((it) => it.status === 'completed').slice(0, 5));
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -72,9 +66,7 @@ export default function HomeScreen() {
   }
 
   return (
-    <Screen
-      scroll={false}
-      padded={false}>
+    <Screen scroll={false} padded={false}>
       <ScrollView
         className="flex-1"
         contentContainerClassName="px-4 pt-2 pb-28"
@@ -123,24 +115,32 @@ export default function HomeScreen() {
           />
         )}
 
-        <Pressable
-          onPress={() => router.push('/coach')}
-          accessibilityRole="button"
-          className="mt-4 flex-row items-center rounded-lg border border-brand bg-brand px-4 py-3.5 active:bg-brand-600">
-          <View className="mr-3 h-10 w-10 items-center justify-center rounded-full bg-iron-950/20">
-            <Ionicons name="chatbubbles" size={22} color="#080706" />
-          </View>
-          <View className="flex-1">
-            <Text className="text-base font-black text-iron-950">Chat with your coach</Text>
-            <Text className="text-sm font-medium text-iron-950/80">
-              Ask what to train, work around injuries, plan your week
+        <View className="mt-4 flex-row gap-3">
+          <Pressable
+            onPress={() => router.push('/routine-import')}
+            accessibilityRole="button"
+            className="flex-1 rounded-lg border border-brand/50 bg-iron-900 p-4 active:opacity-70">
+            <View className="mb-2 h-9 w-9 items-center justify-center rounded-full bg-brand/15">
+              <Ionicons name="document-text-outline" size={20} color="#f97316" />
+            </View>
+            <Text variant="subheading">Import from notes</Text>
+            <Text variant="caption" className="mt-0.5">
+              Paste a routine, let AI build it
             </Text>
-          </View>
-          <Ionicons name="chevron-forward" size={20} color="#080706" />
-        </Pressable>
+          </Pressable>
 
-        <View className="mt-4">
-          <CoachCheckin />
+          <Pressable
+            onPress={() => router.push('/routines')}
+            accessibilityRole="button"
+            className="flex-1 rounded-lg border border-iron-700 bg-iron-900 p-4 active:opacity-70">
+            <View className="mb-2 h-9 w-9 items-center justify-center rounded-full bg-iron-800">
+              <Ionicons name="list-outline" size={20} color="#f97316" />
+            </View>
+            <Text variant="subheading">Routines</Text>
+            <Text variant="caption" className="mt-0.5">
+              View and start your plans
+            </Text>
+          </Pressable>
         </View>
 
         {loading ? (
@@ -174,40 +174,6 @@ export default function HomeScreen() {
                 </Card>
               </View>
             ) : null}
-
-            <View className="mt-6">
-              <View className="flex-row items-center justify-between mb-2">
-                <Text variant="heading">Recent workouts</Text>
-                <Text
-                  variant="label"
-                  className="text-brand"
-                  onPress={() => router.push('/(tabs)/workouts')}>
-                  See all
-                </Text>
-              </View>
-              {recent.length === 0 ? (
-                <Card>
-                  <Text variant="muted">No workouts yet. Start your first session above.</Text>
-                </Card>
-              ) : (
-                <View className="gap-2">
-                  {recent.map((w) => (
-                    <Card key={w.id} onPress={() => router.push(`/workout/${w.id}`)}>
-                      <View className="flex-row items-center justify-between">
-                        <Text variant="subheading" numberOfLines={1} className="flex-1">
-                          {w.name ?? 'Workout'}
-                        </Text>
-                        <Text variant="muted">{relativeTime(w.finished_at ?? w.started_at)}</Text>
-                      </View>
-                      <Text variant="muted" className="mt-0.5">
-                        {w.exercises.length} exercises ·{' '}
-                        {w.exercises.reduce((acc, e) => acc + e.sets.length, 0)} sets
-                      </Text>
-                    </Card>
-                  ))}
-                </View>
-              )}
-            </View>
           </>
         )}
       </ScrollView>

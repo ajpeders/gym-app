@@ -1,0 +1,473 @@
+import { useMemo, useState } from 'react';
+import { Pressable, ScrollView, TextInput, View } from 'react-native';
+import { Stack, useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+
+import { api, ApiError } from '@/api/client';
+import type {
+  ParsedMatch,
+  ParsedRoutine,
+  ParseRoutineResult,
+  RoutineExerciseInput,
+} from '@/api/types';
+import { Screen } from '@/components/ui/Screen';
+import { Text } from '@/components/ui/Text';
+import { Card } from '@/components/ui/Card';
+import { Button } from '@/components/ui/Button';
+import { Loading, FormError } from '@/components/ui/Feedback';
+
+type Phase = 'input' | 'parsing' | 'review' | 'saving' | 'done';
+
+const PLACEHOLDER = 'Paste your routine from Notes — multiple days are fine.';
+
+const MATCH_META: Record<ParsedMatch, { icon: string; label: string; className: string }> = {
+  exact: { icon: '✓', label: 'matched', className: 'border-green-500/40 bg-green-500/10 text-green-300' },
+  fuzzy: { icon: '~', label: 'close match', className: 'border-brand/40 bg-brand/10 text-brand' },
+  none: { icon: '⚠', label: 'will be created', className: 'border-amber-500/40 bg-amber-500/10 text-amber-300' },
+};
+
+function exKey(dayIdx: number, exIdx: number) {
+  return `${dayIdx}-${exIdx}`;
+}
+
+function MatchBadge({ match }: { match: ParsedMatch }) {
+  const meta = MATCH_META[match];
+  return (
+    <View className={`flex-row items-center rounded-md border px-2 py-0.5 ${meta.className}`}>
+      <Text className={`text-xs font-bold ${meta.className.split(' ').pop()}`}>
+        {meta.icon} {meta.label}
+      </Text>
+    </View>
+  );
+}
+
+function summarizeTargets(
+  sets: number | null,
+  reps: number | null,
+  weight: number | null,
+  units: string,
+): string | null {
+  const parts: string[] = [];
+  if (sets != null || reps != null) {
+    parts.push(`${sets ?? '?'} × ${reps ?? '?'}`);
+  }
+  if (weight != null) {
+    parts.push(`${weight} ${units}`);
+  }
+  return parts.length ? parts.join('  ·  ') : null;
+}
+
+export default function RoutineImportScreen() {
+  const router = useRouter();
+
+  const [text, setText] = useState('');
+  const [phase, setPhase] = useState<Phase>('input');
+  const [error, setError] = useState<string | null>(null);
+  const [result, setResult] = useState<ParseRoutineResult | null>(null);
+
+  const [includeDay, setIncludeDay] = useState<Record<number, boolean>>({});
+  const [includeExercise, setIncludeExercise] = useState<Record<string, boolean>>({});
+  const [expanded, setExpanded] = useState<Record<number, boolean>>({});
+
+  const [saveCurrent, setSaveCurrent] = useState(0);
+  const [saveTotal, setSaveTotal] = useState(0);
+  const [savedCount, setSavedCount] = useState(0);
+
+  const units = result?.units ?? 'kg';
+
+  const saveableCount = useMemo(() => {
+    if (!result) return 0;
+    return result.routines.filter((r, di) => includeDay[di] && !r.rest_day).length;
+  }, [result, includeDay]);
+
+  async function onParse() {
+    const trimmed = text.trim();
+    if (!trimmed) return;
+    setError(null);
+    setPhase('parsing');
+    try {
+      const res = await api.parseRoutine(trimmed);
+      const days: Record<number, boolean> = {};
+      const exs: Record<string, boolean> = {};
+      const exp: Record<number, boolean> = {};
+      res.routines.forEach((r, di) => {
+        days[di] = !r.rest_day; // rest days default to excluded from saving
+        exp[di] = true;
+        r.exercises.forEach((_, ei) => {
+          exs[exKey(di, ei)] = true;
+        });
+      });
+      setResult(res);
+      setIncludeDay(days);
+      setIncludeExercise(exs);
+      setExpanded(exp);
+      setPhase('review');
+    } catch (e) {
+      setPhase('input');
+      if (e instanceof ApiError && e.status === 502) {
+        setError('AI provider unavailable — check Settings.');
+      } else {
+        setError("Couldn't parse that, try rephrasing.");
+      }
+    }
+  }
+
+  async function onSave() {
+    if (!result) return;
+    const toSave = result.routines
+      .map((r, di) => ({ r, di }))
+      .filter(({ r, di }) => includeDay[di] && !r.rest_day);
+
+    setSaveTotal(toSave.length);
+    setSaveCurrent(0);
+    setError(null);
+    setPhase('saving');
+
+    try {
+      let done = 0;
+      for (const { r, di } of toSave) {
+        const exercises: RoutineExerciseInput[] = [];
+        let order = 0;
+        for (let ei = 0; ei < r.exercises.length; ei++) {
+          if (!includeExercise[exKey(di, ei)]) continue;
+          const ex = r.exercises[ei];
+          // No catalog match → create a custom exercise so nothing is lost.
+          let exerciseId: string;
+          if (ex.exercise_id === null) {
+            const created = await api.createExercise({ name: ex.exercise_name });
+            exerciseId = created.id;
+          } else {
+            exerciseId = String(ex.exercise_id);
+          }
+          exercises.push({
+            exercise_id: exerciseId,
+            order,
+            target_sets: ex.target_sets,
+            target_reps: ex.target_reps,
+            target_weight: ex.target_weight,
+          });
+          order += 1;
+        }
+        await api.createRoutine({
+          name: r.name,
+          notes: r.notes ?? undefined,
+          exercises,
+        });
+        done += 1;
+        setSaveCurrent(done);
+      }
+      setSavedCount(done);
+      setPhase('done');
+    } catch {
+      setError('Saving failed — some routines may not have saved. Try again.');
+      setPhase('review');
+    }
+  }
+
+  function toggleDay(di: number) {
+    setIncludeDay((prev) => ({ ...prev, [di]: !prev[di] }));
+  }
+  function toggleExpanded(di: number) {
+    setExpanded((prev) => ({ ...prev, [di]: !prev[di] }));
+  }
+  function toggleExercise(di: number, ei: number) {
+    setIncludeExercise((prev) => ({ ...prev, [exKey(di, ei)]: !prev[exKey(di, ei)] }));
+  }
+
+  function reset() {
+    setResult(null);
+    setError(null);
+    setPhase('input');
+  }
+
+  // ---- parsing spinner ----
+  if (phase === 'parsing') {
+    return (
+      <Screen scroll={false} padded={false}>
+        <Stack.Screen options={{ headerShown: true, title: 'Import routine' }} />
+        <Loading label="Reading your routine…" />
+        <Text variant="caption" className="px-6 pb-8 text-center">
+          The AI is parsing your notes — a full week can take 10–20 seconds.
+        </Text>
+      </Screen>
+    );
+  }
+
+  // ---- success ----
+  if (phase === 'done') {
+    return (
+      <Screen scroll={false} padded={false}>
+        <Stack.Screen options={{ headerShown: true, title: 'Import routine' }} />
+        <View className="flex-1 items-center justify-center px-6">
+          <View className="mb-4 h-16 w-16 items-center justify-center rounded-full border border-brand/40 bg-brand/10">
+            <Ionicons name="checkmark" size={34} color="#f97316" />
+          </View>
+          <Text variant="heading" className="text-center">
+            Saved {savedCount} {savedCount === 1 ? 'routine' : 'routines'}
+          </Text>
+          <Text variant="muted" className="mt-1.5 text-center">
+            Your routines are ready. Start a workout from any of them.
+          </Text>
+          <View className="mt-6 w-full gap-2">
+            <Button title="View routines" size="lg" onPress={() => router.replace('/routines')} />
+            <Button title="Import another" variant="secondary" onPress={reset} />
+          </View>
+        </View>
+      </Screen>
+    );
+  }
+
+  // ---- review ----
+  if (phase === 'review' || phase === 'saving') {
+    const saving = phase === 'saving';
+    return (
+      <Screen scroll={false} padded={false}>
+        <Stack.Screen options={{ headerShown: true, title: 'Review import' }} />
+        <ScrollView className="flex-1" contentContainerClassName="px-4 pt-3 pb-40">
+          <Text variant="muted" className="mb-3">
+            Found {result?.routines.length ?? 0} days. Toggle anything you don&apos;t want, then
+            save.
+          </Text>
+
+          {error ? (
+            <View className="mb-3">
+              <FormError message={error} />
+            </View>
+          ) : null}
+
+          {result?.routines.map((r, di) => (
+            <DayCard
+              key={di}
+              routine={r}
+              dayIdx={di}
+              units={units}
+              included={!!includeDay[di]}
+              expanded={!!expanded[di]}
+              includeExercise={includeExercise}
+              disabled={saving}
+              onToggleDay={() => toggleDay(di)}
+              onToggleExpanded={() => toggleExpanded(di)}
+              onToggleExercise={(ei) => toggleExercise(di, ei)}
+            />
+          ))}
+        </ScrollView>
+
+        <View className="border-t border-iron-800 bg-iron-950 px-4 pb-8 pt-3">
+          {saving ? (
+            <Text variant="caption" className="mb-2 text-center">
+              Saving routine {saveCurrent} of {saveTotal}…
+            </Text>
+          ) : null}
+          <View className="flex-row gap-2">
+            <View className="flex-1">
+              <Button
+                title="Back"
+                variant="secondary"
+                disabled={saving}
+                onPress={reset}
+              />
+            </View>
+            <View className="flex-[2]">
+              <Button
+                title={
+                  saving
+                    ? 'Saving…'
+                    : saveableCount > 0
+                      ? `Save ${saveableCount} ${saveableCount === 1 ? 'routine' : 'routines'}`
+                      : 'Nothing selected'
+                }
+                loading={saving}
+                disabled={saveableCount === 0}
+                onPress={onSave}
+              />
+            </View>
+          </View>
+        </View>
+      </Screen>
+    );
+  }
+
+  // ---- input ----
+  return (
+    <Screen scroll={false} padded={false}>
+      <Stack.Screen options={{ headerShown: true, title: 'Import routine' }} />
+      <ScrollView
+        className="flex-1"
+        contentContainerClassName="px-4 pt-3 pb-10"
+        keyboardShouldPersistTaps="handled">
+        <Text variant="muted" className="mb-3">
+          Paste a routine you wrote in your notes — split, push/pull/legs, a full week, whatever.
+          The AI turns it into routines you can train from.
+        </Text>
+
+        <TextInput
+          value={text}
+          onChangeText={setText}
+          placeholder={PLACEHOLDER}
+          placeholderTextColor="#78716c"
+          multiline
+          className="min-h-[220px] rounded-lg border border-iron-700 bg-iron-900 px-4 py-3 text-base text-iron-50"
+          style={{ textAlignVertical: 'top' }}
+        />
+
+        {error ? (
+          <View className="mt-3">
+            <FormError message={error} />
+          </View>
+        ) : null}
+
+        <View className="mt-4 flex-row items-center gap-2">
+          {/* Voice — roadmap'd, no native speech dep yet. */}
+          <Pressable
+            disabled
+            accessibilityRole="button"
+            accessibilityState={{ disabled: true }}
+            className="flex-row items-center rounded-md border border-iron-700 bg-iron-900 px-3 py-3 opacity-50">
+            <Text className="text-base text-iron-300">🎤</Text>
+            <Text variant="caption" className="ml-1.5">
+              soon
+            </Text>
+          </Pressable>
+          <View className="flex-1">
+            <Button title="Parse" size="lg" disabled={!text.trim()} onPress={onParse} />
+          </View>
+        </View>
+      </ScrollView>
+    </Screen>
+  );
+}
+
+interface DayCardProps {
+  routine: ParsedRoutine;
+  dayIdx: number;
+  units: string;
+  included: boolean;
+  expanded: boolean;
+  includeExercise: Record<string, boolean>;
+  disabled: boolean;
+  onToggleDay: () => void;
+  onToggleExpanded: () => void;
+  onToggleExercise: (exIdx: number) => void;
+}
+
+function DayCard({
+  routine,
+  dayIdx,
+  units,
+  included,
+  expanded,
+  includeExercise,
+  disabled,
+  onToggleDay,
+  onToggleExpanded,
+  onToggleExercise,
+}: DayCardProps) {
+  return (
+    <Card className={`mb-2.5 ${included ? 'border-brand/50' : 'opacity-60'}`}>
+      <View className="flex-row items-center">
+        <Pressable
+          onPress={onToggleDay}
+          disabled={disabled}
+          hitSlop={8}
+          accessibilityRole="checkbox"
+          accessibilityState={{ checked: included }}
+          className="mr-3 active:opacity-60">
+          <Ionicons
+            name={included ? 'checkmark-circle' : 'ellipse-outline'}
+            size={26}
+            color={included ? '#f97316' : '#78716c'}
+          />
+        </Pressable>
+
+        <Pressable
+          onPress={onToggleExpanded}
+          className="flex-1 flex-row items-center active:opacity-70">
+          <View className="flex-1">
+            <View className="flex-row items-center">
+              <Text variant="subheading" numberOfLines={1} className="flex-shrink">
+                {routine.name}
+              </Text>
+              {routine.rest_day ? (
+                <View className="ml-2 rounded-md border border-iron-600 bg-iron-800 px-2 py-0.5">
+                  <Text className="text-xs font-bold text-iron-300">REST</Text>
+                </View>
+              ) : null}
+            </View>
+            <Text variant="caption" className="mt-0.5">
+              {routine.exercises.length}{' '}
+              {routine.exercises.length === 1 ? 'exercise' : 'exercises'}
+            </Text>
+          </View>
+          <Ionicons
+            name={expanded ? 'chevron-up' : 'chevron-down'}
+            size={20}
+            color="#78716c"
+          />
+        </Pressable>
+      </View>
+
+      {expanded ? (
+        <View className="mt-3 gap-2">
+          {routine.notes ? (
+            <Text variant="muted" className="italic">
+              {routine.notes}
+            </Text>
+          ) : null}
+
+          {routine.exercises.length === 0 ? (
+            <Text variant="muted">No exercises on this day.</Text>
+          ) : (
+            routine.exercises.map((ex, ei) => {
+              const exIncluded = includeExercise[exKey(dayIdx, ei)] !== false;
+              const targets = summarizeTargets(
+                ex.target_sets,
+                ex.target_reps,
+                ex.target_weight,
+                units,
+              );
+              return (
+                <View
+                  key={ei}
+                  className={`flex-row rounded-lg border border-iron-700 bg-iron-950 p-2.5 ${
+                    exIncluded ? '' : 'opacity-50'
+                  }`}>
+                  <Pressable
+                    onPress={() => onToggleExercise(ei)}
+                    disabled={disabled}
+                    hitSlop={6}
+                    accessibilityRole="checkbox"
+                    accessibilityState={{ checked: exIncluded }}
+                    className="mr-2.5 mt-0.5 active:opacity-60">
+                    <Ionicons
+                      name={exIncluded ? 'checkbox' : 'square-outline'}
+                      size={20}
+                      color={exIncluded ? '#f97316' : '#78716c'}
+                    />
+                  </Pressable>
+                  <View className="flex-1">
+                    <View className="flex-row items-center justify-between">
+                      <Text variant="body" numberOfLines={1} className="flex-1 pr-2">
+                        {ex.exercise_name}
+                      </Text>
+                      <MatchBadge match={ex.match} />
+                    </View>
+                    {targets ? (
+                      <Text variant="label" className="mt-1 text-brand">
+                        {targets}
+                      </Text>
+                    ) : null}
+                    {ex.notes ? (
+                      <Text variant="caption" className="mt-1">
+                        {ex.notes}
+                      </Text>
+                    ) : null}
+                  </View>
+                </View>
+              );
+            })
+          )}
+        </View>
+      ) : null}
+    </Card>
+  );
+}

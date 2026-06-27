@@ -48,7 +48,15 @@ export default function RoutinesScreen() {
         }>
         <View className="flex-row items-center justify-between mt-2 mb-3">
           <Text variant="title">Routines</Text>
-          <Button title="New" size="sm" onPress={() => router.push('/routine/new')} />
+          <View className="flex-row gap-2">
+            <Button
+              title="Import from notes"
+              variant="secondary"
+              size="sm"
+              onPress={() => router.push('/routine-import')}
+            />
+            <Button title="New" size="sm" onPress={() => router.push('/routine/new')} />
+          </View>
         </View>
 
         {loading ? (

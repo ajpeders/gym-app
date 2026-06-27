@@ -7,7 +7,6 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { Stack } from 'expo-router';
 import Markdown from 'react-native-markdown-display';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -233,7 +232,6 @@ export default function CoachScreen() {
   if (loading) {
     return (
       <Screen scroll={false} padded={false}>
-        <Stack.Screen options={{ headerShown: true, title: 'Coach' }} />
         <Loading label="Loading your coach…" />
       </Screen>
     );
@@ -242,7 +240,6 @@ export default function CoachScreen() {
   if (loadError) {
     return (
       <Screen scroll={false} padded={false}>
-        <Stack.Screen options={{ headerShown: true, title: 'Coach' }} />
         <ErrorState message={loadError} onRetry={() => void load()} />
       </Screen>
     );
@@ -252,7 +249,6 @@ export default function CoachScreen() {
 
   return (
     <Screen scroll={false} padded={false} edges={['left', 'right']}>
-      <Stack.Screen options={{ headerShown: true, title: 'Coach' }} />
       <KeyboardAvoidingView
         className="flex-1"
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}

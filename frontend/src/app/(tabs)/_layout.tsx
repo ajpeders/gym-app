@@ -7,6 +7,7 @@ type IoniconName = React.ComponentProps<typeof Ionicons>['name'];
 // [filled (active), outline (inactive)]
 const ICONS: Record<string, [IoniconName, IoniconName]> = {
   index: ['home', 'home-outline'],
+  coach: ['chatbubbles', 'chatbubbles-outline'],
   settings: ['settings', 'settings-outline'],
 };
 
@@ -22,6 +23,10 @@ export default function TabsLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
+        headerStyle: { backgroundColor: '#080706' },
+        headerTintColor: '#f5f5f4',
+        headerTitleStyle: { fontWeight: '900' },
+        headerShadowVisible: false,
         tabBarActiveTintColor: '#f97316',
         tabBarInactiveTintColor: '#78716c',
         tabBarStyle: {
@@ -35,6 +40,10 @@ export default function TabsLayout() {
       }}>
       {/* Visible tabs */}
       <Tabs.Screen name="index" options={{ title: 'Home', tabBarIcon: tabIcon('index') }} />
+      <Tabs.Screen
+        name="coach"
+        options={{ title: 'Coach', headerShown: true, tabBarIcon: tabIcon('coach') }}
+      />
       <Tabs.Screen name="settings" options={{ title: 'Settings', tabBarIcon: tabIcon('settings') }} />
 
       {/* Scope trimmed for now — kept as routes (reachable from Home), hidden from the

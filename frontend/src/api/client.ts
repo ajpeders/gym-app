@@ -12,6 +12,7 @@ import type {
   MetricInput,
   Paginated,
   ParseResult,
+  ParseRoutineResult,
   Routine,
   RoutineInput,
   Settings,
@@ -183,6 +184,8 @@ export const api = {
   aiProviders: () => request<AiProviders>('/ai/providers'),
   parseSets: (input: { text: string; workout_id?: number }) =>
     request<ParseResult>('/ai/parse-sets', { method: 'POST', body: input }),
+  parseRoutine: (text: string): Promise<ParseRoutineResult> =>
+    request<ParseRoutineResult>('/ai/parse-routine', { method: 'POST', body: { text } }),
 
   // ---- athlete profile + coach check-in ----
   getProfile: () => request<AthleteProfile>('/profile'),
