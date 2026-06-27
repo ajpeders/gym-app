@@ -8,6 +8,7 @@ import type { StatsSummary } from '@/api/types';
 import { useAuth } from '@/state/auth';
 import { useActiveWorkout } from '@/state/active-workout';
 import { useSettings } from '@/state/settings';
+import { useAiStatus } from '@/hooks/use-ai-status';
 import { Screen } from '@/components/ui/Screen';
 import { Text } from '@/components/ui/Text';
 import { Card } from '@/components/ui/Card';
@@ -33,6 +34,7 @@ export default function HomeScreen() {
   const router = useRouter();
   const { settings } = useSettings();
   const { workout: active, start } = useActiveWorkout();
+  const { configured: aiConfigured, loading: aiLoading } = useAiStatus();
 
   const [stats, setStats] = useState<StatsSummary | null>(null);
   const [loading, setLoading] = useState(true);
@@ -79,6 +81,27 @@ export default function HomeScreen() {
             }}
           />
         }>
+        {!aiLoading && !aiConfigured ? (
+          <Pressable
+            onPress={() => router.push('/settings')}
+            accessibilityRole="button"
+            className="mt-2 flex-row items-center rounded-lg border border-brand bg-brand/10 p-4 active:opacity-80">
+            <View className="mr-3 h-11 w-11 items-center justify-center rounded-full bg-brand/20">
+              <Ionicons name="sparkles" size={22} color="#f97316" />
+            </View>
+            <View className="flex-1">
+              <Text variant="subheading" className="text-brand">
+                Set up your AI coach
+              </Text>
+              <Text variant="caption" className="mt-0.5">
+                Connect your local AI (Ollama) to unlock your coach, natural-language
+                logging, and routine import.
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color="#f97316" />
+          </Pressable>
+        ) : null}
+
         <View className="mt-2 rounded-lg border border-iron-700 bg-iron-900 p-4">
           <Text variant="label" className="text-brand">
             TRAINING DECK

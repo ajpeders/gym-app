@@ -7,13 +7,16 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import { useFocusEffect, useRouter } from 'expo-router';
 import Markdown from 'react-native-markdown-display';
 import { Ionicons } from '@expo/vector-icons';
 
 import { api, ApiError } from '@/api/client';
 import type { CoachMessage } from '@/api/types';
+import { useAiStatus } from '@/hooks/use-ai-status';
 import { Screen } from '@/components/ui/Screen';
 import { Text } from '@/components/ui/Text';
+import { Button } from '@/components/ui/Button';
 import { Loading, ErrorState } from '@/components/ui/Feedback';
 
 /** A message in the local chat log. `error` flags an assistant-styled failure bubble. */
@@ -155,6 +158,8 @@ function EmptyIntro({ onPick }: { onPick: (q: string) => void }) {
 }
 
 export default function CoachScreen() {
+  const router = useRouter();
+  const { configured, loading: aiLoading } = useAiStatus();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -176,9 +181,17 @@ export default function CoachScreen() {
     }
   }, []);
 
+  // Only fetch coach history once AI is configured. Re-runs when the user
+  // returns from Settings having just set up their provider (configured flips).
   useEffect(() => {
-    void load();
-  }, [load]);
+    if (configured) {
+      void load();
+    } else {
+      setMessages([]);
+      setLoadError(null);
+      setLoading(false);
+    }
+  }, [configured, load]);
 
   const scrollToEnd = useCallback(() => {
     requestAnimationFrame(() => scrollRef.current?.scrollToEnd({ animated: true }));
@@ -190,7 +203,7 @@ export default function CoachScreen() {
 
   async function send(raw: string) {
     const message = raw.trim();
-    if (!message || sending) return;
+    if (!message || sending || !configured) return;
 
     const userMsg: ChatMessage = {
       id: nextId(),
@@ -227,6 +240,37 @@ export default function CoachScreen() {
     } finally {
       setSending(false);
     }
+  }
+
+  if (aiLoading) {
+    return (
+      <Screen scroll={false} padded={false}>
+        <Loading label="Loading your coach…" />
+      </Screen>
+    );
+  }
+
+  if (!configured) {
+    return (
+      <Screen scroll={false} padded={false}>
+        <View className="flex-1 items-center justify-center px-8">
+          <View className="mb-4 h-16 w-16 items-center justify-center rounded-full border border-brand/40 bg-brand/10">
+            <Ionicons name="sparkles" size={28} color="#f97316" />
+          </View>
+          <Text variant="heading" className="text-center">
+            Set up your local AI to chat with your coach
+          </Text>
+          <Text variant="muted" className="mt-2 text-center">
+            Add your Ollama server in Settings, then come back.
+          </Text>
+          <Button
+            title="Go to Settings"
+            className="mt-6 self-stretch"
+            onPress={() => router.push('/settings')}
+          />
+        </View>
+      </Screen>
+    );
   }
 
   if (loading) {

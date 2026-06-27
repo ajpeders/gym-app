@@ -214,6 +214,9 @@ function AiProviderControl({
   const [models, setModels] = useState<AiModelsResult | null>(null);
   const [modelsLoading, setModelsLoading] = useState(false);
   const [modelsError, setModelsError] = useState<string | null>(null);
+  // True when the models lookup failed only because no Ollama URL is set yet
+  // (a gentle setup prompt, not a red "unreachable" error).
+  const [modelsNeedsUrl, setModelsNeedsUrl] = useState(false);
   const [ollamaUrl, setOllamaUrl] = useState<string | null>(null);
 
   // Test-connection result.
@@ -223,12 +226,19 @@ function AiProviderControl({
   const loadModels = useCallback(async () => {
     setModelsLoading(true);
     setModelsError(null);
+    setModelsNeedsUrl(false);
     try {
       const res = await api.aiModels();
       setModels(res);
       setOllamaUrl(res.url);
     } catch (err) {
       setModels(null);
+      // A 502 mentioning setup means "no URL configured yet" — handle gently.
+      const needsUrl =
+        err instanceof ApiError &&
+        err.status === 502 &&
+        /set up|add your ollama|server url/i.test(err.message);
+      setModelsNeedsUrl(needsUrl);
       setModelsError(err instanceof ApiError ? err.message : 'Failed to load models.');
     } finally {
       setModelsLoading(false);
@@ -299,6 +309,9 @@ function AiProviderControl({
         : undefined;
   const selectedUnconfigured = selectedInfo ? !selectedInfo.configured : false;
   const placeholderModel = selectedInfo?.model ?? 'server default';
+  // A hint URL to prefill / suggest for Ollama (there is no auto-applied default).
+  const suggestedUrl = providers?.suggested_ollama_url ?? '';
+  const urlPlaceholder = suggestedUrl || 'http://localhost:11434';
 
   function commitModel() {
     const trimmed = model.trim();
@@ -389,13 +402,19 @@ function AiProviderControl({
       </Card>
 
       {selectedUnconfigured ? (
-        <View className="mb-1 mt-1 rounded-lg border border-red-500/40 bg-red-500/10 px-3 py-2">
-          <Text className="text-sm font-medium text-red-400">
-            {selected === 'claude'
-              ? 'Claude isn’t configured — set GYM_CLAUDE_API_KEY on the server.'
-              : `${selected} isn’t configured on the server.`}
-          </Text>
-        </View>
+        selected === 'claude' ? (
+          <View className="mb-1 mt-1 rounded-lg border border-red-500/40 bg-red-500/10 px-3 py-2">
+            <Text className="text-sm font-medium text-red-400">
+              Claude isn’t configured — set GYM_CLAUDE_API_KEY on the server.
+            </Text>
+          </View>
+        ) : (
+          <View className="mb-1 mt-1 rounded-lg border border-brand/40 bg-brand/10 px-3 py-2">
+            <Text className="text-sm font-medium text-brand">
+              Enter your Ollama server URL below to get started.
+            </Text>
+          </View>
+        )
       ) : null}
 
       <Text variant="caption" className="mb-2 mt-1">
@@ -414,17 +433,29 @@ function AiProviderControl({
             autoCapitalize="none"
             autoCorrect={false}
             keyboardType="url"
-            placeholder={ollamaUrl ?? 'http://localhost:11434'}
+            placeholder={urlPlaceholder}
             placeholderTextColor="#78716c"
             className="rounded-lg border border-iron-700 bg-iron-900 px-4 py-3 text-base text-iron-50"
           />
           {urlInput.trim() === '' ? (
-            <Text variant="caption" className="mt-1.5 text-iron-400">
-              {`Using default${ollamaUrl ? ` (${ollamaUrl})` : ''}.`}
-            </Text>
+            <View className="mt-1.5">
+              <Text variant="caption" className="text-iron-400">
+                Enter your Ollama server URL to get started.
+              </Text>
+              {suggestedUrl ? (
+                <Pressable
+                  onPress={() => setUrlInput(suggestedUrl)}
+                  accessibilityRole="button"
+                  className="mt-1 self-start">
+                  <Text variant="caption" className="font-bold text-brand">
+                    {`Try ${suggestedUrl}`}
+                  </Text>
+                </Pressable>
+              ) : null}
+            </View>
           ) : (
             <Text variant="caption" className="mt-1.5">
-              {`Leave blank to use the default${ollamaUrl ? ` (${ollamaUrl})` : ''}.`}
+              Saved on blur. This is the server your coach and parsing use.
             </Text>
           )}
         </Card>
@@ -443,6 +474,12 @@ function AiProviderControl({
               <ActivityIndicator color="#f97316" />
               <Text variant="muted" className="ml-2">
                 Finding installed models…
+              </Text>
+            </View>
+          ) : modelsNeedsUrl ? (
+            <View className="rounded-lg border border-iron-700 bg-iron-900 px-3 py-2">
+              <Text variant="caption" className="text-iron-300">
+                Add your Ollama server URL above, then save to discover models.
               </Text>
             </View>
           ) : modelsError ? (

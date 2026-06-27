@@ -156,10 +156,20 @@ export interface AiProviderInfo {
   model: string;
 }
 
+export interface OllamaProviderInfo extends AiProviderInfo {
+  url: string | null;
+}
+
 export interface AiProviders {
   default: 'ollama' | 'claude';
+  /** The user's active provider. */
+  provider: string;
+  /** Whether the user's active provider is usable right now. */
+  configured: boolean;
+  /** A hint URL to prefill for Ollama (there is no auto-applied default). */
+  suggested_ollama_url: string;
   providers: {
-    ollama: AiProviderInfo;
+    ollama: OllamaProviderInfo;
     claude: AiProviderInfo;
   };
 }
