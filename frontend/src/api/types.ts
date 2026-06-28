@@ -56,6 +56,7 @@ export interface RoutineExercise {
   target_reps: number | null;
   target_weight: number | null;
   rest_seconds: number | null;
+  notes?: string | null;
 }
 
 export interface Routine {
@@ -104,6 +105,8 @@ export interface Workout {
   id: string;
   name: string | null;
   routine_id: string | null;
+  /** The routine this workout was started from (or null for blank workouts). */
+  source_routine_id?: number | null;
   status: 'in_progress' | 'completed';
   started_at: string;
   finished_at: string | null;
