@@ -17,16 +17,15 @@ type IoniconName = React.ComponentProps<typeof Ionicons>['name'];
 
 const DOW = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const DOW1 = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+
+function dateKey(d: Date): string {
+  return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+}
 
 function isToday(iso?: string | null): boolean {
   if (!iso) return false;
-  const d = new Date(iso);
-  const n = new Date();
-  return (
-    d.getFullYear() === n.getFullYear() &&
-    d.getMonth() === n.getMonth() &&
-    d.getDate() === n.getDate()
-  );
+  return dateKey(new Date(iso)) === dateKey(new Date());
 }
 
 function StatTile({ value, label }: { value: string | number; label: string }) {
@@ -72,6 +71,7 @@ export default function HomeScreen() {
 
   const [stats, setStats] = useState<StatsSummary | null>(null);
   const [todays, setTodays] = useState<Workout | null>(null);
+  const [workoutDays, setWorkoutDays] = useState<Set<string>>(new Set());
   const [refreshing, setRefreshing] = useState(false);
   const [starting, setStarting] = useState(false);
 
@@ -79,12 +79,12 @@ export default function HomeScreen() {
     try {
       const [s, w] = await Promise.all([
         api.statsSummary().catch(() => null),
-        api.workouts({ limit: 8 }).catch(() => ({ items: [] as Workout[], total: 0 })),
+        api.workouts({ limit: 12 }).catch(() => ({ items: [] as Workout[], total: 0 })),
       ]);
       if (s) setStats(s);
-      setTodays(
-        w.items.find((it) => it.status === 'completed' && isToday(it.started_at)) ?? null,
-      );
+      const completed = w.items.filter((it) => it.status === 'completed');
+      setTodays(completed.find((it) => isToday(it.started_at)) ?? null);
+      setWorkoutDays(new Set(completed.map((it) => dateKey(new Date(it.started_at)))));
     } finally {
       setRefreshing(false);
     }
@@ -110,6 +110,15 @@ export default function HomeScreen() {
   const dateLabel = `${DOW[now.getDay()]}, ${MON[now.getMonth()]} ${now.getDate()}`;
   const streak = stats?.streak ?? 0;
 
+  // Current week, Monday → Sunday
+  const monday = new Date(now);
+  monday.setDate(now.getDate() - ((now.getDay() + 6) % 7));
+  const weekDays = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(monday);
+    d.setDate(monday.getDate() + i);
+    return d;
+  });
+
   return (
     <Screen scroll={false} padded={false}>
       <ScrollView
@@ -133,11 +142,46 @@ export default function HomeScreen() {
           </Text>
         </View>
 
+        {/* Week strip — highlights today, marks trained days */}
+        <View className="mt-4 flex-row justify-between">
+          {weekDays.map((d, i) => {
+            const today = dateKey(d) === dateKey(now);
+            const worked = workoutDays.has(dateKey(d));
+            return (
+              <View key={i} className="items-center">
+                <Text variant="caption" className={today ? 'text-brand' : 'text-iron-500'}>
+                  {DOW1[d.getDay()]}
+                </Text>
+                <View
+                  className={`mt-1 h-9 w-9 items-center justify-center rounded-full ${
+                    today
+                      ? 'bg-brand'
+                      : worked
+                        ? 'border border-brand/50 bg-iron-800'
+                        : 'border border-iron-700 bg-iron-900'
+                  }`}>
+                  <Text
+                    variant="body"
+                    className={
+                      today
+                        ? 'font-extrabold text-iron-950'
+                        : worked
+                          ? 'text-brand'
+                          : 'text-iron-400'
+                    }>
+                    {d.getDate()}
+                  </Text>
+                </View>
+              </View>
+            );
+          })}
+        </View>
+
         {!aiLoading && !aiConfigured ? (
           <Pressable
             onPress={() => router.push('/settings')}
             accessibilityRole="button"
-            className="mt-4 flex-row items-center rounded-lg border border-brand bg-brand/10 p-4 active:opacity-80">
+            className="mt-5 flex-row items-center rounded-lg border border-brand bg-brand/10 p-4 active:opacity-80">
             <View className="mr-3 h-11 w-11 items-center justify-center rounded-full bg-brand/20">
               <Ionicons name="sparkles" size={22} color="#f97316" />
             </View>
@@ -153,7 +197,7 @@ export default function HomeScreen() {
           </Pressable>
         ) : null}
 
-        {/* TODAY — the centerpiece: current workout / today's session / start */}
+        {/* TODAY — the centerpiece */}
         <Text variant="label" className="mb-2 mt-6">
           TODAY
         </Text>
