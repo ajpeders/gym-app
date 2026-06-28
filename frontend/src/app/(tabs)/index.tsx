@@ -28,19 +28,6 @@ function isToday(iso?: string | null): boolean {
   return dateKey(new Date(iso)) === dateKey(new Date());
 }
 
-function StatTile({ value, label }: { value: string | number; label: string }) {
-  return (
-    <Card className="flex-1 items-center py-3">
-      <Text variant="title" className="text-brand">
-        {value}
-      </Text>
-      <Text variant="caption" className="mt-0.5 uppercase tracking-wide">
-        {label}
-      </Text>
-    </Card>
-  );
-}
-
 function FeatureCard({
   icon,
   title,
@@ -110,12 +97,10 @@ export default function HomeScreen() {
   const dateLabel = `${DOW[now.getDay()]}, ${MON[now.getMonth()]} ${now.getDate()}`;
   const streak = stats?.streak ?? 0;
 
-  // Current week, Monday → Sunday
-  const monday = new Date(now);
-  monday.setDate(now.getDate() - ((now.getDay() + 6) % 7));
+  // 7-day window centered on today: 3 days back … today … 3 days ahead
   const weekDays = Array.from({ length: 7 }, (_, i) => {
-    const d = new Date(monday);
-    d.setDate(monday.getDate() + i);
+    const d = new Date(now);
+    d.setDate(now.getDate() + (i - 3));
     return d;
   });
 
@@ -133,13 +118,21 @@ export default function HomeScreen() {
             }}
           />
         }>
-        <View className="mt-3">
-          <Text variant="caption" className="uppercase tracking-wide text-brand">
-            {dateLabel}
-          </Text>
-          <Text variant="title" className="mt-0.5">
-            Hey{user?.display_name ? `, ${user.display_name}` : ''}
-          </Text>
+        <View className="mt-3 flex-row items-start justify-between">
+          <View className="flex-1">
+            <Text variant="caption" className="uppercase tracking-wide text-brand">
+              {dateLabel}
+            </Text>
+            <Text variant="title" className="mt-0.5">
+              Hey{user?.display_name ? `, ${user.display_name}` : ''}
+            </Text>
+          </View>
+          <View className="ml-3 flex-row items-center rounded-full border border-iron-700 bg-iron-900 px-3 py-1.5">
+            <Ionicons name="flame" size={16} color="#f97316" />
+            <Text variant="label" className="ml-1 text-brand">
+              {streak}
+            </Text>
+          </View>
         </View>
 
         {/* Week strip — highlights today, marks trained days */}
@@ -264,25 +257,6 @@ export default function HomeScreen() {
             />
           </Card>
         )}
-
-        {/* Status: streak + glance */}
-        <View className="mt-5 flex-row items-center rounded-lg border border-iron-700 bg-iron-900 p-3">
-          <View className="mr-3 h-10 w-10 items-center justify-center rounded-full bg-brand/15">
-            <Ionicons name="flame" size={22} color="#f97316" />
-          </View>
-          <View className="flex-1">
-            <Text variant="subheading">{streak > 0 ? `${streak}-day streak` : 'Start a streak'}</Text>
-            <Text variant="caption" className="mt-0.5">
-              {streak > 0 ? 'Keep it going — train today.' : 'Log a workout today to begin.'}
-            </Text>
-          </View>
-        </View>
-
-        <View className="mt-3 flex-row gap-3">
-          <StatTile value={stats?.this_week ?? 0} label="This week" />
-          <StatTile value={stats?.total_workouts ?? 0} label="Total" />
-          <StatTile value={stats?.recent_prs?.length ?? 0} label="PRs" />
-        </View>
 
         {/* Everything not in the bottom tabs */}
         <View className="mt-6 gap-3">
