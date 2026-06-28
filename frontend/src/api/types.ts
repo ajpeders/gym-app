@@ -292,6 +292,7 @@ export interface CoachReply {
 export interface StatsSummary {
   total_workouts: number;
   this_week: number;
+  streak?: number;
   recent_prs: {
     exercise_id: string;
     exercise_name?: string;

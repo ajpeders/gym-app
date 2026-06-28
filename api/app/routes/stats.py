@@ -44,6 +44,23 @@ def summary(
 
     this_week = sum(1 for w in workouts if _aware(w.started_at) >= week_ago)
 
+    # Current streak: consecutive calendar days (ending today or yesterday) with a workout.
+    today = now.date()
+    dates = sorted({_aware(w.started_at).date() for w in workouts}, reverse=True)
+    streak = 0
+    if dates and (today - dates[0]).days <= 1:
+        streak = 1
+        prev = dates[0]
+        for d in dates[1:]:
+            delta = (prev - d).days
+            if delta == 0:
+                continue
+            if delta == 1:
+                streak += 1
+                prev = d
+            else:
+                break
+
     # Volume per week (sum of reps * weight across completed sets).
     rows = db.execute(
         select(
@@ -84,6 +101,7 @@ def summary(
     return StatsSummary(
         total_workouts=total_workouts,
         this_week=this_week,
+        streak=streak,
         recent_prs=recent_prs,
         volume_by_week=volume_list,
     )

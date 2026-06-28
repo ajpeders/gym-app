@@ -276,5 +276,6 @@ class SettingsUpdate(BaseModel):
 class StatsSummary(BaseModel):
     total_workouts: int
     this_week: int
+    streak: int = 0  # consecutive days (ending today/yesterday) with a workout
     recent_prs: list[dict[str, Any]] = []
     volume_by_week: list[dict[str, Any]] = []
