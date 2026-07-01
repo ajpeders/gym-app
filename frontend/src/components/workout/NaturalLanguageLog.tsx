@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { ActivityIndicator, Pressable, TextInput, View } from 'react-native';
 
-import { api, ApiError } from '@/api/client';
+import { api } from '@/api/client';
+import { aiParseErrorMessage } from '@/api/errors';
 import type { ParsedItem, ParseResult, SetType, Units } from '@/api/types';
 import { Text } from '@/components/ui/Text';
 import { Card } from '@/components/ui/Card';
@@ -61,11 +62,7 @@ export function NaturalLanguageLog({ workoutId, units, onApplied }: Props) {
       setExcluded(new Set());
       setMode('confirm');
     } catch (e) {
-      if (e instanceof ApiError && e.status === 502) {
-        setError('AI provider unavailable — check Settings.');
-      } else {
-        setError("Couldn't parse that, try rephrasing.");
-      }
+      setError(aiParseErrorMessage(e));
     } finally {
       setParsing(false);
     }

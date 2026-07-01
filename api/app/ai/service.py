@@ -4,6 +4,7 @@ from __future__ import annotations
 import json
 import re
 import time
+from collections.abc import AsyncIterator
 
 import httpx
 from sqlalchemy import select
@@ -248,24 +249,21 @@ async def parse_sets(db: Session, user: User, text: str, workout_id: int | None 
     }
 
 
-async def parse_routine(db: Session, user: User, text: str) -> dict:
-    """Parse a multi-day program (notes-app text) into structured routines."""
-    provider, units = _resolve(db, user)
-
-    t0 = time.monotonic()
-    data = await provider.complete_json(
-        system=prompts.routine_system_prompt(units),
-        user=prompts.routine_user_prompt(text),
-        schema=PROGRAM_SCHEMA,
-    )
-    latency_ms = int((time.monotonic() - t0) * 1000)
-
+def _build_routine_result(
+    db: Session,
+    user_id: int,
+    provider: Provider,
+    units: str,
+    latency_ms: int,
+    data: dict,
+) -> dict:
+    """Validate raw model output + resolve each exercise against the catalog."""
     try:
         program = ParsedProgram.model_validate(data)
     except Exception as exc:  # noqa: BLE001
         raise AIError(f"Model output did not match the expected shape: {exc}") from exc
 
-    catalog = _load_catalog(db, user.id)
+    catalog = _load_catalog(db, user_id)
     routines = []
     for r in program.routines:
         exercises = []
@@ -297,6 +295,60 @@ async def parse_routine(db: Session, user: User, text: str) -> dict:
         "latency_ms": latency_ms,
         "routines": routines,
     }
+
+
+async def parse_routine(db: Session, user: User, text: str) -> dict:
+    """Parse a multi-day program (notes-app text) into structured routines."""
+    provider, units = _resolve(db, user)
+
+    t0 = time.monotonic()
+    data = await provider.complete_json(
+        system=prompts.routine_system_prompt(units),
+        user=prompts.routine_user_prompt(text),
+        schema=PROGRAM_SCHEMA,
+    )
+    latency_ms = int((time.monotonic() - t0) * 1000)
+    return _build_routine_result(db, user.id, provider, units, latency_ms, data)
+
+
+async def parse_routine_stream(
+    db: Session, user: User, text: str
+) -> AsyncIterator[dict]:
+    """Streaming variant of :func:`parse_routine`.
+
+    Yields ``{"type": "progress", "received": N}`` while the model generates,
+    then one ``{"type": "result", ...}`` carrying the same payload
+    :func:`parse_routine` returns. Providers without a ``stream_json`` method
+    (e.g. Claude) fall back to a single blocking call with no progress events.
+    """
+    provider, units = _resolve(db, user)
+    t0 = time.monotonic()
+
+    data: dict | None = None
+    stream = getattr(provider, "stream_json", None)
+    if stream is not None:
+        async for ev in stream(
+            system=prompts.routine_system_prompt(units),
+            user=prompts.routine_user_prompt(text),
+            schema=PROGRAM_SCHEMA,
+        ):
+            if ev.get("type") == "progress":
+                yield ev
+            elif ev.get("type") == "result":
+                data = ev.get("data")
+    else:
+        data = await provider.complete_json(
+            system=prompts.routine_system_prompt(units),
+            user=prompts.routine_user_prompt(text),
+            schema=PROGRAM_SCHEMA,
+        )
+
+    if data is None:
+        raise AIError("The AI returned no result.")
+
+    latency_ms = int((time.monotonic() - t0) * 1000)
+    result = _build_routine_result(db, user.id, provider, units, latency_ms, data)
+    yield {"type": "result", **result}
 
 
 # --- Athlete memory ---

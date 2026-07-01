@@ -1,3 +1,5 @@
+import { fetch as expoFetch } from 'expo/fetch';
+
 import { getItem, TOKEN_KEY } from '@/lib/storage';
 import type {
   AiModelsResult,
@@ -63,10 +65,14 @@ interface RequestOptions {
   query?: Query;
   // when explicitly false, do not attach the auth header
   auth?: boolean;
+  // abort the request after this many ms (used to bound slow AI calls so they
+  // fail with a clear "took too long" instead of an ambiguous network error or
+  // an endless spinner). Omit for no client-side timeout.
+  timeoutMs?: number;
 }
 
 async function request<T>(path: string, opts: RequestOptions = {}): Promise<T> {
-  const { method = 'GET', body, query, auth = true } = opts;
+  const { method = 'GET', body, query, auth = true, timeoutMs } = opts;
   const headers: Record<string, string> = { Accept: 'application/json' };
 
   if (body !== undefined) {
@@ -77,15 +83,29 @@ async function request<T>(path: string, opts: RequestOptions = {}): Promise<T> {
     if (token) headers['Authorization'] = `Bearer ${token}`;
   }
 
+  const controller = timeoutMs ? new AbortController() : undefined;
+  const timer =
+    controller && timeoutMs
+      ? setTimeout(() => controller.abort(), timeoutMs)
+      : undefined;
+
   let res: Response;
   try {
     res = await fetch(buildUrl(path, query), {
       method,
       headers,
       body: body !== undefined ? JSON.stringify(body) : undefined,
+      signal: controller?.signal,
     });
   } catch (err) {
+    // AbortController.abort() surfaces as an AbortError — report it as a
+    // timeout (408) so the UI can say "took too long" rather than "offline".
+    if ((err as Error).name === 'AbortError') {
+      throw new ApiError(408, 'The request took too long — try again.');
+    }
     throw new ApiError(0, `Network error: ${(err as Error).message}`);
+  } finally {
+    if (timer) clearTimeout(timer);
   }
 
   const text = await res.text();
@@ -109,8 +129,118 @@ async function request<T>(path: string, opts: RequestOptions = {}): Promise<T> {
   return parsed as T;
 }
 
+export interface ParseProgressInfo {
+  /** Total characters of model output received so far. */
+  received: number;
+}
+
+// Parse one SSE block ("event: X\ndata: {...}") into [event, data].
+function parseSseBlock(raw: string): { event: string; data: unknown } | null {
+  let event = 'message';
+  const dataLines: string[] = [];
+  for (const line of raw.split('\n')) {
+    if (line.startsWith('event:')) event = line.slice(6).trim();
+    else if (line.startsWith('data:')) dataLines.push(line.slice(5).trim());
+  }
+  if (!dataLines.length) return null;
+  try {
+    return { event, data: JSON.parse(dataLines.join('\n')) };
+  } catch {
+    return null;
+  }
+}
+
+// Stream the routine parse over SSE so a slow (10–30s) generation keeps the
+// connection alive and can report real progress, instead of a single long
+// blocking request that a mobile client may drop. Falls back to reading the
+// whole body if the platform can't expose a streaming reader.
+async function parseRoutineStream(
+  text: string,
+  onProgress?: (info: ParseProgressInfo) => void,
+): Promise<ParseRoutineResult> {
+  const headers: Record<string, string> = {
+    Accept: 'text/event-stream',
+    'Content-Type': 'application/json',
+  };
+  const token = await getItem(TOKEN_KEY);
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 120_000);
+
+  try {
+    let res: Awaited<ReturnType<typeof expoFetch>>;
+    try {
+      res = await expoFetch(`${API_BASE}/ai/parse-routine/stream`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ text }),
+        signal: controller.signal,
+      });
+    } catch (err) {
+      if ((err as Error).name === 'AbortError') {
+        throw new ApiError(408, 'The request took too long — try again.');
+      }
+      throw new ApiError(0, `Network error: ${(err as Error).message}`);
+    }
+
+    if (!res.ok) {
+      const body = await res.text().catch(() => '');
+      throw new ApiError(res.status, `Request failed (${res.status})`, body);
+    }
+
+    let result: ParseRoutineResult | null = null;
+    let errorDetail: string | null = null;
+
+    const handleBlock = (raw: string) => {
+      const parsed = parseSseBlock(raw);
+      if (!parsed) return;
+      if (parsed.event === 'progress') {
+        onProgress?.({ received: (parsed.data as ParseProgressInfo).received ?? 0 });
+      } else if (parsed.event === 'result') {
+        result = parsed.data as ParseRoutineResult;
+      } else if (parsed.event === 'error') {
+        errorDetail = (parsed.data as { detail?: string }).detail ?? 'Failed to parse.';
+      }
+    };
+
+    let buffer = '';
+    const drain = (chunk: string) => {
+      buffer += chunk;
+      let idx: number;
+      while ((idx = buffer.indexOf('\n\n')) !== -1) {
+        const block = buffer.slice(0, idx);
+        buffer = buffer.slice(idx + 2);
+        if (block.trim()) handleBlock(block);
+      }
+    };
+
+    const reader = res.body?.getReader?.();
+    if (reader) {
+      const decoder = new TextDecoder();
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        drain(decoder.decode(value, { stream: true }));
+      }
+    } else {
+      // No streaming reader on this platform — the full SSE body still holds
+      // every event, including the final result.
+      drain(await res.text());
+    }
+    if (buffer.trim()) handleBlock(buffer);
+
+    if (errorDetail) throw new ApiError(502, errorDetail);
+    if (!result) throw new ApiError(0, 'The stream ended without a result.');
+    return result;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 export const api = {
   request,
+  parseRoutineStream,
 
   // ---- auth ----
   register: (input: { email: string; password: string; display_name: string }) =>
@@ -188,9 +318,17 @@ export const api = {
   aiModels: () => request<AiModelsResult>('/ai/models'),
   aiTest: () => request<AiTestResult>('/ai/test', { method: 'POST' }),
   parseSets: (input: { text: string; workout_id?: number }) =>
-    request<ParseResult>('/ai/parse-sets', { method: 'POST', body: input }),
+    request<ParseResult>('/ai/parse-sets', {
+      method: 'POST',
+      body: input,
+      timeoutMs: 90_000,
+    }),
   parseRoutine: (text: string): Promise<ParseRoutineResult> =>
-    request<ParseRoutineResult>('/ai/parse-routine', { method: 'POST', body: { text } }),
+    request<ParseRoutineResult>('/ai/parse-routine', {
+      method: 'POST',
+      body: { text },
+      timeoutMs: 120_000,
+    }),
 
   // ---- athlete profile + coach check-in ----
   getProfile: () => request<AthleteProfile>('/profile'),

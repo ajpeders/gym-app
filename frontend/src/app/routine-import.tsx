@@ -1,9 +1,19 @@
-import { useMemo, useState } from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, TextInput, View } from 'react-native';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import {
+  Animated,
+  Easing,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  TextInput,
+  View,
+} from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
-import { api, ApiError } from '@/api/client';
+import { api } from '@/api/client';
+import { aiParseErrorMessage } from '@/api/errors';
 import type {
   ParsedMatch,
   ParsedRoutine,
@@ -14,7 +24,7 @@ import { Screen } from '@/components/ui/Screen';
 import { Text } from '@/components/ui/Text';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
-import { Loading, FormError } from '@/components/ui/Feedback';
+import { FormError } from '@/components/ui/Feedback';
 
 type Phase = 'input' | 'parsing' | 'review' | 'saving' | 'done';
 
@@ -73,6 +83,9 @@ export default function RoutineImportScreen() {
   const [saveTotal, setSaveTotal] = useState(0);
   const [savedCount, setSavedCount] = useState(0);
 
+  // Characters of model output received so far — drives the parse progress bar.
+  const [received, setReceived] = useState(0);
+
   const units = result?.units ?? 'kg';
 
   const saveableRoutines = useMemo(() => {
@@ -88,9 +101,10 @@ export default function RoutineImportScreen() {
     const trimmed = text.trim();
     if (!trimmed) return;
     setError(null);
+    setReceived(0);
     setPhase('parsing');
     try {
-      const res = await api.parseRoutine(trimmed);
+      const res = await api.parseRoutineStream(trimmed, (p) => setReceived(p.received));
       const days: Record<number, boolean> = {};
       const exs: Record<string, boolean> = {};
       const exp: Record<number, boolean> = {};
@@ -108,11 +122,7 @@ export default function RoutineImportScreen() {
       setPhase('review');
     } catch (e) {
       setPhase('input');
-      if (e instanceof ApiError && e.status === 502) {
-        setError('AI provider unavailable — check Settings.');
-      } else {
-        setError("Couldn't parse that, try rephrasing.");
-      }
+      setError(aiParseErrorMessage(e));
     }
   }
 
@@ -204,15 +214,12 @@ export default function RoutineImportScreen() {
     if (clearText) setText('');
   }
 
-  // ---- parsing spinner ----
+  // ---- parsing progress ----
   if (phase === 'parsing') {
     return (
       <Screen scroll={false} padded={false}>
         <Stack.Screen options={{ headerShown: true, title: 'Import routine' }} />
-        <Loading label="Reading your routine…" />
-        <Text variant="caption" className="px-6 pb-8 text-center">
-          The AI is parsing your notes — a full week can take 10–20 seconds.
-        </Text>
+        <ParseProgress received={received} />
       </Screen>
     );
   }
@@ -353,6 +360,76 @@ export default function RoutineImportScreen() {
         </View>
       </KeyboardAvoidingView>
     </Screen>
+  );
+}
+
+const PARSE_STAGES = [
+  'Reading your notes',
+  'Finding the exercises',
+  'Matching them to the catalog',
+  'Building your routines',
+  'Almost there',
+];
+
+// Progress for the streaming parse. Before the first token arrives the bar
+// creeps to ~12% so it never looks frozen; once tokens stream in it tracks real
+// output via an asymptotic curve (never quite 100% — the result flips the
+// screen). The status line walks the actual pipeline stages for flavor.
+function ParseProgress({ received = 0 }: { received?: number }) {
+  const [stage, setStage] = useState(0);
+  const progress = useRef(new Animated.Value(0.02)).current;
+
+  useEffect(() => {
+    Animated.timing(progress, {
+      toValue: 0.12,
+      duration: 4000,
+      easing: Easing.out(Easing.quad),
+      useNativeDriver: false,
+    }).start();
+
+    const id = setInterval(() => {
+      setStage((s) => Math.min(s + 1, PARSE_STAGES.length - 1));
+    }, 3500);
+    return () => clearInterval(id);
+  }, [progress]);
+
+  useEffect(() => {
+    if (received <= 0) return;
+    // Asymptotic: ~1.4k chars ≈ 63%, plateauing near 95%.
+    const frac = Math.min(0.95, Math.max(0.12, 1 - Math.exp(-received / 1400)));
+    Animated.timing(progress, {
+      toValue: frac,
+      duration: 250,
+      easing: Easing.out(Easing.quad),
+      useNativeDriver: false,
+    }).start();
+  }, [received, progress]);
+
+  const width = progress.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['2%', '100%'],
+  });
+
+  return (
+    <View className="flex-1 items-center justify-center px-8">
+      <View className="mb-5 h-16 w-16 items-center justify-center rounded-2xl border border-brand/40 bg-brand/10">
+        <Ionicons name="sparkles" size={28} color="#f97316" />
+      </View>
+      <Text variant="heading" className="text-center">
+        {PARSE_STAGES[stage]}
+        <Text className="text-brand">…</Text>
+      </Text>
+      <Text variant="muted" className="mt-1.5 text-center">
+        The AI is turning your notes into routines.
+      </Text>
+
+      <View className="mt-6 h-2 w-full overflow-hidden rounded-full bg-iron-800">
+        <Animated.View style={{ width }} className="h-full rounded-full bg-brand" />
+      </View>
+      <Text variant="caption" className="mt-3 text-center">
+        A full week can take 10–20 seconds.
+      </Text>
+    </View>
   );
 }
 
