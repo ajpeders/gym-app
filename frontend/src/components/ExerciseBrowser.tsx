@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, ScrollView, TextInput, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 
 import { api } from '@/api/client';
 import type { Exercise } from '@/api/types';
@@ -93,19 +94,23 @@ export function ExerciseBrowser({ onSelect, renderTrailing }: ExerciseBrowserPro
 
   return (
     <View className="flex-1">
-      <TextInput
-        value={query}
-        onChangeText={setQuery}
-        placeholder="Search exercises…"
-        placeholderTextColor="#78716c"
-        autoCapitalize="none"
-        className="mx-4 rounded-lg border border-iron-700 bg-iron-900 px-4 py-3 text-base text-iron-50"
-      />
+      <View className="mx-4 flex-row items-center rounded-lg border border-iron-700 bg-iron-900 px-3">
+        <Ionicons name="search" size={18} color="#78716c" />
+        <TextInput
+          value={query}
+          onChangeText={setQuery}
+          placeholder="Search exercises"
+          placeholderTextColor="#78716c"
+          selectionColor="#f97316"
+          autoCapitalize="none"
+          className="min-h-[48px] flex-1 px-3 text-base text-iron-50"
+        />
+      </View>
 
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        className="mt-3 max-h-10"
+        className="mt-3 max-h-11"
         contentContainerClassName="px-4">
         {MUSCLES.map((m) => (
           <Chip
@@ -119,7 +124,7 @@ export function ExerciseBrowser({ onSelect, renderTrailing }: ExerciseBrowserPro
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        className="max-h-10"
+        className="max-h-11"
         contentContainerClassName="px-4">
         {EQUIPMENT.map((e) => (
           <Chip
@@ -133,7 +138,7 @@ export function ExerciseBrowser({ onSelect, renderTrailing }: ExerciseBrowserPro
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        className="max-h-10"
+        className="max-h-11"
         contentContainerClassName="px-4">
         {CATEGORIES.map((c) => (
           <Chip
@@ -152,7 +157,7 @@ export function ExerciseBrowser({ onSelect, renderTrailing }: ExerciseBrowserPro
       ) : error ? (
         <ErrorState message={error} onRetry={() => load(true)} />
       ) : items.length === 0 ? (
-        <EmptyState icon="🔍" title="No exercises found" subtitle="Try a different search or filter." />
+        <EmptyState icon="FIND" title="No exercises found" subtitle="Try a different search or filter." />
       ) : (
         <ScrollView
           className="flex-1 mt-1"
@@ -164,7 +169,7 @@ export function ExerciseBrowser({ onSelect, renderTrailing }: ExerciseBrowserPro
             if (nearBottom && canLoadMore) void load(false);
           }}
           scrollEventThrottle={400}>
-          <Text variant="muted" className="py-1">
+          <Text variant="caption" className="py-2 text-iron-400">
             {total} exercises loaded
           </Text>
           {items.map((ex) => (

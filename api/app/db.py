@@ -36,6 +36,8 @@ SessionLocal = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False
 _ADDED_COLUMNS: list[tuple[str, str, str]] = [
     ("settings", "ollama_url", "VARCHAR"),
     ("settings", "claude_api_key", "VARCHAR"),
+    ("settings", "ollama_model", "VARCHAR"),
+    ("settings", "claude_model", "VARCHAR"),
 ]
 
 

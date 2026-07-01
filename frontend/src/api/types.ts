@@ -148,6 +148,8 @@ export interface Settings {
   feature_flags: FeatureFlags;
   ai_provider: AiProvider;
   ai_model: string | null;
+  ollama_model?: string | null;
+  claude_model?: string | null;
   ollama_url?: string | null;
   rest_timer_default: number;
 }

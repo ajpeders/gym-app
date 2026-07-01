@@ -1,21 +1,23 @@
 import React from 'react';
-import { ActivityIndicator, Pressable, Text, type PressableProps } from 'react-native';
+import { ActivityIndicator, Pressable, Text, View, type PressableProps } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 
 type Variant = 'primary' | 'secondary' | 'ghost' | 'danger';
 type Size = 'sm' | 'md' | 'lg';
+type IoniconName = React.ComponentProps<typeof Ionicons>['name'];
 
 interface ButtonProps extends Omit<PressableProps, 'children'> {
   title: string;
   variant?: Variant;
   size?: Size;
   loading?: boolean;
+  icon?: IoniconName;
   className?: string;
 }
 
 const container: Record<Variant, string> = {
   primary: 'bg-brand active:bg-brand-600',
-  secondary:
-    'bg-iron-800 border border-iron-700 active:bg-iron-700',
+  secondary: 'border border-iron-700 bg-iron-850 active:bg-iron-800',
   ghost: 'bg-transparent active:bg-iron-900',
   danger: 'bg-red-700 active:bg-red-800',
 };
@@ -28,9 +30,9 @@ const label: Record<Variant, string> = {
 };
 
 const sizing: Record<Size, string> = {
-  sm: 'px-3 py-2 rounded-md',
-  md: 'px-4 py-3 rounded-lg',
-  lg: 'px-5 py-4 rounded-lg',
+  sm: 'min-h-[38px] px-3.5 py-2 rounded-lg',
+  md: 'min-h-[48px] px-4 py-3 rounded-lg',
+  lg: 'min-h-[56px] px-5 py-4 rounded-lg',
 };
 
 const labelSize: Record<Size, string> = {
@@ -44,23 +46,31 @@ export function Button({
   variant = 'primary',
   size = 'md',
   loading = false,
+  icon,
   disabled,
   className,
   ...rest
 }: ButtonProps) {
   const isDisabled = disabled || loading;
+  const iconColor = variant === 'primary' ? '#080706' : variant === 'danger' ? '#ffffff' : '#f97316';
+
   return (
     <Pressable
       disabled={isDisabled}
       accessibilityRole="button"
-      className={`flex-row items-center justify-center ${sizing[size]} ${container[variant]} ${
+      className={`flex-row items-center justify-center overflow-hidden ${sizing[size]} ${container[variant]} ${
         isDisabled ? 'opacity-50' : ''
       } ${className ?? ''}`}
       {...rest}>
       {loading ? (
         <ActivityIndicator color={variant === 'secondary' || variant === 'ghost' ? '#f97316' : '#080706'} />
       ) : (
-        <Text className={`font-semibold ${labelSize[size]} ${label[variant]}`}>{title}</Text>
+        <View className="flex-row items-center justify-center">
+          {icon ? <Ionicons name={icon} size={size === 'sm' ? 15 : 18} color={iconColor} /> : null}
+          <Text className={`font-bold ${labelSize[size]} ${label[variant]} ${icon ? 'ml-2' : ''}`}>
+            {title}
+          </Text>
+        </View>
       )}
     </Pressable>
   );

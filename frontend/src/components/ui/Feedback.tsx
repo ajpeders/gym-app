@@ -1,12 +1,15 @@
 import React from 'react';
 import { ActivityIndicator, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 
 import { Text } from './Text';
 
 export function Loading({ label }: { label?: string }) {
   return (
     <View className="flex-1 items-center justify-center py-16">
-      <ActivityIndicator color="#f97316" />
+      <View className="h-14 w-14 items-center justify-center rounded-lg border border-iron-700 bg-iron-900">
+        <ActivityIndicator color="#f97316" />
+      </View>
       {label ? <Text variant="muted" className="mt-3">{label}</Text> : null}
     </View>
   );
@@ -23,7 +26,13 @@ export function EmptyState({
 }) {
   return (
     <View className="items-center justify-center py-16 px-6">
-      {icon ? <Text className="text-4xl mb-3 text-brand">{icon}</Text> : null}
+      <View className="mb-3 h-14 w-14 items-center justify-center rounded-lg border border-iron-700 bg-iron-900">
+        {icon ? (
+          <Text className="text-base font-black text-brand">{icon}</Text>
+        ) : (
+          <Ionicons name="albums-outline" size={24} color="#f97316" />
+        )}
+      </View>
       <Text variant="subheading" className="text-center">
         {title}
       </Text>
@@ -48,7 +57,9 @@ export function FormError({ message }: { message: string }) {
 export function ErrorState({ message, onRetry }: { message: string; onRetry?: () => void }) {
   return (
     <View className="items-center justify-center py-16 px-6">
-      <Text className="text-4xl mb-3 text-red-500">!</Text>
+      <View className="mb-3 h-14 w-14 items-center justify-center rounded-lg border border-red-500/40 bg-red-500/10">
+        <Ionicons name="alert" size={24} color="#f87171" />
+      </View>
       <Text variant="subheading" className="text-center">
         Something went wrong
       </Text>

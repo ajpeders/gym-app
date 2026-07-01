@@ -84,7 +84,7 @@ const markdownStyles = {
 function UserBubble({ content }: { content: string }) {
   return (
     <View className="mb-3 flex-row justify-end">
-      <View className="max-w-[85%] rounded-2xl rounded-br-md border border-brand/40 bg-brand/15 px-3.5 py-2.5">
+      <View className="max-w-[85%] rounded-2xl rounded-br-md border border-brand/40 bg-brand/20 px-3.5 py-2.5">
         <Text variant="body" className="text-iron-50">
           {content}
         </Text>
@@ -98,7 +98,7 @@ function AssistantBubble({ content, error }: { content: string; error?: boolean 
     <View className="mb-3 flex-row justify-start">
       <View
         className={`max-w-[88%] rounded-2xl rounded-bl-md border px-3.5 py-2.5 ${
-          error ? 'border-red-500/40 bg-red-500/10' : 'border-iron-700 bg-iron-900'
+          error ? 'border-red-500/40 bg-red-500/10' : 'border-iron-800 bg-iron-900/95'
         }`}>
         {error ? (
           <Text variant="body" className="text-red-300">
@@ -115,7 +115,7 @@ function AssistantBubble({ content, error }: { content: string; error?: boolean 
 function TypingBubble() {
   return (
     <View className="mb-3 flex-row justify-start">
-      <View className="flex-row items-center rounded-2xl rounded-bl-md border border-iron-700 bg-iron-900 px-3.5 py-3">
+      <View className="flex-row items-center rounded-2xl rounded-bl-md border border-iron-800 bg-iron-900/95 px-3.5 py-3">
         <Ionicons name="ellipsis-horizontal" size={18} color="#f97316" />
         <Text variant="muted" className="ml-2">
           Coaching…
@@ -129,15 +129,11 @@ function EmptyIntro({ onPick }: { onPick: (q: string) => void }) {
   return (
     <View className="px-1 py-6">
       <View className="mb-4 items-center">
-        <View className="mb-3 h-14 w-14 items-center justify-center rounded-full border border-brand/40 bg-brand/10">
+        <View className="mb-3 h-14 w-14 items-center justify-center rounded-lg border border-brand/40 bg-brand/10">
           <Ionicons name="chatbubbles" size={26} color="#f97316" />
         </View>
         <Text variant="heading" className="text-center">
           Your coach
-        </Text>
-        <Text variant="muted" className="mt-1.5 text-center">
-          Ask your coach anything — what to train today, how to work around an injury,
-          programming questions.
         </Text>
       </View>
       <View className="flex-row flex-wrap justify-center">
@@ -146,7 +142,7 @@ function EmptyIntro({ onPick }: { onPick: (q: string) => void }) {
             key={s}
             onPress={() => onPick(s)}
             accessibilityRole="button"
-            className="mb-2 mr-2 rounded-full border border-iron-700 bg-iron-900 px-3.5 py-2 active:opacity-70">
+            className="mb-2 mr-2 rounded-full border border-iron-700 bg-iron-900/90 px-3.5 py-2 active:opacity-70">
             <Text variant="caption" className="text-iron-100">
               {s}
             </Text>
@@ -254,7 +250,7 @@ export default function CoachScreen() {
     return (
       <Screen scroll={false} padded={false}>
         <View className="flex-1 items-center justify-center px-8">
-          <View className="mb-4 h-16 w-16 items-center justify-center rounded-full border border-brand/40 bg-brand/10">
+          <View className="mb-4 h-16 w-16 items-center justify-center rounded-lg border border-brand/40 bg-brand/10">
             <Ionicons name="sparkles" size={28} color="#f97316" />
           </View>
           <Text variant="heading" className="text-center">
@@ -324,21 +320,20 @@ export default function CoachScreen() {
               disabled
               accessibilityRole="button"
               accessibilityState={{ disabled: true }}
-              className="mr-2 h-11 flex-row items-center rounded-full border border-iron-700 bg-iron-900 px-3 opacity-50">
+              accessibilityLabel="Voice input"
+              className="mr-2 h-11 w-11 items-center justify-center rounded-lg border border-iron-700 bg-iron-900 opacity-50">
               <Ionicons name="mic-outline" size={16} color="#a8a29e" />
-              <Text variant="caption" className="ml-1">
-                soon
-              </Text>
             </Pressable>
 
             <TextInput
               value={input}
               onChangeText={setInput}
-              placeholder="Ask your coach…"
+              placeholder="Ask your coach"
               placeholderTextColor="#78716c"
+              selectionColor="#f97316"
               multiline
               editable={!sending}
-              className="max-h-32 min-h-[44px] flex-1 rounded-2xl border border-iron-700 bg-iron-900 px-4 py-2.5 text-base text-iron-50"
+              className="max-h-32 min-h-[44px] flex-1 rounded-lg border border-iron-700 bg-iron-900 px-4 py-2.5 text-base text-iron-50"
               style={{ textAlignVertical: 'center' }}
             />
 
@@ -347,7 +342,7 @@ export default function CoachScreen() {
               disabled={!canSend}
               accessibilityRole="button"
               accessibilityLabel="Send message"
-              className={`ml-2 h-11 w-11 items-center justify-center rounded-full ${
+              className={`ml-2 h-11 w-11 items-center justify-center rounded-lg ${
                 canSend ? 'bg-brand active:bg-brand-600' : 'bg-iron-800 opacity-50'
               }`}>
               <Ionicons name="arrow-up" size={20} color="#080706" />

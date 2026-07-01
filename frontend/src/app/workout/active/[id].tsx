@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Alert, Platform, Pressable, ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 
 import type { SetInput } from '@/api/types';
 import { useActiveWorkout } from '@/state/active-workout';
@@ -119,19 +120,25 @@ export default function ActiveWorkoutScreen() {
           headerShown: true,
           title: workout.name ?? 'Workout',
           headerRight: () => (
-            <Pressable onPress={onDiscard} hitSlop={8}>
-              <Text className="text-red-500 font-semibold mr-1">Discard</Text>
+            <Pressable
+              onPress={onDiscard}
+              hitSlop={8}
+              accessibilityRole="button"
+              accessibilityLabel="Discard workout"
+              className="mr-1 h-9 w-9 items-center justify-center rounded-lg bg-red-500/10">
+              <Ionicons name="trash-outline" size={18} color="#ef4444" />
             </Pressable>
           ),
         }}
       />
-      <ScrollView className="flex-1" contentContainerClassName="px-4 pt-3 pb-40">
+      <ScrollView className="flex-1" contentContainerClassName="px-4 pt-3 pb-40" showsVerticalScrollIndicator={false}>
         {/* summary */}
-        <View className="flex-row justify-between mb-3">
-          <Stat label="Duration" value={formatDuration(workout.started_at)} />
-          <Stat label="Exercises" value={String(workout.exercises.length)} />
-          <Stat label="Sets" value={String(totalSets)} />
+        <View className="mb-3 flex-row flex-wrap gap-2">
+          <Stat icon="time-outline" label="Duration" value={formatDuration(workout.started_at)} />
+          <Stat icon="fitness-outline" label="Exercises" value={String(workout.exercises.length)} />
+          <Stat icon="checkmark-done-outline" label="Sets" value={String(totalSets)} />
           <Stat
+            icon="flash-outline"
             label="Volume"
             value={`${Math.round(totalVolume)} ${settings.units}`}
           />
@@ -147,22 +154,21 @@ export default function ActiveWorkoutScreen() {
         {/* in-set AI prompt stub */}
         {settings.feature_flags.in_set_prompts ? (
           <Card className="mb-3 border-brand bg-iron-900">
-            <Text variant="label" className="text-brand">
-              AI coaching · on
-            </Text>
-            <Text variant="muted" className="mt-1">
-              Between-set coaching prompts will appear here once AI is connected. (Preview - no
-              suggestions are generated yet.)
-            </Text>
+            <View className="flex-row items-center">
+              <Ionicons name="sparkles" size={18} color="#f97316" />
+              <Text variant="label" className="ml-2 text-brand">
+                AI coaching on
+              </Text>
+            </View>
           </Card>
         ) : (
           <Card className="mb-3">
-            <Text variant="label" className="text-iron-400">
-              AI coaching · off
-            </Text>
-            <Text variant="muted" className="mt-1">
-              Enable in-set prompts in Settings to preview AI coaching.
-            </Text>
+            <View className="flex-row items-center">
+              <Ionicons name="sparkles-outline" size={18} color="#78716c" />
+              <Text variant="label" className="ml-2 text-iron-400">
+                AI coaching off
+              </Text>
+            </View>
           </Card>
         )}
 
@@ -199,24 +205,40 @@ export default function ActiveWorkoutScreen() {
           title="Add exercise"
           variant="secondary"
           size="lg"
+          icon="add"
           className="mt-1"
           onPress={() => router.push('/workout/add-exercise')}
         />
       </ScrollView>
 
       {/* finish bar */}
-      <View className="absolute bottom-0 left-0 right-0 px-4 pb-6 pt-3 bg-iron-950/95 border-t border-iron-800">
-        <Button title="Finish workout" size="lg" loading={finishing} onPress={onFinish} />
+      <View className="absolute bottom-0 left-0 right-0 border-t border-iron-800 bg-iron-950/95 px-4 pb-6 pt-3">
+        <Button title="Finish workout" size="lg" icon="checkmark" loading={finishing} onPress={onFinish} />
       </View>
     </SafeAreaView>
   );
 }
 
-function Stat({ label, value }: { label: string; value: string }) {
+function Stat({
+  icon,
+  label,
+  value,
+}: {
+  icon: React.ComponentProps<typeof Ionicons>['name'];
+  label: string;
+  value: string;
+}) {
   return (
-    <View className="items-center">
-      <Text variant="subheading">{value}</Text>
-      <Text variant="caption">{label}</Text>
+    <View className="w-[48%] rounded-lg border border-iron-800 bg-iron-900/90 px-3 py-2.5">
+      <View className="flex-row items-center">
+        <Ionicons name={icon} size={14} color="#f97316" />
+        <Text variant="caption" className="ml-1.5 text-iron-400">
+          {label}
+        </Text>
+      </View>
+      <Text variant="subheading" className="mt-0.5" numberOfLines={1}>
+        {value}
+      </Text>
     </View>
   );
 }

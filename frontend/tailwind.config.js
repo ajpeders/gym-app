@@ -13,6 +13,15 @@ module.exports = {
           600: '#ea580c',
           700: '#c2410c',
         },
+        mint: {
+          DEFAULT: '#34d399',
+          500: '#34d399',
+          600: '#10b981',
+        },
+        steel: {
+          DEFAULT: '#38bdf8',
+          500: '#38bdf8',
+        },
         iron: {
           50: '#f5f5f4',
           100: '#e7e5e4',

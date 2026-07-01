@@ -37,8 +37,17 @@ _WORD_RE = re.compile(r"[^a-z0-9 ]+")
 
 
 def _stem(tok: str) -> str:
-    # crude plural strip so "raises" matches "raise", "curls" matches "curl"
-    return tok[:-1] if len(tok) > 3 and tok.endswith("s") else tok
+    """Crude singular/plural normalizer so 'raises'/'raise', 'crunches'/'crunch',
+    'presses'/'press' unify to the same token."""
+    if len(tok) <= 3:
+        return tok
+    if tok.endswith("ies"):  # flies -> fly
+        return tok[:-3] + "y"
+    if tok.endswith(("sses", "shes", "ches", "xes", "zzes")):  # presses -> press, crunches -> crunch
+        return tok[:-2]
+    if tok.endswith("s") and not tok.endswith("ss"):  # raises -> raise, curls -> curl
+        return tok[:-1]
+    return tok
 
 
 def _norm(s: str) -> list[str]:
@@ -56,15 +65,31 @@ def _normalize_url(url: str | None) -> str:
     return url
 
 
-def _is_claude_model(m: str | None) -> bool:
-    return bool(m) and m.strip().lower().startswith("claude")
+def _effective_provider(s: Settings | None, cfg) -> str:
+    return (s.ai_provider if s and s.ai_provider else cfg.ai_provider) or "ollama"
+
+
+def _provider_configured(s: Settings | None, provider: str) -> bool:
+    """Single source of truth for 'is this provider usable for this user' — matches
+    exactly what _resolve requires (whitespace-only values are NOT configured)."""
+    if provider == "claude":
+        return bool(s and s.claude_api_key and s.claude_api_key.strip())
+    return bool(s and s.ollama_url and _normalize_url(s.ollama_url))
+
+
+def _ollama_model(s: Settings | None, cfg) -> str:
+    return (s.ollama_model if s and s.ollama_model else None) or cfg.ollama_model
+
+
+def _claude_model(s: Settings | None, cfg) -> str:
+    return (s.claude_model if s and s.claude_model else None) or cfg.claude_model
 
 
 async def list_models(db: Session, user: User) -> dict:
-    """Discover which models are installed on the user's (or default) Ollama."""
+    """Discover which models are installed on the user's Ollama."""
     cfg = get_settings()
     s = _user_settings(db, user.id)
-    if not (s and s.ollama_url):
+    if not _provider_configured(s, "ollama"):
         raise AIError("Add your Ollama server URL in Settings first.")
     url = _normalize_url(s.ollama_url)
     try:
@@ -72,16 +97,14 @@ async def list_models(db: Session, user: User) -> dict:
             resp = await client.get(f"{url}/api/tags")
             resp.raise_for_status()
             data = resp.json()
-    except httpx.HTTPError as exc:
+        models = [
+            {"name": m.get("name"), "size": (m.get("details") or {}).get("parameter_size")}
+            for m in (data.get("models") or [])
+            if m.get("name") and "embed" not in (m.get("name") or "")
+        ]
+    except (httpx.HTTPError, ValueError, TypeError, AttributeError) as exc:
         raise AIError(f"Could not reach Ollama at {url}: {exc!r}") from exc
-    models = [
-        {"name": m.get("name"), "size": m.get("details", {}).get("parameter_size")}
-        for m in data.get("models", [])
-        if m.get("name") and "embed" not in (m.get("name") or "")
-    ]
-    ollama_model = s.ai_model if s and s.ai_model and not _is_claude_model(s.ai_model) else None
-    current = ollama_model or cfg.ollama_model
-    return {"provider": "ollama", "url": url, "current": current, "models": models}
+    return {"provider": "ollama", "url": url, "current": _ollama_model(s, cfg), "models": models}
 
 
 async def test_provider(db: Session, user: User) -> dict:
@@ -104,9 +127,9 @@ async def test_provider(db: Session, user: User) -> dict:
 def available_providers(db: Session, user: User) -> dict:
     cfg = get_settings()
     s = _user_settings(db, user.id)
-    provider = (s.ai_provider if s and s.ai_provider else cfg.ai_provider) or "ollama"
-    ollama_configured = bool(s and s.ollama_url)
-    claude_configured = bool(s and s.claude_api_key)
+    provider = _effective_provider(s, cfg)
+    ollama_configured = _provider_configured(s, "ollama")
+    claude_configured = _provider_configured(s, "claude")
     configured = claude_configured if provider == "claude" else ollama_configured
     return {
         "default": cfg.ai_provider,
@@ -117,12 +140,9 @@ def available_providers(db: Session, user: User) -> dict:
             "ollama": {
                 "configured": ollama_configured,
                 "url": (s.ollama_url if s and s.ollama_url else None),
-                "model": (
-                    s.ai_model if s and s.ai_model and not _is_claude_model(s.ai_model) else None
-                )
-                or cfg.ollama_model,
+                "model": _ollama_model(s, cfg),
             },
-            "claude": {"configured": claude_configured, "model": cfg.claude_model},
+            "claude": {"configured": claude_configured, "model": _claude_model(s, cfg)},
         },
     }
 
@@ -130,52 +150,53 @@ def available_providers(db: Session, user: User) -> dict:
 def _resolve(db: Session, user: User) -> tuple[Provider, str]:
     cfg = get_settings()
     s = _user_settings(db, user.id)
-    provider = (s.ai_provider if s and s.ai_provider else cfg.ai_provider) or "ollama"
-    model = s.ai_model if s and s.ai_model else None
+    provider = _effective_provider(s, cfg)
     units = (s.units if s and s.units else "kg")
     if provider == "claude":
-        key = s.claude_api_key.strip() if s and s.claude_api_key else None
-        if not key:
+        if not _provider_configured(s, "claude"):
             raise AIError("Claude isn't set up yet — add your API key in Settings.")
-        # ai_model is shared across providers; only honor it for Claude if it IS a Claude model.
-        cmodel = model if _is_claude_model(model) else cfg.claude_model
-        return ClaudeProvider(key, cmodel, cfg.ai_timeout), units
+        return ClaudeProvider(s.claude_api_key.strip(), _claude_model(s, cfg), cfg.ai_timeout), units
     # No silent default: each user brings their own Ollama. Not set up -> error.
-    ollama_url = _normalize_url(s.ollama_url) if s and s.ollama_url else None
-    if not ollama_url:
+    if not _provider_configured(s, "ollama"):
         raise AIError("Local AI isn't set up yet — add your Ollama server in Settings.")
-    omodel = model if (model and not _is_claude_model(model)) else cfg.ollama_model
-    return OllamaProvider(ollama_url, omodel, cfg.ai_timeout), units
+    return OllamaProvider(_normalize_url(s.ollama_url), _ollama_model(s, cfg), cfg.ai_timeout), units
 
 
-def match_exercise(db: Session, user_id: int, name: str) -> tuple[int | None, str]:
-    """Match a parsed exercise name to the catalog (global + the user's custom)."""
+def _load_catalog(db: Session, user_id: int) -> list[tuple[int, frozenset[str]]]:
+    """Load the exercise catalog (global + the user's custom) once, normalized."""
     rows = db.execute(
         select(Exercise.id, Exercise.name).where(
             (Exercise.owner_id.is_(None)) | (Exercise.owner_id == user_id)
         )
     ).all()
-    target = set(_norm(name))
+    return [(ex_id, frozenset(_norm(ex_name))) for ex_id, ex_name in rows]
+
+
+def _match(name: str, catalog: list[tuple[int, frozenset[str]]]) -> tuple[int | None, str]:
+    target = frozenset(_norm(name))
     if not target:
         return None, "none"
-    best: tuple[tuple[int, int], int] | None = None  # ((overlap, -size_diff), ex_id)
-    for ex_id, ex_name in rows:
-        toks = set(_norm(ex_name))
+    best_key: tuple = ()
+    best_id: int | None = None
+    for ex_id, toks in catalog:
         if toks == target:
             return ex_id, "exact"
         if not toks:
             continue
         inter = len(target & toks)
-        if inter == 0:
+        # accept only when one name's words fully contain the other's
+        if inter == 0 or not (target <= toks or toks <= target):
             continue
-        # accept when one name's words are contained in the other (either direction)
-        if target <= toks or toks <= target:
-            score = (inter, -abs(len(toks) - len(target)))
-            if best is None or score > best[0]:
-                best = (score, ex_id)
-    if best:
-        return best[1], "fuzzy"
-    return None, "none"
+        # deterministic ranking: most overlap, closest size, shortest name, lowest id
+        key = (inter, -abs(len(toks) - len(target)), -len(toks), -ex_id)
+        if best_id is None or key > best_key:
+            best_key, best_id = key, ex_id
+    return (best_id, "fuzzy") if best_id is not None else (None, "none")
+
+
+def match_exercise(db: Session, user_id: int, name: str) -> tuple[int | None, str]:
+    """Match a single parsed exercise name to the catalog (loads the catalog)."""
+    return _match(name, _load_catalog(db, user_id))
 
 
 async def parse_sets(db: Session, user: User, text: str, workout_id: int | None = None) -> dict:
@@ -205,9 +226,10 @@ async def parse_sets(db: Session, user: User, text: str, workout_id: int | None 
     except Exception as exc:  # noqa: BLE001
         raise AIError(f"Model output did not match the expected shape: {exc}") from exc
 
+    catalog = _load_catalog(db, user.id)
     items = []
     for ex in parsed.exercises:
-        ex_id, match = match_exercise(db, user.id, ex.exercise)
+        ex_id, match = _match(ex.exercise, catalog)
         items.append(
             {
                 "exercise_name": ex.exercise,
@@ -243,11 +265,12 @@ async def parse_routine(db: Session, user: User, text: str) -> dict:
     except Exception as exc:  # noqa: BLE001
         raise AIError(f"Model output did not match the expected shape: {exc}") from exc
 
+    catalog = _load_catalog(db, user.id)
     routines = []
     for r in program.routines:
         exercises = []
         for e in r.exercises:
-            ex_id, match = match_exercise(db, user.id, e.exercise)
+            ex_id, match = _match(e.exercise, catalog)
             exercises.append(
                 {
                     "exercise_name": e.exercise,

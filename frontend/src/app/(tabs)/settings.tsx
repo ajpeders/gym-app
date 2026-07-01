@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, Switch, TextInput, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -204,8 +204,12 @@ function AiProviderControl({
   const { settings, update } = useSettings();
   const [providers, setProviders] = useState<AiProviders | null>(null);
   const [loading, setLoading] = useState(true);
-  const [model, setModel] = useState(settings.ai_model ?? '');
+  const [model, setModel] = useState(settings.claude_model ?? '');
   const [urlInput, setUrlInput] = useState(settings.ollama_url ?? '');
+  // Guards for the Ollama URL field so it commits at most once per edit
+  // (onEndEditing + onBlur both fire) and never double-saves.
+  const committedUrlRef = useRef(settings.ollama_url ?? '');
+  const savingUrlRef = useRef(false);
 
   const selected = settings.ai_provider;
   const isOllama = selected === 'ollama';
@@ -246,19 +250,35 @@ function AiProviderControl({
   }, []);
 
   useEffect(() => {
-    setModel(settings.ai_model ?? '');
-  }, [settings.ai_model]);
+    setModel(settings.claude_model ?? '');
+  }, [settings.claude_model]);
 
   useEffect(() => {
     setUrlInput(settings.ollama_url ?? '');
+    committedUrlRef.current = settings.ollama_url ?? '';
   }, [settings.ollama_url]);
+
+  // Fix 6: a provider switch must not show a stale Test result from the
+  // previously selected provider.
+  useEffect(() => {
+    setTestResult(null);
+  }, [selected]);
 
   async function commitOllamaUrl() {
     const trimmed = urlInput.trim();
-    if (trimmed === (settings.ollama_url ?? '')) return;
-    await patch(() => update({ ollama_url: trimmed }));
-    // Re-resolve models/Test against the (possibly new) server.
-    await loadModels();
+    // Skip if a save is already in flight or the value hasn't changed since the
+    // last commit — onEndEditing + onBlur both fire, so this must be idempotent.
+    if (savingUrlRef.current) return;
+    if (trimmed === committedUrlRef.current) return;
+    savingUrlRef.current = true;
+    committedUrlRef.current = trimmed;
+    try {
+      await patch(() => update({ ollama_url: trimmed }));
+      // Re-resolve models/Test against the (possibly new) server.
+      await loadModels();
+    } finally {
+      savingUrlRef.current = false;
+    }
   }
 
   useEffect(() => {
@@ -353,8 +373,8 @@ function AiProviderControl({
   function commitModel() {
     const trimmed = model.trim();
     const next = trimmed === '' ? null : trimmed;
-    if (next === (settings.ai_model ?? null)) return;
-    void patch(() => update({ ai_model: next }));
+    if (next === (settings.claude_model ?? null)) return;
+    void patch(() => update({ claude_model: next }));
   }
 
   function ProviderStatus({
@@ -533,12 +553,13 @@ function AiProviderControl({
           ) : models && models.models.length > 0 ? (
             <View className="gap-1.5">
               {models.models.map((m) => {
-                const activeModel = settings.ai_model ?? models.current;
+                const activeModel =
+                  settings.ollama_model ?? providers?.providers.ollama.model ?? models.current;
                 const active = m.name === activeModel;
                 return (
                   <Pressable
                     key={m.name}
-                    onPress={() => patch(() => update({ ai_model: m.name }))}
+                    onPress={() => patch(() => update({ ollama_model: m.name }))}
                     className={`flex-row items-center justify-between rounded-lg border px-3 py-2.5 ${
                       active ? 'border-brand bg-brand/10' : 'border-iron-700 bg-iron-900'
                     }`}>

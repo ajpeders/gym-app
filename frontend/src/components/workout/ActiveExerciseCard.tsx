@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Pressable, TextInput, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 
 import type { SetInput, Units, WorkoutExercise } from '@/api/types';
 import { Text } from '@/components/ui/Text';
@@ -16,7 +17,7 @@ interface Props {
 }
 
 const numInput =
-  'w-16 rounded-md border border-iron-700 bg-iron-950 px-2 py-2 text-center text-base text-iron-50';
+  'min-h-[44px] w-16 rounded-lg border border-iron-700 bg-iron-950 px-2 py-2 text-center text-base text-iron-50';
 
 export function ActiveExerciseCard({
   workoutExercise,
@@ -72,18 +73,28 @@ export function ActiveExerciseCard({
   return (
     <Card className="mb-3">
       <View className="flex-row items-center justify-between">
-        <Text variant="subheading" numberOfLines={1} className="flex-1">
-          {name}
-        </Text>
-        <Pressable onPress={onRemoveExercise} hitSlop={8} className="active:opacity-60">
-          <Text className="text-sm text-red-500 font-bold">Remove</Text>
+        <View className="mr-3 h-10 w-10 items-center justify-center rounded-lg border border-brand/30 bg-brand/10">
+          <Ionicons name="barbell-outline" size={20} color="#f97316" />
+        </View>
+        <View className="flex-1">
+          <Text variant="subheading" numberOfLines={1}>
+            {name}
+          </Text>
+          {workoutExercise.exercise?.primary_muscles?.length ? (
+            <Text variant="caption" numberOfLines={1} className="mt-0.5">
+              {workoutExercise.exercise.primary_muscles.map(titleCase).join(', ')}
+            </Text>
+          ) : null}
+        </View>
+        <Pressable
+          onPress={onRemoveExercise}
+          hitSlop={8}
+          accessibilityRole="button"
+          accessibilityLabel="Remove exercise"
+          className="ml-2 h-9 w-9 items-center justify-center rounded-lg bg-red-500/10 active:opacity-60">
+          <Ionicons name="trash-outline" size={17} color="#ef4444" />
         </Pressable>
       </View>
-      {workoutExercise.exercise?.primary_muscles?.length ? (
-        <Text variant="muted" numberOfLines={1}>
-          {workoutExercise.exercise.primary_muscles.map(titleCase).join(', ')}
-        </Text>
-      ) : null}
 
       {/* logged sets */}
       {sets.length > 0 ? (
@@ -93,10 +104,10 @@ export function ActiveExerciseCard({
               SET
             </Text>
             <Text variant="caption" className="flex-1">
-              WEIGHT
+              Weight
             </Text>
             <Text variant="caption" className="flex-1">
-              REPS
+              Reps
             </Text>
             <Text variant="caption" className="w-12">
               RPE
@@ -106,7 +117,7 @@ export function ActiveExerciseCard({
           {sets.map((s, i) => (
             <View
               key={s.id}
-              className="flex-row items-center rounded-md bg-iron-800 px-1 py-2">
+              className="flex-row items-center rounded-lg bg-iron-850 px-1 py-2">
               <Text variant="label" className="w-10 text-center">
                 {i + 1}
               </Text>
@@ -122,8 +133,10 @@ export function ActiveExerciseCard({
               <Pressable
                 onPress={() => onRemoveSet(s.id)}
                 hitSlop={8}
+                accessibilityRole="button"
+                accessibilityLabel={`Remove set ${i + 1}`}
                 className="w-8 items-center active:opacity-60">
-                <Text className="text-red-500 text-base">✕</Text>
+                <Ionicons name="close" size={17} color="#ef4444" />
               </Pressable>
             </View>
           ))}
@@ -146,6 +159,7 @@ export function ActiveExerciseCard({
             keyboardType="decimal-pad"
             placeholder={last ? String(last.weight) : '0'}
             placeholderTextColor="#78716c"
+            selectionColor="#f97316"
             className={numInput}
           />
         </View>
@@ -159,6 +173,7 @@ export function ActiveExerciseCard({
             keyboardType="number-pad"
             placeholder={last ? String(last.reps) : '0'}
             placeholderTextColor="#78716c"
+            selectionColor="#f97316"
             className={numInput}
           />
         </View>
@@ -172,13 +187,14 @@ export function ActiveExerciseCard({
             keyboardType="decimal-pad"
             placeholder="-"
             placeholderTextColor="#78716c"
+            selectionColor="#f97316"
             className={numInput}
           />
         </View>
         <Pressable
           disabled={saving}
           onPress={addFromInputs}
-          className="flex-1 items-center justify-center rounded-md bg-brand py-3 active:bg-brand-600">
+          className="min-h-[44px] flex-1 items-center justify-center rounded-lg bg-brand px-3 py-3 active:bg-brand-600">
           <Text className="font-bold text-iron-950">Log set</Text>
         </Pressable>
       </View>
@@ -189,10 +205,11 @@ export function ActiveExerciseCard({
           <Pressable
             disabled={saving}
             onPress={repeatLast}
-            className="flex-1 items-center rounded-md border border-brand py-2 active:opacity-70">
-            <Text className="text-sm font-bold text-brand">
-              ↻ Repeat last ({last.weight}
-              {units} × {last.reps})
+            className="flex-1 flex-row items-center justify-center rounded-lg border border-brand/40 bg-brand/10 px-3 py-2 active:opacity-70">
+            <Ionicons name="repeat" size={16} color="#f97316" />
+            <Text className="ml-1.5 text-sm font-bold text-brand">
+              {last.weight}
+              {units} x {last.reps}
             </Text>
           </Pressable>
         </View>

@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Pressable, ScrollView, TextInput, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, TextInput, View } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -18,7 +18,7 @@ import { Loading, FormError } from '@/components/ui/Feedback';
 
 type Phase = 'input' | 'parsing' | 'review' | 'saving' | 'done';
 
-const PLACEHOLDER = 'Paste your routine from Notes — multiple days are fine.';
+const PLACEHOLDER = 'Paste your routine here.';
 
 const MATCH_META: Record<ParsedMatch, { icon: string; label: string; className: string }> = {
   exact: { icon: '✓', label: 'matched', className: 'border-green-500/40 bg-green-500/10 text-green-300' },
@@ -75,10 +75,14 @@ export default function RoutineImportScreen() {
 
   const units = result?.units ?? 'kg';
 
-  const saveableCount = useMemo(() => {
-    if (!result) return 0;
-    return result.routines.filter((r, di) => includeDay[di] && !r.rest_day).length;
-  }, [result, includeDay]);
+  const saveableRoutines = useMemo(() => {
+    if (!result) return [];
+    return result.routines.filter((r, di) => {
+      if (!includeDay[di] || r.rest_day) return false;
+      return r.exercises.some((_, ei) => includeExercise[exKey(di, ei)] !== false);
+    });
+  }, [result, includeDay, includeExercise]);
+  const saveableCount = saveableRoutines.length;
 
   async function onParse() {
     const trimmed = text.trim();
@@ -116,7 +120,10 @@ export default function RoutineImportScreen() {
     if (!result) return;
     const toSave = result.routines
       .map((r, di) => ({ r, di }))
-      .filter(({ r, di }) => includeDay[di] && !r.rest_day);
+      .filter(({ r, di }) => {
+        if (!includeDay[di] || r.rest_day) return false;
+        return r.exercises.some((_, ei) => includeExercise[exKey(di, ei)] !== false);
+      });
 
     setSaveTotal(toSave.length);
     setSaveCurrent(0);
@@ -125,17 +132,27 @@ export default function RoutineImportScreen() {
 
     try {
       let done = 0;
+      // Cache custom exercises created during this save, keyed by
+      // case-insensitive name, so the same unmatched exercise (repeated within a
+      // day or across days) creates ONE custom exercise and reuses its id.
+      const createdCustom = new Map<string, string>();
       for (const { r, di } of toSave) {
         const exercises: RoutineExerciseInput[] = [];
         let order = 0;
         for (let ei = 0; ei < r.exercises.length; ei++) {
-          if (!includeExercise[exKey(di, ei)]) continue;
+          if (includeExercise[exKey(di, ei)] === false) continue;
           const ex = r.exercises[ei];
           // No catalog match → create a custom exercise so nothing is lost.
           let exerciseId: string;
           if (ex.exercise_id === null) {
-            const created = await api.createExercise({ name: ex.exercise_name });
-            exerciseId = created.id;
+            const key = ex.exercise_name.trim().toLowerCase();
+            let cachedId = createdCustom.get(key);
+            if (!cachedId) {
+              const created = await api.createExercise({ name: ex.exercise_name });
+              cachedId = created.id;
+              createdCustom.set(key, cachedId);
+            }
+            exerciseId = cachedId;
           } else {
             exerciseId = String(ex.exercise_id);
           }
@@ -148,6 +165,9 @@ export default function RoutineImportScreen() {
           });
           order += 1;
         }
+        // A day with everything unchecked yields no exercises — never create an
+        // empty routine.
+        if (exercises.length === 0) continue;
         await api.createRoutine({
           name: r.name,
           notes: r.notes ?? undefined,
@@ -174,10 +194,14 @@ export default function RoutineImportScreen() {
     setIncludeExercise((prev) => ({ ...prev, [exKey(di, ei)]: !prev[exKey(di, ei)] }));
   }
 
-  function reset() {
+  function reset(clearText = false) {
     setResult(null);
     setError(null);
     setPhase('input');
+    setIncludeDay({});
+    setIncludeExercise({});
+    setExpanded({});
+    if (clearText) setText('');
   }
 
   // ---- parsing spinner ----
@@ -210,7 +234,7 @@ export default function RoutineImportScreen() {
           </Text>
           <View className="mt-6 w-full gap-2">
             <Button title="View routines" size="lg" onPress={() => router.replace('/routines')} />
-            <Button title="Import another" variant="secondary" onPress={reset} />
+            <Button title="Import another" variant="secondary" onPress={() => reset(true)} />
           </View>
         </View>
       </Screen>
@@ -264,7 +288,7 @@ export default function RoutineImportScreen() {
                 title="Back"
                 variant="secondary"
                 disabled={saving}
-                onPress={reset}
+                onPress={() => reset()}
               />
             </View>
             <View className="flex-[2]">
@@ -291,48 +315,43 @@ export default function RoutineImportScreen() {
   return (
     <Screen scroll={false} padded={false}>
       <Stack.Screen options={{ headerShown: true, title: 'Import routine' }} />
-      <ScrollView
+      <KeyboardAvoidingView
         className="flex-1"
-        contentContainerClassName="px-4 pt-3 pb-10"
-        keyboardShouldPersistTaps="handled">
-        <Text variant="muted" className="mb-3">
-          Paste a routine you wrote in your notes — split, push/pull/legs, a full week, whatever.
-          The AI turns it into routines you can train from.
-        </Text>
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 88 : 0}>
+        <ScrollView
+          className="flex-1"
+          contentContainerClassName="px-4 pt-3 pb-6"
+          keyboardShouldPersistTaps="handled">
+          <Text variant="heading" className="mb-2">
+            Paste your routine here
+          </Text>
+          <Text variant="muted" className="mb-3">
+            Drop in your workout plan and the AI will turn it into routines.
+          </Text>
 
-        <TextInput
-          value={text}
-          onChangeText={setText}
-          placeholder={PLACEHOLDER}
-          placeholderTextColor="#78716c"
-          multiline
-          className="min-h-[220px] rounded-lg border border-iron-700 bg-iron-900 px-4 py-3 text-base text-iron-50"
-          style={{ textAlignVertical: 'top' }}
-        />
+          <TextInput
+            value={text}
+            onChangeText={setText}
+            placeholder={PLACEHOLDER}
+            placeholderTextColor="#78716c"
+            multiline
+            scrollEnabled
+            className="h-56 rounded-lg border border-iron-700 bg-iron-900 px-4 py-3 text-base text-iron-50"
+            style={{ textAlignVertical: 'top' }}
+          />
 
-        {error ? (
-          <View className="mt-3">
-            <FormError message={error} />
-          </View>
-        ) : null}
+          {error ? (
+            <View className="mt-3">
+              <FormError message={error} />
+            </View>
+          ) : null}
 
-        <View className="mt-4 flex-row items-center gap-2">
-          {/* Voice — roadmap'd, no native speech dep yet. */}
-          <Pressable
-            disabled
-            accessibilityRole="button"
-            accessibilityState={{ disabled: true }}
-            className="flex-row items-center rounded-md border border-iron-700 bg-iron-900 px-3 py-3 opacity-50">
-            <Text className="text-base text-iron-300">🎤</Text>
-            <Text variant="caption" className="ml-1.5">
-              soon
-            </Text>
-          </Pressable>
-          <View className="flex-1">
-            <Button title="Parse" size="lg" disabled={!text.trim()} onPress={onParse} />
-          </View>
+        </ScrollView>
+        <View className="border-t border-iron-800 bg-iron-950 px-4 pb-8 pt-3">
+          <Button title="Parse" size="lg" disabled={!text.trim()} onPress={onParse} />
         </View>
-      </ScrollView>
+      </KeyboardAvoidingView>
     </Screen>
   );
 }

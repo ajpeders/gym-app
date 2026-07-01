@@ -1,5 +1,5 @@
 import { Tabs } from 'expo-router';
-import { Platform } from 'react-native';
+import { Platform, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 type IoniconName = React.ComponentProps<typeof Ionicons>['name'];
@@ -14,7 +14,14 @@ const ICONS: Record<string, [IoniconName, IoniconName]> = {
 function tabIcon(name: keyof typeof ICONS) {
   return ({ color, size, focused }: { color: string; size: number; focused: boolean }) => {
     const [active, inactive] = ICONS[name];
-    return <Ionicons name={focused ? active : inactive} size={size ?? 24} color={color} />;
+    return (
+      <View
+        className={`h-9 w-12 items-center justify-center rounded-lg ${
+          focused ? 'bg-brand/15' : 'bg-transparent'
+        }`}>
+        <Ionicons name={focused ? active : inactive} size={size ?? 22} color={color} />
+      </View>
+    );
   };
 }
 
@@ -28,15 +35,25 @@ export default function TabsLayout() {
         headerTitleStyle: { fontWeight: '900' },
         headerShadowVisible: false,
         tabBarActiveTintColor: '#f97316',
-        tabBarInactiveTintColor: '#78716c',
+        tabBarInactiveTintColor: '#a8a29e',
         tabBarStyle: {
-          backgroundColor: '#080706',
-          borderTopColor: '#292524',
-          height: Platform.OS === 'ios' ? 88 : 64,
-          paddingBottom: Platform.OS === 'ios' ? 28 : 8,
-          paddingTop: 8,
+          position: 'absolute',
+          left: 12,
+          right: 12,
+          bottom: Platform.OS === 'ios' ? 12 : 10,
+          borderRadius: 18,
+          backgroundColor: '#12100e',
+          borderColor: '#292524',
+          borderWidth: 1,
+          height: Platform.OS === 'ios' ? 74 : 64,
+          paddingBottom: Platform.OS === 'ios' ? 14 : 8,
+          paddingTop: 7,
         },
-        tabBarLabelStyle: { fontSize: 11, fontWeight: '800' },
+        tabBarItemStyle: {
+          borderRadius: 8,
+          marginHorizontal: 4,
+        },
+        tabBarLabelStyle: { fontSize: 11, fontWeight: '800', marginTop: 2 },
       }}>
       {/* Visible tabs */}
       <Tabs.Screen name="index" options={{ title: 'Home', tabBarIcon: tabIcon('index') }} />

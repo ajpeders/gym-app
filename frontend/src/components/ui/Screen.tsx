@@ -27,16 +27,19 @@ export function Screen({
   const pad = padded ? 'px-4' : '';
 
   return (
-    <SafeAreaView edges={edges} className="flex-1 bg-iron-950">
+    <SafeAreaView edges={edges} className={`flex-1 bg-iron-950 ${className ?? ''}`}>
+      <View pointerEvents="none" className="absolute left-0 right-0 top-0 h-36 border-b border-iron-900 bg-iron-900/60" />
+      <View pointerEvents="none" className="absolute left-0 right-0 top-0 h-1 bg-brand" />
       {scroll ? (
         <ScrollView
           className="flex-1"
-          contentContainerClassName={`${pad} pb-24 pt-2 ${contentClassName ?? ''}`}
+          contentContainerClassName={`${pad} pb-24 pt-3 ${contentClassName ?? ''}`}
+          showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled">
           {children}
         </ScrollView>
       ) : (
-        <View className={`flex-1 ${pad} ${className ?? ''}`} {...rest}>
+        <View className={`flex-1 ${pad}`} {...rest}>
           {children}
         </View>
       )}

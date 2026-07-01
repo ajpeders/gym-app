@@ -56,9 +56,11 @@ class Settings(Base):
     )
     units: Mapped[str] = mapped_column(String, default="kg")
     ai_provider: Mapped[str] = mapped_column(String, default="ollama")
-    ai_model: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    ai_model: Mapped[Optional[str]] = mapped_column(String, nullable=True)  # legacy (unused)
     ollama_url: Mapped[Optional[str]] = mapped_column(String, nullable=True)  # per-user Ollama server
+    ollama_model: Mapped[Optional[str]] = mapped_column(String, nullable=True)  # per-user
     claude_api_key: Mapped[Optional[str]] = mapped_column(String, nullable=True)  # per-user, write-only
+    claude_model: Mapped[Optional[str]] = mapped_column(String, nullable=True)  # per-user
     feature_flags: Mapped[dict[str, Any]] = mapped_column(
         JSON, default=lambda: {"quick_buttons": True, "in_set_prompts": False}
     )

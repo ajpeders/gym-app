@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react';
 import { RefreshControl, ScrollView, View } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 
 import { api } from '@/api/client';
 import type { Routine } from '@/api/types';
@@ -46,16 +47,22 @@ export default function RoutinesScreen() {
             }}
           />
         }>
-        <View className="flex-row items-center justify-between mt-2 mb-3">
-          <Text variant="title">Routines</Text>
-          <View className="flex-row gap-2">
-            <Button
-              title="Import from notes"
-              variant="secondary"
-              size="sm"
-              onPress={() => router.push('/routine-import')}
-            />
-            <Button title="New" size="sm" onPress={() => router.push('/routine/new')} />
+        <View className="mt-2 mb-4">
+          <Text variant="eyebrow">Plans</Text>
+          <View className="mt-1 flex-row items-end justify-between">
+            <Text variant="title" className="flex-1">
+              Routines
+            </Text>
+            <View className="ml-3 flex-row gap-2">
+              <Button
+                title="Import"
+                variant="secondary"
+                size="sm"
+                icon="document-text-outline"
+                onPress={() => router.push('/routine-import')}
+              />
+              <Button title="New" size="sm" icon="add" onPress={() => router.push('/routine/new')} />
+            </View>
           </View>
         </View>
 
@@ -71,15 +78,34 @@ export default function RoutinesScreen() {
           <View className="gap-2">
             {routines.map((r) => (
               <Card key={r.id} onPress={() => router.push(`/routine/${r.id}`)}>
-                <Text variant="subheading">{r.name}</Text>
-                {r.notes ? (
-                  <Text variant="muted" numberOfLines={1} className="mt-0.5">
-                    {r.notes}
-                  </Text>
-                ) : null}
-                <Text variant="muted" className="mt-1">
-                  {r.exercises.length} exercises
-                </Text>
+                <View className="flex-row items-center">
+                  <View className="mr-3 h-12 w-12 items-center justify-center rounded-lg border border-brand/30 bg-brand/10">
+                    <Ionicons name="clipboard-outline" size={22} color="#f97316" />
+                  </View>
+                  <View className="flex-1">
+                    <Text variant="subheading" numberOfLines={1}>
+                      {r.name}
+                    </Text>
+                    {r.notes ? (
+                      <Text variant="caption" numberOfLines={1} className="mt-0.5">
+                        {r.notes}
+                      </Text>
+                    ) : null}
+                  </View>
+                  <Ionicons name="chevron-forward" size={18} color="#57534e" />
+                </View>
+                <View className="mt-3 flex-row gap-2">
+                  <View className="rounded-full border border-brand/30 bg-brand/10 px-2.5 py-1">
+                    <Text variant="caption" className="font-bold text-brand">
+                      {r.exercises.length} exercises
+                    </Text>
+                  </View>
+                  <View className="rounded-full border border-iron-700 bg-iron-850 px-2.5 py-1">
+                    <Text variant="caption" className="font-bold text-iron-300">
+                      Planned
+                    </Text>
+                  </View>
+                </View>
               </Card>
             ))}
           </View>

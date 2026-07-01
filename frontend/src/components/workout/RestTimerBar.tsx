@@ -1,4 +1,5 @@
 import { Pressable, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 
 import type { RestTimer } from '@/hooks/use-rest-timer';
 import { Text } from '@/components/ui/Text';
@@ -9,10 +10,13 @@ export function RestTimerBar({ timer }: { timer: RestTimer }) {
   const progress = timer.duration > 0 ? timer.remaining / timer.duration : 0;
 
   return (
-    <View className="rounded-lg border border-iron-700 bg-iron-900 p-4">
+    <View className="rounded-lg border border-iron-800 bg-iron-900/95 p-4">
       <View className="flex-row items-center justify-between">
         <View>
-          <Text className="text-xs font-bold uppercase text-iron-400">Rest timer</Text>
+          <View className="flex-row items-center">
+            <Ionicons name="timer-outline" size={15} color="#38bdf8" />
+            <Text className="ml-1.5 text-xs font-bold text-iron-400">Rest timer</Text>
+          </View>
           <Text className="text-4xl font-black text-iron-50 tabular-nums mt-0.5">
             {formatClock(active ? timer.remaining : timer.duration)}
           </Text>
@@ -34,9 +38,9 @@ export function RestTimerBar({ timer }: { timer: RestTimer }) {
           )}
         </View>
       </View>
-      <View className="mt-3 h-2 rounded-full bg-iron-800 overflow-hidden">
+      <View className="mt-3 h-2 overflow-hidden rounded-full bg-iron-800">
         <View
-          className="h-full rounded-full bg-brand"
+          className={`h-full rounded-full ${active ? 'bg-steel' : 'bg-brand'}`}
           style={{ width: `${Math.round(progress * 100)}%` }}
         />
       </View>
@@ -57,7 +61,7 @@ function Pill({
     <Pressable
       onPress={onPress}
       className={`rounded-lg px-2.5 py-1.5 active:opacity-70 ${
-        primary ? 'bg-brand' : 'bg-iron-800 border border-iron-700'
+        primary ? 'bg-brand' : 'border border-iron-700 bg-iron-800'
       }`}>
       <Text className={`text-xs font-bold ${primary ? 'text-iron-950' : 'text-iron-100'}`}>{label}</Text>
     </Pressable>
