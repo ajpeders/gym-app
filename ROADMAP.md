@@ -4,7 +4,7 @@
 > a local (Ollama) or frontier (Claude) model. Native-first (Expo / React
 > Native) with a web build from the same codebase.
 
-Status: **Phase 0–1 shipped; Phase 3 (AI) in progress** · Last updated: 2026-06-26
+Status: **Phase 0–1 shipped; Phase 3 (AI) in progress** · Last updated: 2026-07-01
 
 ---
 
@@ -144,6 +144,7 @@ Checkbox = not started. Phases are ordered; later phases assume earlier ones.
 ### Phase 3 — AI provider layer + natural-language logging
 - [ ] Provider abstraction: Ollama default ⇄ Claude; pick provider/model in settings
 - [ ] **On-device AI — iPhone first** (capable phones): run a small model directly on the phone's hardware (iOS: Apple Foundation Models / MLX / Core ML; Android: `llama.rn` / ExecuTorch) — fully private, works offline with no Ollama/Claude needed. Auto-detect support and offer it as a third provider alongside Ollama/Claude. The ultimate "no-setup, no-cost, no-network" local option.
+- [ ] **Bring-your-own-model setup guide** (self-hosted / remote Ollama): when a user picks the Ollama provider with *their own* server, walk them through a guided checklist instead of a raw settings form — enter URL → verify reachability → list + pick a model → prompt to `ollama pull` if it's missing → test round-trip. Lets a non-homelab user wire up a local or remote model without guessing, and turns the per-user AI config into onboarding. (Companion to on-device: on-device = zero-setup local; this = "I already run Ollama somewhere.")
 - [x] **Natural-language logging**: "bench 3x8 @60kg, felt easy" → structured sets *(built)*
 - [x] **Routine import from notes**: paste a multi-day program → structured routines *(built)*
 - [ ] **Voice companion** (moat #5): speak to the AI, not just type — voice → NL logging, and a spoken pre-session check-in that updates the athlete profile ("shoulder's tight, going lighter"); on-device speech where available
@@ -157,6 +158,7 @@ Checkbox = not started. Phases are ordered; later phases assume earlier ones.
 - [ ] **Advanced metrics** *(lower priority)*: e1RM trends, tonnage, rep-PRs, double progression, RIR/RPE autoregulation, periodization/deload tracking
 - [ ] Charts/dashboard (volume over time, est 1RM, body metrics)
 - [ ] **Workout generation** from goals + equipment + recent fatigue
+- [ ] **AI-generated routines**: generate a full multi-day routine/program from goals + experience level + available equipment + weekly schedule (and athlete memory once present) → saved as normal editable routines. The inverse of Import (bring a plan *in* ↔ generate one *out*); reuses the same routine/exercise-catalog-matching pipeline so generated exercises resolve to the real catalog. Keep it **editable + regenerable, not one-shot** — one-shot programs aren't a moat (line "Not moats"); the defensibility comes from regenerating against *your* logged history, calibration, and recovery signal
 - [ ] Progressive-overload suggestions for the next session
 - [ ] **Form / exercise Q&A** chat coach (RAG over exercise DB)
 - [ ] **Athlete memory** (Tier-1 moat): per-user `athlete_profile` the AI reads + writes each session (injuries, cues that landed, RPE→weight calibration, equipment, goals) — the companion's backbone
