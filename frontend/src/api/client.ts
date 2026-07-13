@@ -238,9 +238,111 @@ async function parseRoutineStream(
   }
 }
 
+// ---- companion (tool-calling coach) ----
+
+export interface CompanionMessage {
+  role: 'user' | 'assistant' | 'tool';
+  content?: string;
+  tool_calls?: { id: string; name: string; arguments: unknown }[];
+  tool_call_id?: string;
+}
+
+export type CompanionEvent =
+  | { type: 'text'; text: string }
+  | { type: 'tool_call'; id: string; name: string; arguments: unknown; access: 'read' | 'write' }
+  | { type: 'tool_result'; id: string; name: string; result: string }
+  | { type: 'confirm'; id: string; name: string; arguments: unknown; messages: CompanionMessage[] }
+  | { type: 'done'; pending?: boolean; truncated?: boolean }
+  | { type: 'error'; error: string };
+
+// Stream a companion chat turn. Emits events (text / tool_call / tool_result /
+// confirm / done / error) as they arrive. `approvals` resumes a paused write
+// (pass the messages the `confirm` event returned + {callId: true}).
+async function companionChat(
+  messages: CompanionMessage[],
+  onEvent: (ev: CompanionEvent) => void,
+  approvals?: Record<string, boolean>,
+): Promise<void> {
+  const headers: Record<string, string> = {
+    Accept: 'text/event-stream',
+    'Content-Type': 'application/json',
+  };
+  const token = await getItem(TOKEN_KEY);
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 180_000);
+
+  try {
+    let res: Awaited<ReturnType<typeof expoFetch>>;
+    try {
+      res = await expoFetch(`${API_BASE}/companion/chat`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ messages, approvals: approvals ?? {} }),
+        signal: controller.signal,
+      });
+    } catch (err) {
+      if ((err as Error).name === 'AbortError') {
+        throw new ApiError(408, 'The request took too long — try again.');
+      }
+      throw new ApiError(0, `Network error: ${(err as Error).message}`);
+    }
+
+    if (!res.ok) {
+      const body = await res.text().catch(() => '');
+      let detail: string | undefined;
+      try {
+        detail = JSON.parse(body).detail;
+      } catch {
+        /* non-JSON body */
+      }
+      throw new ApiError(res.status, detail ?? `Request failed (${res.status})`, body);
+    }
+
+    // companion emits `data: {json}\n\n` blocks (event type is inside the JSON).
+    const handleBlock = (raw: string) => {
+      const line = raw.split('\n').find((l) => l.startsWith('data:'));
+      if (!line) return;
+      try {
+        onEvent(JSON.parse(line.slice(5).trim()) as CompanionEvent);
+      } catch {
+        /* skip malformed block */
+      }
+    };
+
+    let buffer = '';
+    const drain = (chunk: string) => {
+      buffer += chunk;
+      let idx: number;
+      while ((idx = buffer.indexOf('\n\n')) !== -1) {
+        const block = buffer.slice(0, idx);
+        buffer = buffer.slice(idx + 2);
+        if (block.trim()) handleBlock(block);
+      }
+    };
+
+    const reader = res.body?.getReader?.();
+    if (reader) {
+      const decoder = new TextDecoder();
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        drain(decoder.decode(value, { stream: true }));
+      }
+    } else {
+      drain(await res.text());
+    }
+    if (buffer.trim()) handleBlock(buffer);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 export const api = {
   request,
   parseRoutineStream,
+  companionChat,
 
   // ---- auth ----
   register: (input: { email: string; password: string; display_name: string }) =>
