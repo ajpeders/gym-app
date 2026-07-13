@@ -20,6 +20,7 @@ import { Screen } from '@/components/ui/Screen';
 import { Text } from '@/components/ui/Text';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
+import { formatRepRange } from '@/lib/format';
 
 type IoniconName = React.ComponentProps<typeof Ionicons>['name'];
 
@@ -53,10 +54,10 @@ function ExerciseLine({ ex, units }: { ex: RoutineExercise; units: string }) {
     ex.target_sets != null
       ? `${ex.target_sets} set${ex.target_sets === 1 ? '' : 's'}`
       : 'Sets not set';
-  const reps =
-    ex.target_reps != null
-      ? `${ex.target_reps} rep${ex.target_reps === 1 ? '' : 's'}`
-      : 'Reps not set';
+  const repRange = formatRepRange(ex.target_reps, ex.target_reps_max);
+  const reps = repRange
+    ? `${repRange} rep${repRange === '1' ? '' : 's'}`
+    : 'Reps not set';
   const weight = ex.target_weight != null ? `${ex.target_weight}${units}` : null;
   const rest = ex.rest_seconds != null ? `${ex.rest_seconds}s rest` : null;
   const detail = [sets, reps, weight, rest].filter(Boolean).join(' · ');
@@ -179,7 +180,9 @@ function routinePrompt(routine: Routine, units: string, request: string) {
       const name = ex.exercise?.name ?? 'Exercise';
       const parts = [
         ex.target_sets != null ? `${ex.target_sets} sets` : null,
-        ex.target_reps != null ? `${ex.target_reps} reps` : null,
+        formatRepRange(ex.target_reps, ex.target_reps_max)
+          ? `${formatRepRange(ex.target_reps, ex.target_reps_max)} reps`
+          : null,
         ex.target_weight != null ? `${ex.target_weight}${units}` : null,
         ex.rest_seconds != null ? `${ex.rest_seconds}s rest` : null,
       ].filter(Boolean);
@@ -307,6 +310,7 @@ export default function HomeScreen() {
           order: exercises.length,
           target_sets: ex.target_sets,
           target_reps: ex.target_reps,
+          target_reps_max: ex.target_reps_max,
           target_weight: ex.target_weight,
           rest_seconds: previous?.rest_seconds ?? null,
         });

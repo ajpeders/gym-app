@@ -249,6 +249,25 @@ async def parse_sets(db: Session, user: User, text: str, workout_id: int | None 
     }
 
 
+def _normalize_rep_range(
+    lo: int | None, hi: int | None
+) -> tuple[int | None, int | None]:
+    """Coerce a model's (low, high) rep target into a sane pair.
+
+    Small local models are inconsistent — they'll emit only the high end, or
+    flip the order. Guarantees: a lone value lives in ``lo``; ``lo <= hi``; and
+    a degenerate range (hi == lo) collapses to a single value (hi = None).
+    """
+    if lo is None and hi is not None:
+        lo, hi = hi, None
+    if lo is not None and hi is not None:
+        if hi < lo:
+            lo, hi = hi, lo
+        if hi == lo:
+            hi = None
+    return lo, hi
+
+
 def _build_routine_result(
     db: Session,
     user_id: int,
@@ -269,13 +288,15 @@ def _build_routine_result(
         exercises = []
         for e in r.exercises:
             ex_id, match = _match(e.exercise, catalog)
+            reps_lo, reps_hi = _normalize_rep_range(e.target_reps, e.target_reps_max)
             exercises.append(
                 {
                     "exercise_name": e.exercise,
                     "exercise_id": ex_id,
                     "match": match,
                     "target_sets": e.target_sets,
-                    "target_reps": e.target_reps,
+                    "target_reps": reps_lo,
+                    "target_reps_max": reps_hi,
                     "target_weight": e.target_weight,
                     "notes": e.notes,
                 }

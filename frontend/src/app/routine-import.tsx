@@ -20,6 +20,7 @@ import type {
   ParseRoutineResult,
   RoutineExerciseInput,
 } from '@/api/types';
+import { formatRepRange } from '@/lib/format';
 import { Screen } from '@/components/ui/Screen';
 import { Text } from '@/components/ui/Text';
 import { Card } from '@/components/ui/Card';
@@ -54,12 +55,14 @@ function MatchBadge({ match }: { match: ParsedMatch }) {
 function summarizeTargets(
   sets: number | null,
   reps: number | null,
+  repsMax: number | null,
   weight: number | null,
   units: string,
 ): string | null {
   const parts: string[] = [];
-  if (sets != null || reps != null) {
-    parts.push(`${sets ?? '?'} × ${reps ?? '?'}`);
+  const repStr = formatRepRange(reps, repsMax);
+  if (sets != null || repStr) {
+    parts.push(`${sets ?? '?'} × ${repStr ?? '?'}`);
   }
   if (weight != null) {
     parts.push(`${weight} ${units}`);
@@ -171,6 +174,7 @@ export default function RoutineImportScreen() {
             order,
             target_sets: ex.target_sets,
             target_reps: ex.target_reps,
+            target_reps_max: ex.target_reps_max,
             target_weight: ex.target_weight,
           });
           order += 1;
@@ -518,6 +522,7 @@ function DayCard({
               const targets = summarizeTargets(
                 ex.target_sets,
                 ex.target_reps,
+                ex.target_reps_max,
                 ex.target_weight,
                 units,
               );

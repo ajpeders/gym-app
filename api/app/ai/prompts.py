@@ -46,7 +46,14 @@ _ROUTINE_RULES = (
     "and note the range in notes.\n"
     "- Vague or non-numeric detail ('tbd', 'shake at top', 'or walking lunges', a time like "
     "'45-60 seconds') -> leave the numeric fields null and put that detail in notes.\n"
-    "- Sets and reps are usually NOT given -> leave target_sets/target_reps null unless stated.\n"
+    "- '4x8' means target_sets 4, target_reps 8. A REP RANGE like '3x8-12' or '8 to 12 reps' -> "
+    "target_reps is the LOW end (8) and target_reps_max is the HIGH end (12). A single rep count -> "
+    "target_reps that number and target_reps_max null. ALWAYS fill target_reps (the low end) for a "
+    "range; never leave it null while setting target_reps_max. Examples: 'Bench 4x8-12' -> "
+    "target_sets 4, target_reps 8, target_reps_max 12. 'Squat 5x5' -> target_sets 5, target_reps 5, "
+    "target_reps_max null.\n"
+    "- Sets and reps are usually NOT given -> leave target_sets/target_reps/target_reps_max null "
+    "unless stated.\n"
     "- Never invent numbers. Preserve the user's exercise names."
 )
 

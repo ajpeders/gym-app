@@ -10,7 +10,7 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { ExerciseBrowser } from '@/components/ExerciseBrowser';
-import { titleCase } from '@/lib/format';
+import { parseRepRange, titleCase } from '@/lib/format';
 
 export interface DraftExercise {
   exercise_id: string;
@@ -96,14 +96,18 @@ export function RoutineEditor({
     const input: RoutineInput = {
       name: name.trim(),
       notes: notes.trim() || null,
-      exercises: exercises.map((e, i) => ({
-        exercise_id: e.exercise_id,
-        order: i,
-        target_sets: e.target_sets ? parseInt(e.target_sets, 10) : null,
-        target_reps: e.target_reps ? parseInt(e.target_reps, 10) : null,
-        target_weight: e.target_weight ? parseFloat(e.target_weight) : null,
-        rest_seconds: e.rest_seconds ? parseInt(e.rest_seconds, 10) : null,
-      })),
+      exercises: exercises.map((e, i) => {
+        const reps = parseRepRange(e.target_reps);
+        return {
+          exercise_id: e.exercise_id,
+          order: i,
+          target_sets: e.target_sets ? parseInt(e.target_sets, 10) : null,
+          target_reps: reps.min,
+          target_reps_max: reps.max,
+          target_weight: e.target_weight ? parseFloat(e.target_weight) : null,
+          rest_seconds: e.rest_seconds ? parseInt(e.rest_seconds, 10) : null,
+        };
+      }),
     };
     await onSave(input);
   }
@@ -161,6 +165,7 @@ export function RoutineEditor({
                   label="Reps"
                   value={e.target_reps}
                   onChangeText={(v) => update(idx, { target_reps: v })}
+                  range
                 />
                 <Field
                   label={`Wt (${settings.units})`}
@@ -217,12 +222,16 @@ function Field({
   value,
   onChangeText,
   decimal,
+  range,
 }: {
   label: string;
   value: string;
   onChangeText: (v: string) => void;
   decimal?: boolean;
+  // range fields accept "8-12"; use a keyboard that exposes the hyphen.
+  range?: boolean;
 }) {
+  const keyboardType = range ? 'default' : decimal ? 'decimal-pad' : 'number-pad';
   return (
     <View className="flex-1">
       <Text variant="caption" className="mb-1">
@@ -231,8 +240,8 @@ function Field({
       <TextInput
         value={value}
         onChangeText={onChangeText}
-        keyboardType={decimal ? 'decimal-pad' : 'number-pad'}
-        placeholder="-"
+        keyboardType={keyboardType}
+        placeholder={range ? '8-12' : '-'}
         placeholderTextColor="#78716c"
         className={smallInput}
       />

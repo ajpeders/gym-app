@@ -54,6 +54,7 @@ export interface RoutineExercise {
   order: number;
   target_sets: number | null;
   target_reps: number | null;
+  target_reps_max?: number | null;
   target_weight: number | null;
   rest_seconds: number | null;
   notes?: string | null;
@@ -73,6 +74,7 @@ export interface RoutineExerciseInput {
   order: number;
   target_sets?: number | null;
   target_reps?: number | null;
+  target_reps_max?: number | null;
   target_weight?: number | null;
   rest_seconds?: number | null;
 }
@@ -240,6 +242,7 @@ export interface ParsedRoutineExercise {
   match: ParsedMatch;
   target_sets: number | null;
   target_reps: number | null;
+  target_reps_max: number | null;
   target_weight: number | null;
   notes: string | null;
 }

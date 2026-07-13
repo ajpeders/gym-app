@@ -96,6 +96,7 @@ class RoutineExerciseIn(BaseModel):
     order: int = 0
     target_sets: Optional[int] = None
     target_reps: Optional[int] = None
+    target_reps_max: Optional[int] = None
     target_weight: Optional[float] = None
     rest_seconds: Optional[int] = None
     notes: Optional[str] = None
@@ -109,6 +110,7 @@ class RoutineExerciseOut(BaseModel):
     order: int
     target_sets: Optional[int] = None
     target_reps: Optional[int] = None
+    target_reps_max: Optional[int] = None
     target_weight: Optional[float] = None
     rest_seconds: Optional[int] = None
     notes: Optional[str] = None

@@ -38,6 +38,7 @@ _ADDED_COLUMNS: list[tuple[str, str, str]] = [
     ("settings", "claude_api_key", "VARCHAR"),
     ("settings", "ollama_model", "VARCHAR"),
     ("settings", "claude_model", "VARCHAR"),
+    ("routine_exercise", "target_reps_max", "INTEGER"),
 ]
 
 

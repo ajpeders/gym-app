@@ -61,3 +61,24 @@ export function titleCase(str: string | null | undefined): string {
   if (!str) return '';
   return str.replace(/\b\w/g, (c) => c.toUpperCase());
 }
+
+// Render a rep target that may be a range: (8, 12) -> "8–12", (8, null) -> "8".
+// Returns null when there's no rep target at all.
+export function formatRepRange(
+  min: number | null | undefined,
+  max?: number | null,
+): string | null {
+  if (min == null) return max == null ? null : String(max);
+  if (max != null && max !== min) return `${min}–${max}`;
+  return String(min);
+}
+
+// Parse an editor field like "8-12", "8–12", or "8" into low/high rep targets.
+// Empty/garbage -> both null. A single value -> {min, max: null}.
+export function parseRepRange(input: string): { min: number | null; max: number | null } {
+  const nums = (input.match(/\d+/g) ?? []).map((n) => parseInt(n, 10));
+  if (nums.length === 0) return { min: null, max: null };
+  if (nums.length === 1) return { min: nums[0], max: null };
+  const [a, b] = [nums[0], nums[1]].sort((x, y) => x - y);
+  return { min: a, max: a === b ? null : b };
+}

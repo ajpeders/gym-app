@@ -16,7 +16,12 @@ function toDraft(routine: Routine): DraftExercise[] {
       exercise_id: e.exercise_id,
       name: e.exercise?.name ?? 'Exercise',
       target_sets: e.target_sets != null ? String(e.target_sets) : '',
-      target_reps: e.target_reps != null ? String(e.target_reps) : '',
+      target_reps:
+        e.target_reps != null
+          ? e.target_reps_max != null && e.target_reps_max !== e.target_reps
+            ? `${e.target_reps}-${e.target_reps_max}`
+            : String(e.target_reps)
+          : '',
       target_weight: e.target_weight != null ? String(e.target_weight) : '',
       rest_seconds: e.rest_seconds != null ? String(e.rest_seconds) : '',
     }));

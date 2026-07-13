@@ -43,6 +43,7 @@ def _build_routine_exercises(
                 order=item.order,
                 target_sets=item.target_sets,
                 target_reps=item.target_reps,
+                target_reps_max=item.target_reps_max,
                 target_weight=item.target_weight,
                 rest_seconds=item.rest_seconds,
                 notes=item.notes,

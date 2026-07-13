@@ -77,6 +77,7 @@ class ParsedRoutineExercise(BaseModel):
     exercise: str
     target_sets: Optional[int] = None
     target_reps: Optional[int] = None
+    target_reps_max: Optional[int] = None
     target_weight: Optional[float] = None
     notes: Optional[str] = None
 
@@ -114,6 +115,7 @@ PROGRAM_SCHEMA: dict = {
                                 "exercise": {"type": "string"},
                                 "target_sets": {"anyOf": [{"type": "integer"}, {"type": "null"}]},
                                 "target_reps": {"anyOf": [{"type": "integer"}, {"type": "null"}]},
+                                "target_reps_max": {"anyOf": [{"type": "integer"}, {"type": "null"}]},
                                 "target_weight": {"anyOf": [{"type": "number"}, {"type": "null"}]},
                                 "notes": {"anyOf": [{"type": "string"}, {"type": "null"}]},
                             },
@@ -121,6 +123,7 @@ PROGRAM_SCHEMA: dict = {
                                 "exercise",
                                 "target_sets",
                                 "target_reps",
+                                "target_reps_max",
                                 "target_weight",
                                 "notes",
                             ],
