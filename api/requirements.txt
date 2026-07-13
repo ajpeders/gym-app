@@ -9,4 +9,7 @@ passlib==1.7.4
 bcrypt==4.0.1
 httpx==0.28.1
 anthropic>=0.49.0
+# Reusable LLM-companion extension (its own repo). Provides the tool-calling
+# coach mounted at /api/companion. Needs `git` in the build image (see Dockerfile).
+companion @ git+https://git.thelunadog.com/ween/companion.git@v0.1.0
 pytest==8.3.4

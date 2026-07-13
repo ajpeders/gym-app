@@ -16,11 +16,12 @@ services:
       GYM_CLAUDE_MODEL: ${GYM_CLAUDE_MODEL:-claude-opus-4-8}
     volumes:
       - ../../state/gym-app/api:/data
-    # Published on the LAN so the Expo dev client (phone) can hit the API by
-    # direct IP over HTTP, bypassing DNS/TLS/Traefik. Prod traffic still goes
-    # through Traefik on 443 via the labels below.
-    ports:
-      - "8000:8000"
+    # No raw host port — API is reached only through Traefik (TLS + local-only)
+    # on 443 via the labels below. (Removed 2026-07-08 security review: the old
+    # `8000:8000` published plaintext HTTP + open Swagger on the whole LAN,
+    # bypassing TLS/auth.) For Expo dev against a physical phone, temporarily
+    # re-add `ports: ["127.0.0.1:8000:8000"]` + an `adb reverse`/ngrok tunnel,
+    # or point the dev client at https://${GYM_DOMAIN}.
     labels:
       - traefik.enable=true
       - traefik.docker.network=web

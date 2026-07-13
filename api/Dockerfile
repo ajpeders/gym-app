@@ -6,6 +6,10 @@ ENV PYTHONUNBUFFERED=1 \
 
 WORKDIR /app
 
+# git is needed to pip-install the `companion` package from its git repo.
+RUN apt-get update && apt-get install -y --no-install-recommends git \
+    && rm -rf /var/lib/apt/lists/*
+
 # Install dependencies first for better layer caching
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt

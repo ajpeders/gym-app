@@ -68,3 +68,9 @@ api = APIRouter(prefix="/api")
 for module in (health, auth, exercises, routines, workouts, metrics, settings, stats, profile, ai):
     api.include_router(module.router)
 app.include_router(api)
+
+# Tool-calling coach (companion extension). Mounted after the API routes so it
+# can derive its tools from gym's own OpenAPI. /api/companion/chat.
+from .ai import companion_setup  # noqa: E402
+
+companion_setup.mount(app)

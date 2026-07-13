@@ -27,6 +27,10 @@ class Settings(BaseSettings):
     claude_model: str = "claude-opus-4-8"  # configurable; claude-haiku-4-5 is the cheap option
     ai_timeout: float = 120.0  # generous for cold model loads on first request
 
+    # Loopback base URL the companion coach uses to call gym's own API as tools.
+    # In the container the app listens on :8000; override via GYM_SELF_BASE_URL.
+    self_base_url: str = "http://127.0.0.1:8000"
+
     @property
     def database_url(self) -> str:
         return f"sqlite:///{self.data_dir.rstrip('/')}/gym.db"
