@@ -87,7 +87,7 @@ gym-app/
     app/
       models/          # SQLAlchemy models
       routes/          # REST endpoints
-      ai/              # provider abstraction (ollama, claude) + prompts
+      ai/              # domain schemas + prompts (provider layer lives in `companion`)
       seed/            # exercise DB importer
   app/                 # Expo / React Native source (Dockerfile builds web)
     src/{screens,components,api,state,styles}
