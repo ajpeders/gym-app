@@ -7,6 +7,8 @@ The provider seam this builds on was itself extracted from gym's `ai/`.
 """
 from __future__ import annotations
 
+from pathlib import Path
+
 from fastapi import Request
 
 from companion import AnthropicProvider, Companion, OllamaProvider, Provider
@@ -30,14 +32,8 @@ EXPOSE = [
 # Never expose auth/settings/profile/ai as tools.
 EXCLUDE = ["* /api/auth/*", "* /api/settings*", "* /api/profile*", "* /api/ai/*"]
 
-TOOL_GUIDANCE = (
-    "\n\nYou can use tools to read and log this athlete's training in the app. "
-    "Read first (list recent workouts, find an exercise, check stats) before "
-    "acting. To log training: start or pick a workout, resolve the exercise id "
-    "via the exercises tool, then add the exercise and its sets. Confirm before "
-    "anything destructive. Weights are in the athlete's chosen units. Keep "
-    "replies short and coach-like."
-)
+# Tool-usage guidance lives in editable skill files, appended by companion.
+SKILLS_DIR = Path(__file__).parent / "skills"
 
 
 def _uid(request: Request) -> int | None:
@@ -101,14 +97,13 @@ def system_prompt(request: Request) -> str:
     try:
         user = db.get(User, uid) if uid else None
         if user is None:
-            return prompts.coach_system_prompt("there", "", "") + TOOL_GUIDANCE
+            return prompts.coach_system_prompt("there", "", "")
         profile = service.get_or_create_profile(db, user.id)
-        base = prompts.coach_system_prompt(
+        return prompts.coach_system_prompt(
             user.display_name,
             service.profile_summary(profile),
             service._recent_training_summary(db, user.id),
         )
-        return base + TOOL_GUIDANCE
     finally:
         db.close()
 
@@ -122,6 +117,7 @@ def mount(app) -> None:
         exclude=EXCLUDE,
         resolve_provider=resolve_provider,  # force BYO — each user brings Ollama/Claude
         system_prompt=system_prompt,
+        skills_dir=str(SKILLS_DIR),
         write_policy="confirm",
         forward_auth=("authorization",),  # gym auths via Bearer JWT
         mount_prefix="/api/companion",
