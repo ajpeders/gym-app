@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { RefreshControl, ScrollView, View } from 'react-native';
+import { Pressable, RefreshControl, ScrollView, View } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -12,6 +12,45 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Loading, EmptyState } from '@/components/ui/Feedback';
 import { formatDuration, relativeTime } from '@/lib/format';
+
+// Preset "when" chooser for backdating a session. Offsets in days from today.
+const DATE_PRESETS: { label: string; days: number }[] = [
+  { label: 'Today', days: 0 },
+  { label: 'Yesterday', days: 1 },
+  { label: '2 days ago', days: 2 },
+  { label: '3 days ago', days: 3 },
+  { label: 'A week ago', days: 7 },
+];
+
+function DatePresetRow({ value, onChange }: { value: number; onChange: (d: number) => void }) {
+  return (
+    <View className="mb-3">
+      <Text variant="label" className="mb-1.5 text-iron-300">
+        When
+      </Text>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+        <View className="flex-row gap-2">
+          {DATE_PRESETS.map((p) => {
+            const active = p.days === value;
+            return (
+              <Pressable
+                key={p.days}
+                onPress={() => onChange(p.days)}
+                accessibilityRole="button"
+                className={`rounded-full border px-3.5 py-2 ${
+                  active ? 'border-brand bg-brand/20' : 'border-iron-700 bg-iron-900'
+                }`}>
+                <Text variant="caption" className={active ? 'font-bold text-brand' : 'text-iron-200'}>
+                  {p.label}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
+      </ScrollView>
+    </View>
+  );
+}
 
 function StatBadge({
   icon,
@@ -67,10 +106,26 @@ export default function WorkoutsScreen() {
     }, [fetchData]),
   );
 
+  // Days back from today to backdate a session (0 = today, logging a workout
+  // done on a previous day). Kept as a preset offset so no native date-picker
+  // dependency is needed in Expo Go.
+  const [daysBack, setDaysBack] = useState(0);
+
+  // Midday local time on the chosen day, as UTC ISO — noon avoids the date
+  // shifting across the timezone boundary. undefined for "today" so live
+  // sessions keep the exact current timestamp.
+  function backdatedStartedAt(): string | undefined {
+    if (daysBack === 0) return undefined;
+    const d = new Date();
+    d.setDate(d.getDate() - daysBack);
+    d.setHours(12, 0, 0, 0);
+    return d.toISOString();
+  }
+
   async function startBlank() {
     setBusy(true);
     try {
-      const w = await start({ name: 'Quick workout' });
+      const w = await start({ name: 'Quick workout', started_at: backdatedStartedAt() });
       router.push(`/workout/active/${w.id}`);
     } finally {
       setBusy(false);
@@ -80,7 +135,11 @@ export default function WorkoutsScreen() {
   async function startFromRoutine(routine: Routine) {
     setBusy(true);
     try {
-      const w = await start({ routine_id: routine.id, name: routine.name });
+      const w = await start({
+        routine_id: routine.id,
+        name: routine.name,
+        started_at: backdatedStartedAt(),
+      });
       router.push(`/workout/active/${w.id}`);
     } finally {
       setBusy(false);
@@ -131,14 +190,16 @@ export default function WorkoutsScreen() {
             />
           </Card>
         ) : (
-          <Button
-            title="Start blank workout"
-            size="lg"
-            icon="add"
-            loading={busy}
-            className="mb-4"
-            onPress={startBlank}
-          />
+          <View className="mb-4">
+            <DatePresetRow value={daysBack} onChange={setDaysBack} />
+            <Button
+              title={daysBack === 0 ? 'Start blank workout' : 'Log a past workout'}
+              size="lg"
+              icon="add"
+              loading={busy}
+              onPress={startBlank}
+            />
+          </View>
         )}
 
         {routines.length > 0 ? (

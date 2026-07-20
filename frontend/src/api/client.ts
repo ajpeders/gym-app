@@ -472,7 +472,7 @@ export const api = {
   workouts: (query?: { limit?: number; offset?: number }) =>
     request<Paginated<Workout>>('/workouts', { query }),
   workout: (id: string) => request<Workout>(`/workouts/${id}`),
-  startWorkout: (input: { routine_id?: string; name?: string }) =>
+  startWorkout: (input: { routine_id?: string; name?: string; started_at?: string }) =>
     request<Workout>('/workouts/start', { method: 'POST', body: input }),
   updateWorkout: (id: string, input: Partial<Pick<Workout, 'name' | 'notes'>>) =>
     request<Workout>(`/workouts/${id}`, { method: 'PATCH', body: input }),

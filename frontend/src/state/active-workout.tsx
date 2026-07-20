@@ -11,7 +11,7 @@ interface ActiveWorkoutContextValue {
   workout: Workout | null;
   activeId: string | null;
   loading: boolean;
-  start: (input: { routine_id?: string; name?: string }) => Promise<Workout>;
+  start: (input: { routine_id?: string; name?: string; started_at?: string }) => Promise<Workout>;
   load: (id: string) => Promise<void>;
   refresh: () => Promise<void>;
   addExercise: (exerciseId: string) => Promise<void>;
@@ -68,7 +68,7 @@ export function ActiveWorkoutProvider({ children }: { children: React.ReactNode 
   }, []);
 
   const start = useCallback(
-    async (input: { routine_id?: string; name?: string }) => {
+    async (input: { routine_id?: string; name?: string; started_at?: string }) => {
       const w = await api.startWorkout(input);
       await setActive(w);
       return w;

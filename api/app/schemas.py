@@ -214,10 +214,13 @@ class WorkoutListOut(BaseModel):
 class WorkoutStart(BaseModel):
     routine_id: Optional[int] = None
     name: Optional[str] = None
+    # Backdate a session (logging a workout done on a previous day). Omit for now.
+    started_at: Optional[datetime] = None
 
 
 class WorkoutCreate(BaseModel):
     name: Optional[str] = None
+    started_at: Optional[datetime] = None
 
 
 class WorkoutUpdate(BaseModel):

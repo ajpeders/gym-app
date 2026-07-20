@@ -1,6 +1,8 @@
 """Workout sessions, their exercises, and logged sets."""
 from __future__ import annotations
 
+from datetime import datetime, timezone
+
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
@@ -85,6 +87,14 @@ def list_workouts(
     )
 
 
+def _resolve_started_at(value: datetime | None) -> datetime:
+    """A caller-supplied date backdates the session; naive input is treated as
+    UTC to match utcnow(). Omitted -> now."""
+    if value is None:
+        return utcnow()
+    return value if value.tzinfo is not None else value.replace(tzinfo=timezone.utc)
+
+
 @router.post("/start", response_model=WorkoutOut, status_code=status.HTTP_201_CREATED)
 def start_workout(
     payload: WorkoutStart,
@@ -94,7 +104,7 @@ def start_workout(
     workout = Workout(
         owner_id=user.id,
         name=payload.name,
-        started_at=utcnow(),
+        started_at=_resolve_started_at(payload.started_at),
         finished_at=None,
         source_routine_id=payload.routine_id,
     )
@@ -126,7 +136,9 @@ def create_workout(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ) -> WorkoutOut:
-    workout = Workout(owner_id=user.id, name=payload.name, started_at=utcnow())
+    workout = Workout(
+        owner_id=user.id, name=payload.name, started_at=_resolve_started_at(payload.started_at)
+    )
     db.add(workout)
     db.commit()
     db.refresh(workout)
