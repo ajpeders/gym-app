@@ -1,6 +1,5 @@
 import { useCallback, useState } from 'react';
-import { Dimensions, Pressable, ScrollView, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Dimensions, ScrollView, View } from 'react-native';
 import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 
 import { api } from '@/api/client';
@@ -59,18 +58,7 @@ export default function ExerciseDetailScreen() {
 
   return (
     <Screen scroll={false} padded={false}>
-      <Stack.Screen
-        options={{
-          headerShown: true,
-          title: exercise?.name ?? 'Exercise',
-          headerLeft: () =>
-            router.canGoBack() ? (
-              <Pressable onPress={() => router.back()} hitSlop={10} className="flex-row items-center pr-2">
-                <Ionicons name="chevron-back" size={26} color="#f97316" />
-              </Pressable>
-            ) : null,
-        }}
-      />
+      <Stack.Screen options={{ headerShown: true, title: exercise?.name ?? 'Exercise' }} />
       {loading ? (
         <Loading />
       ) : error || !exercise ? (

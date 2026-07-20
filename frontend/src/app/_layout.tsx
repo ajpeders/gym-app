@@ -11,6 +11,7 @@ import { AuthProvider, useAuth } from '@/state/auth';
 import { SettingsProvider } from '@/state/settings';
 import { ActiveWorkoutProvider } from '@/state/active-workout';
 import { Logo } from '@/components/ui/Logo';
+import { HeaderBack } from '@/components/ui/HeaderBack';
 
 function Splash() {
   return (
@@ -48,6 +49,11 @@ function RootNavigator() {
         headerTintColor: '#f5f5f4',
         headerTitleStyle: { fontWeight: '900' },
         headerShadowVisible: false,
+        // Consistent back control on every pushed screen (renders null at a
+        // root, so tab screens stay clean). headerBackVisible:false stops the
+        // native default from doubling up beside it.
+        headerBackVisible: false,
+        headerLeft: () => <HeaderBack />,
         contentStyle: { backgroundColor: '#080706' },
       }}>
       <Stack.Screen name="(auth)" />
