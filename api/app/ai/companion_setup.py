@@ -66,6 +66,9 @@ def _provider_for(s, cfg) -> Provider | None:
     return OllamaProvider(
         base_url=service._normalize_url(s.ollama_url),
         model=service._ollama_model(s, cfg),
+        # Thinking models (qwen3) think on every tool-selection turn — 15-29s vs
+        # 3s per logging request in the spike, at zero measured accuracy cost.
+        think=False,
         timeout=cfg.ai_timeout,
     )
 
