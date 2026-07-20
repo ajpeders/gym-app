@@ -63,11 +63,10 @@ def _provider_for(s, cfg) -> Provider | None:
         )
     if not service._provider_configured(s, "ollama"):
         return None
-    # gym stores a raw Ollama URL; companion speaks the OpenAI-compatible API,
-    # which Ollama exposes at /v1.
-    base = service._normalize_url(s.ollama_url).rstrip("/") + "/v1"
     return OllamaProvider(
-        base_url=base, model=service._ollama_model(s, cfg), timeout=cfg.ai_timeout
+        base_url=service._normalize_url(s.ollama_url),
+        model=service._ollama_model(s, cfg),
+        timeout=cfg.ai_timeout,
     )
 
 

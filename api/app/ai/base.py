@@ -1,9 +1,18 @@
-"""Shared types + JSON schema for the AI provider layer."""
+"""Gym's AI domain: parse/check-in schemas + result models.
+
+The provider layer itself (Provider protocol, Ollama/Claude impls) moved out to
+the reusable `companion` package — this module keeps only what is gym-specific.
+`AIError` is companion's ProviderError under gym's historical name, so route
+handlers catch domain and provider failures alike.
+"""
 from __future__ import annotations
 
-from typing import Literal, Optional, Protocol
+from typing import Literal, Optional
 
+from companion import ProviderError
 from pydantic import BaseModel, Field
+
+AIError = ProviderError
 
 SetType = Literal["warmup", "working", "drop", "failure"]
 
@@ -23,10 +32,6 @@ class ParsedExercise(BaseModel):
 
 class ParsedWorkout(BaseModel):
     exercises: list[ParsedExercise] = Field(default_factory=list)
-
-
-class AIError(Exception):
-    """Raised when a provider request fails or returns unusable output."""
 
 
 # JSON schema handed to the model. Shape is shared by Ollama's `format` field
@@ -181,14 +186,3 @@ CHECKIN_SCHEMA: dict = {
         "acknowledgement",
     ],
 }
-
-
-class Provider(Protocol):
-    name: str
-    model: str
-
-    async def complete_json(self, *, system: str, user: str, schema: dict) -> dict:
-        ...
-
-    async def complete_text(self, *, system: str, messages: list[dict]) -> str:
-        ...

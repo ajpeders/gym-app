@@ -7,6 +7,7 @@ import time
 from collections.abc import AsyncIterator
 
 import httpx
+from companion import AnthropicProvider, Message, OllamaProvider, Provider
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -29,10 +30,7 @@ from .base import (
     CheckinResult,
     ParsedProgram,
     ParsedWorkout,
-    Provider,
 )
-from .claude import ClaudeProvider
-from .ollama import OllamaProvider
 
 _WORD_RE = re.compile(r"[^a-z0-9 ]+")
 
@@ -112,16 +110,16 @@ async def test_provider(db: Session, user: User) -> dict:
     """Quick round-trip to confirm the user's active provider/model responds."""
     provider, _units = _resolve(db, user)
     t0 = time.monotonic()
-    reply = await provider.complete_text(
+    completion = await provider.complete_text(
         system="You are a connectivity check. Reply with one short word.",
-        messages=[{"role": "user", "content": "Reply with exactly: ready"}],
+        messages=[Message(role="user", content="Reply with exactly: ready")],
     )
     return {
         "ok": True,
         "provider": provider.name,
         "model": provider.model,
         "latency_ms": int((time.monotonic() - t0) * 1000),
-        "sample": reply[:80],
+        "sample": completion.text[:80],
     }
 
 
@@ -156,11 +154,20 @@ def _resolve(db: Session, user: User) -> tuple[Provider, str]:
     if provider == "claude":
         if not _provider_configured(s, "claude"):
             raise AIError("Claude isn't set up yet — add your API key in Settings.")
-        return ClaudeProvider(s.claude_api_key.strip(), _claude_model(s, cfg), cfg.ai_timeout), units
+        p = AnthropicProvider(
+            api_key=s.claude_api_key.strip(), model=_claude_model(s, cfg), timeout=cfg.ai_timeout
+        )
+        p.name = "claude"  # gym's historical label (shown in the UI footer)
+        return p, units
     # No silent default: each user brings their own Ollama. Not set up -> error.
     if not _provider_configured(s, "ollama"):
         raise AIError("Local AI isn't set up yet — add your Ollama server in Settings.")
-    return OllamaProvider(_normalize_url(s.ollama_url), _ollama_model(s, cfg), cfg.ai_timeout), units
+    return (
+        OllamaProvider(
+            base_url=_normalize_url(s.ollama_url), model=_ollama_model(s, cfg), timeout=cfg.ai_timeout
+        ),
+        units,
+    )
 
 
 def _load_catalog(db: Session, user_id: int) -> list[tuple[int, frozenset[str]]]:
@@ -509,10 +516,16 @@ async def coach(db: Session, user: User, message: str) -> dict:
         profile_summary(profile),
         _recent_training_summary(db, user.id),
     )
-    convo = _recent_coach_messages(db, user.id) + [{"role": "user", "content": message}]
+    convo = [
+        Message(role=m["role"], content=m["content"])
+        for m in _recent_coach_messages(db, user.id)
+    ] + [Message(role="user", content=message)]
 
     t0 = time.monotonic()
-    reply = await provider.complete_text(system=system, messages=convo)
+    completion = await provider.complete_text(system=system, messages=convo)
+    reply = completion.text
+    if not reply:
+        raise AIError("The AI returned an empty reply.")
     latency_ms = int((time.monotonic() - t0) * 1000)
 
     db.add(CoachMessage(user_id=user.id, role="user", content=message))
