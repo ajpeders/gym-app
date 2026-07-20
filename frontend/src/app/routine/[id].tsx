@@ -15,6 +15,7 @@ function toDraft(routine: Routine): DraftExercise[] {
     .map((e) => ({
       exercise_id: e.exercise_id,
       name: e.exercise?.name ?? 'Exercise',
+      image: e.exercise?.images?.[0] ?? null,
       target_sets: e.target_sets != null ? String(e.target_sets) : '',
       target_reps:
         e.target_reps != null

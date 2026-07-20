@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react';
-import { Dimensions, ScrollView, View } from 'react-native';
-import { Image } from 'expo-image';
+import { Dimensions, Pressable, ScrollView, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 
 import { api } from '@/api/client';
@@ -11,6 +11,7 @@ import { Text } from '@/components/ui/Text';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Chip } from '@/components/ui/Chip';
+import { ExerciseThumb } from '@/components/ExerciseThumb';
 import { Loading, ErrorState } from '@/components/ui/Feedback';
 import { titleCase } from '@/lib/format';
 
@@ -58,7 +59,18 @@ export default function ExerciseDetailScreen() {
 
   return (
     <Screen scroll={false} padded={false}>
-      <Stack.Screen options={{ headerShown: true, title: exercise?.name ?? 'Exercise' }} />
+      <Stack.Screen
+        options={{
+          headerShown: true,
+          title: exercise?.name ?? 'Exercise',
+          headerLeft: () =>
+            router.canGoBack() ? (
+              <Pressable onPress={() => router.back()} hitSlop={10} className="flex-row items-center pr-2">
+                <Ionicons name="chevron-back" size={26} color="#f97316" />
+              </Pressable>
+            ) : null,
+        }}
+      />
       {loading ? (
         <Loading />
       ) : error || !exercise ? (
@@ -74,18 +86,21 @@ export default function ExerciseDetailScreen() {
           </View>
 
           {exercise.images?.length ? (
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} className="my-3">
-              <View className="flex-row gap-2">
-                {exercise.images.map((uri) => (
-                  <Image
-                    key={uri}
-                    source={{ uri }}
-                    style={{ width: imgWidth, height: imgWidth * 0.66, borderRadius: 8 }}
-                    contentFit="cover"
-                  />
-                ))}
-              </View>
-            </ScrollView>
+            <View className="my-3">
+              <ExerciseThumb
+                images={exercise.images}
+                width={imgWidth}
+                height={imgWidth * 0.66}
+                animate={exercise.images.length > 1}
+                radius={8}
+                intervalMs={900}
+              />
+              {exercise.images.length > 1 ? (
+                <Text variant="caption" className="mt-1.5">
+                  Animated demo of the movement
+                </Text>
+              ) : null}
+            </View>
           ) : null}
 
           {exercise.primary_muscles?.length ? (

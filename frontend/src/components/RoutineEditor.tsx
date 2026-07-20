@@ -2,19 +2,24 @@ import { useState } from 'react';
 import { Modal, Pressable, ScrollView, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 
-import type { Exercise, RoutineInput } from '@/api/types';
+import type { Exercise, RoutineEditProposal, RoutineInput } from '@/api/types';
 import { useSettings } from '@/state/settings';
+import { useAiStatus } from '@/hooks/use-ai-status';
 import { Text } from '@/components/ui/Text';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { ExerciseBrowser } from '@/components/ExerciseBrowser';
-import { parseRepRange, titleCase } from '@/lib/format';
+import { ExerciseThumb } from '@/components/ExerciseThumb';
+import { RoutineAiEdit, type RoutineAiWorking } from '@/components/RoutineAiEdit';
+import { formatRepRange, parseRepRange, titleCase } from '@/lib/format';
 
 export interface DraftExercise {
   exercise_id: string;
   name: string;
+  image?: string | null;
   target_sets: string;
   target_reps: string;
   target_weight: string;
@@ -44,11 +49,58 @@ export function RoutineEditor({
   onDelete,
 }: RoutineEditorProps) {
   const { settings } = useSettings();
+  const { configured: aiConfigured } = useAiStatus();
   const [name, setName] = useState(initialName);
   const [notes, setNotes] = useState(initialNotes);
   const [exercises, setExercises] = useState<DraftExercise[]>(initialExercises);
   const [picking, setPicking] = useState(false);
+  const [aiOpen, setAiOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // The current draft, shaped for the AI editor (exercises by name, numeric
+  // targets). Rebuilt on open so the AI always starts from what's on screen.
+  function aiWorking(): RoutineAiWorking {
+    return {
+      name: name.trim(),
+      notes: notes.trim() || null,
+      exercises: exercises.map((e) => {
+        const reps = parseRepRange(e.target_reps);
+        return {
+          exercise: e.name,
+          target_sets: e.target_sets ? parseInt(e.target_sets, 10) : null,
+          target_reps: reps.min,
+          target_reps_max: reps.max,
+          target_weight: e.target_weight ? parseFloat(e.target_weight) : null,
+          notes: null,
+        };
+      }),
+    };
+  }
+
+  // Load an AI proposal into the draft form for review — the form is the final
+  // review surface, so nothing persists until the user taps Save. Exercises the
+  // matcher couldn't resolve (no exercise_id) are dropped. Rest timers are kept
+  // from the matching existing exercise, else the user's default.
+  function applyProposal(p: RoutineEditProposal) {
+    const prevRest = new Map(exercises.map((e) => [e.exercise_id, e.rest_seconds]));
+    const drafts: DraftExercise[] = p.exercises
+      .filter((e) => e.exercise_id != null)
+      .map((e) => {
+        const id = String(e.exercise_id);
+        return {
+          exercise_id: id,
+          name: e.exercise_name,
+          target_sets: e.target_sets != null ? String(e.target_sets) : '',
+          target_reps: formatRepRange(e.target_reps, e.target_reps_max) ?? '',
+          target_weight: e.target_weight != null ? String(e.target_weight) : '',
+          rest_seconds: prevRest.get(id) ?? String(settings.rest_timer_default),
+        };
+      });
+    if (p.name.trim()) setName(p.name.trim());
+    if (p.notes != null) setNotes(p.notes);
+    setExercises(drafts);
+    setAiOpen(false);
+  }
 
   function addExercise(ex: Exercise) {
     setExercises((prev) => [
@@ -56,6 +108,7 @@ export function RoutineEditor({
       {
         exercise_id: ex.id,
         name: ex.name,
+        image: ex.images?.[0] ?? null,
         target_sets: '3',
         target_reps: '8',
         target_weight: '',
@@ -127,6 +180,15 @@ export function RoutineEditor({
           className="h-20"
         />
 
+        {aiConfigured ? (
+          <Pressable
+            onPress={() => setAiOpen(true)}
+            className="mt-4 flex-row items-center justify-center rounded-lg border border-brand/40 bg-brand/10 py-2.5 active:opacity-80">
+            <Ionicons name="sparkles" size={16} color="#f97316" />
+            <Text className="ml-2 font-semibold text-brand">Edit with AI</Text>
+          </Pressable>
+        ) : null}
+
         <Text variant="heading" className="mt-5 mb-2">
           Exercises
         </Text>
@@ -139,7 +201,8 @@ export function RoutineEditor({
           exercises.map((e, idx) => (
             <Card key={`${e.exercise_id}-${idx}`} className="mb-3">
               <View className="flex-row items-center justify-between">
-                <Text variant="subheading" numberOfLines={1} className="flex-1">
+                <ExerciseThumb images={e.image ? [e.image] : null} size={36} radius={6} />
+                <Text variant="subheading" numberOfLines={1} className="ml-2 flex-1">
                   {idx + 1}. {titleCase(e.name)}
                 </Text>
                 <View className="flex-row items-center gap-3">
@@ -213,6 +276,14 @@ export function RoutineEditor({
           />
         </SafeAreaView>
       </Modal>
+
+      <RoutineAiEdit
+        visible={aiOpen}
+        units={settings.units}
+        initialWorking={aiWorking()}
+        onApply={applyProposal}
+        onClose={() => setAiOpen(false)}
+      />
     </SafeAreaView>
   );
 }

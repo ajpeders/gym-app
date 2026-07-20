@@ -1,11 +1,11 @@
 import React from 'react';
-import { Image } from 'expo-image';
 import { Pressable, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import type { Exercise } from '@/api/types';
 import { titleCase } from '@/lib/format';
 import { Text } from '@/components/ui/Text';
+import { ExerciseThumb } from '@/components/ExerciseThumb';
 
 interface ExerciseRowProps {
   exercise: Exercise;
@@ -15,20 +15,13 @@ interface ExerciseRowProps {
 }
 
 export function ExerciseRow({ exercise, onPress, subtitle, trailing }: ExerciseRowProps) {
-  const thumb = exercise.images?.[0];
   const muscles = exercise.primary_muscles?.map(titleCase).join(', ');
 
   return (
     <Pressable
       onPress={onPress}
       className="mb-2 flex-row items-center gap-3 rounded-lg border border-iron-800 bg-iron-900/80 p-3 active:opacity-70">
-      <View className="h-14 w-14 overflow-hidden rounded-lg bg-iron-800 items-center justify-center">
-        {thumb ? (
-          <Image source={{ uri: thumb }} style={{ width: 56, height: 56 }} contentFit="cover" />
-        ) : (
-          <Text className="text-lg font-black text-brand">EX</Text>
-        )}
-      </View>
+      <ExerciseThumb images={exercise.images} size={56} radius={8} />
       <View className="flex-1">
         <Text variant="subheading" numberOfLines={1}>
           {exercise.name}

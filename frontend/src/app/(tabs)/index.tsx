@@ -20,6 +20,7 @@ import { Screen } from '@/components/ui/Screen';
 import { Text } from '@/components/ui/Text';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
+import { ExerciseThumb } from '@/components/ExerciseThumb';
 import { formatRepRange } from '@/lib/format';
 
 type IoniconName = React.ComponentProps<typeof Ionicons>['name'];
@@ -63,13 +64,16 @@ function ExerciseLine({ ex, units }: { ex: RoutineExercise; units: string }) {
   const detail = [sets, reps, weight, rest].filter(Boolean).join(' · ');
 
   return (
-    <View className="border-b border-iron-800 py-3">
-      <Text variant="subheading" numberOfLines={1}>
-        {name}
-      </Text>
-      <Text variant="caption" className="mt-0.5 text-iron-400" numberOfLines={1}>
-        {detail}
-      </Text>
+    <View className="flex-row items-center border-b border-iron-800 py-3">
+      <ExerciseThumb images={ex.exercise?.images} size={40} radius={6} />
+      <View className="ml-3 flex-1">
+        <Text variant="subheading" numberOfLines={1}>
+          {name}
+        </Text>
+        <Text variant="caption" className="mt-0.5 text-iron-400" numberOfLines={1}>
+          {detail}
+        </Text>
+      </View>
     </View>
   );
 }
@@ -88,16 +92,19 @@ function WorkoutExerciseLine({ ex, units }: { ex: WorkoutExercise; units: string
       : 'No sets logged yet';
 
   return (
-    <View className="border-b border-brand/20 py-3">
-      <Text variant="subheading" numberOfLines={1}>
-        {name}
-      </Text>
-      <Text
-        variant="caption"
-        className={`mt-0.5 ${completedSets.length > 0 ? 'text-iron-300' : 'text-iron-500'}`}
-        numberOfLines={2}>
-        {detail}
-      </Text>
+    <View className="flex-row items-center border-b border-brand/20 py-3">
+      <ExerciseThumb images={ex.exercise?.images} size={40} radius={6} />
+      <View className="ml-3 flex-1">
+        <Text variant="subheading" numberOfLines={1}>
+          {name}
+        </Text>
+        <Text
+          variant="caption"
+          className={`mt-0.5 ${completedSets.length > 0 ? 'text-iron-300' : 'text-iron-500'}`}
+          numberOfLines={2}>
+          {detail}
+        </Text>
+      </View>
     </View>
   );
 }
@@ -630,14 +637,14 @@ export default function HomeScreen() {
         <SectionHeader title="More" />
         <View className="gap-2">
           <QuickLink
-            icon="barbell-outline"
-            title="Workout history"
-            onPress={() => router.push('/workouts')}
-          />
-          <QuickLink
             icon="clipboard-outline"
             title="Routines"
             onPress={() => router.push('/routines')}
+          />
+          <QuickLink
+            icon="barbell-outline"
+            title="Workout history"
+            onPress={() => router.push('/workouts')}
           />
           <QuickLink
             icon="document-text-outline"
