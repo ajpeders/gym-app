@@ -180,37 +180,6 @@ function MetricPill({
   );
 }
 
-function routinePrompt(routine: Routine, units: string, request: string) {
-  const exercises = [...routine.exercises]
-    .sort((a, b) => a.order - b.order)
-    .map((ex, i) => {
-      const name = ex.exercise?.name ?? 'Exercise';
-      const parts = [
-        ex.target_sets != null ? `${ex.target_sets} sets` : null,
-        formatRepRange(ex.target_reps, ex.target_reps_max)
-          ? `${formatRepRange(ex.target_reps, ex.target_reps_max)} reps`
-          : null,
-        ex.target_weight != null ? `${ex.target_weight}${units}` : null,
-        ex.rest_seconds != null ? `${ex.rest_seconds}s rest` : null,
-      ].filter(Boolean);
-      return `${i + 1}. ${name}${parts.length > 0 ? ` - ${parts.join(', ')}` : ''}`;
-    })
-    .join('\n');
-
-  return [
-    `Current routine: ${routine.name}`,
-    routine.notes ? `Notes: ${routine.notes}` : null,
-    'Exercises:',
-    exercises,
-    '',
-    `Requested edit: ${request}`,
-    '',
-    'Return the complete updated routine, including every exercise that should remain.',
-  ]
-    .filter(Boolean)
-    .join('\n');
-}
-
 function findPreviousExercise(routine: Routine, exerciseId: string, fallbackName: string) {
   return routine.exercises.find((ex) => {
     if (String(ex.exercise_id) === String(exerciseId)) return true;
@@ -236,6 +205,8 @@ export default function HomeScreen() {
   const [aiPrompt, setAiPrompt] = useState('');
   const [aiSaving, setAiSaving] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
+  // The coach's one-line summary of what the last AI edit changed.
+  const [aiReply, setAiReply] = useState<string | null>(null);
 
   const fetchData = useCallback(async () => {
     try {
@@ -298,15 +269,29 @@ export default function HomeScreen() {
 
     setAiSaving(true);
     setAiError(null);
+    setAiReply(null);
     try {
-      const parsed = await api.parseRoutine(routinePrompt(routine, settings.units, request));
-      const next = parsed.routines.find((r) => !r.rest_day && r.exercises.length > 0);
-      if (!next) {
-        throw new Error('AI did not return an updated routine.');
-      }
+      // Scoped single-routine edit: streams a proposal + a one-line summary of
+      // what changed, and resolves each exercise via matcher v2.
+      const proposal = await api.editRoutineStream({
+        instruction: request,
+        name: routine.name,
+        notes: routine.notes,
+        exercises: routine.exercises
+          .slice()
+          .sort((a, b) => a.order - b.order)
+          .map((e) => ({
+            exercise: e.exercise?.name ?? 'Exercise',
+            target_sets: e.target_sets,
+            target_reps: e.target_reps,
+            target_reps_max: e.target_reps_max ?? null,
+            target_weight: e.target_weight,
+            notes: e.notes ?? null,
+          })),
+      });
 
       const exercises = [];
-      for (const ex of next.exercises) {
+      for (const ex of proposal.exercises) {
         const exerciseId =
           ex.exercise_id != null
             ? String(ex.exercise_id)
@@ -328,15 +313,17 @@ export default function HomeScreen() {
       }
 
       const input: RoutineInput = {
-        name: next.name?.trim() || routine.name,
-        notes: next.notes ?? routine.notes,
+        name: proposal.name?.trim() || routine.name,
+        notes: proposal.notes ?? routine.notes,
         exercises,
       };
       const updated = await api.updateRoutine(routine.id, input);
       setRoutines((prev) => prev.map((r) => (String(r.id) === String(updated.id) ? updated : r)));
       setPickedId(String(updated.id));
       setAiPrompt('');
-      setAiOpen(false);
+      // Keep the sheet open and show what the coach did, rather than silently
+      // closing — the user asked for a response after every AI edit.
+      setAiReply(proposal.reply?.trim() || 'Updated your routine.');
     } catch (err) {
       if (err instanceof ApiError && err.status === 502) {
         setAiError('AI provider unavailable - check Settings.');
@@ -627,6 +614,8 @@ export default function HomeScreen() {
                 disabled={starting}
                 onPress={() => {
                   setAiError(null);
+                  setAiReply(null);
+                  setAiPrompt('');
                   setAiOpen(true);
                 }}
               />
@@ -705,14 +694,33 @@ export default function HomeScreen() {
                 <Text className="mt-3 text-sm font-medium text-red-400">{aiError}</Text>
               ) : null}
 
+              {aiReply ? (
+                <View className="mt-4 flex-row rounded-lg border border-brand/40 bg-brand/10 p-3">
+                  <Ionicons name="sparkles" size={16} color="#f97316" />
+                  <View className="ml-2 flex-1">
+                    <Text variant="caption" className="font-bold text-brand">
+                      Coach
+                    </Text>
+                    <Text variant="body" className="mt-0.5 text-iron-100">
+                      {aiReply}
+                    </Text>
+                  </View>
+                </View>
+              ) : null}
+
               <Button
-                title="Apply AI edit"
-                icon="sparkles"
+                title={aiReply ? 'Done' : 'Apply AI edit'}
+                icon={aiReply ? 'checkmark' : 'sparkles'}
                 size="lg"
                 className="mt-4"
                 loading={aiSaving}
-                disabled={aiPrompt.trim() === '' || !selectedRoutine}
+                disabled={!aiReply && (aiPrompt.trim() === '' || !selectedRoutine)}
                 onPress={() => {
+                  if (aiReply) {
+                    setAiReply(null);
+                    setAiOpen(false);
+                    return;
+                  }
                   if (selectedRoutine) void onAiEdit(selectedRoutine);
                 }}
               />
