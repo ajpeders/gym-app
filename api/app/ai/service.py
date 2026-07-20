@@ -24,10 +24,12 @@ from ..models import (
 from . import prompts
 from .base import (
     CHECKIN_SCHEMA,
+    EDIT_ROUTINE_SCHEMA,
     PARSE_SCHEMA,
     PROGRAM_SCHEMA,
     AIError,
     CheckinResult,
+    EditedRoutine,
     ParsedProgram,
     ParsedWorkout,
 )
@@ -379,6 +381,76 @@ async def parse_routine_stream(
     yield {"type": "result", **result}
 
 
+async def edit_routine_stream(
+    db: Session, user: User, working: dict, instruction: str
+) -> AsyncIterator[dict]:
+    """Conversationally edit ONE routine.
+
+    ``working`` is the routine as it currently stands on the client (exercises by
+    name, so the model can reason about them); ``instruction`` is the user's
+    latest request. Yields ``progress`` events while the model generates, then a
+    single ``result`` event carrying the proposed routine with each exercise
+    resolved against the catalog. Nothing is persisted here — the client reviews
+    the proposal and saves via the normal routine update path.
+    """
+    provider, units = _resolve(db, user)
+    routine_json = json.dumps(working, ensure_ascii=False)
+    system = prompts.edit_routine_system_prompt(units)
+    user_prompt = prompts.edit_routine_user_prompt(routine_json, instruction)
+    t0 = time.monotonic()
+
+    data: dict | None = None
+    stream = getattr(provider, "stream_json", None)
+    if stream is not None:
+        async for ev in stream(system=system, user=user_prompt, schema=EDIT_ROUTINE_SCHEMA):
+            if ev.get("type") == "progress":
+                yield ev
+            elif ev.get("type") == "result":
+                data = ev.get("data")
+    else:
+        data = await provider.complete_json(
+            system=system, user=user_prompt, schema=EDIT_ROUTINE_SCHEMA
+        )
+
+    if data is None:
+        raise AIError("The AI returned no result.")
+
+    try:
+        edited = EditedRoutine.model_validate(data)
+    except Exception as exc:  # noqa: BLE001
+        raise AIError(f"Model output did not match the expected shape: {exc}") from exc
+
+    catalog = _load_catalog(db, user.id)
+    exercises = []
+    for e in edited.exercises:
+        ex_id, match = _match(e.exercise, catalog)
+        reps_lo, reps_hi = _normalize_rep_range(e.target_reps, e.target_reps_max)
+        exercises.append(
+            {
+                "exercise_name": e.exercise,
+                "exercise_id": ex_id,
+                "match": match,
+                "target_sets": e.target_sets,
+                "target_reps": reps_lo,
+                "target_reps_max": reps_hi,
+                "target_weight": e.target_weight,
+                "notes": e.notes,
+            }
+        )
+    latency_ms = int((time.monotonic() - t0) * 1000)
+    yield {
+        "type": "result",
+        "provider": provider.name,
+        "model": provider.model,
+        "units": units,
+        "latency_ms": latency_ms,
+        "reply": edited.reply,
+        "name": edited.name,
+        "notes": edited.notes,
+        "exercises": exercises,
+    }
+
+
 # --- Athlete memory ---
 
 _PROFILE_FIELDS = (
@@ -544,6 +616,7 @@ __all__ = [
     "available_providers",
     "parse_sets",
     "parse_routine",
+    "edit_routine_stream",
     "match_exercise",
     "get_or_create_profile",
     "profile_dict",

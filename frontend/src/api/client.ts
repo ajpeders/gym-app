@@ -18,6 +18,8 @@ import type {
   ParseResult,
   ParseRoutineResult,
   Routine,
+  RoutineEditProposal,
+  RoutineEditWorkingExercise,
   RoutineInput,
   Settings,
   SettingsUpdate,
@@ -238,6 +240,99 @@ async function parseRoutineStream(
   }
 }
 
+export interface RoutineEditInput {
+  instruction: string;
+  name: string;
+  notes: string | null;
+  exercises: RoutineEditWorkingExercise[];
+}
+
+// Conversationally edit ONE routine over SSE. Mirrors parseRoutineStream: the
+// model can take 10–30s on a local model, so streaming keeps a mobile
+// connection alive and reports progress. Returns the proposed routine; nothing
+// is saved until the caller PATCHes the routine.
+async function editRoutineStream(
+  input: RoutineEditInput,
+  onProgress?: (info: ParseProgressInfo) => void,
+): Promise<RoutineEditProposal> {
+  const headers: Record<string, string> = {
+    Accept: 'text/event-stream',
+    'Content-Type': 'application/json',
+  };
+  const token = await getItem(TOKEN_KEY);
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 120_000);
+
+  try {
+    let res: Awaited<ReturnType<typeof expoFetch>>;
+    try {
+      res = await expoFetch(`${API_BASE}/ai/edit-routine/stream`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(input),
+        signal: controller.signal,
+      });
+    } catch (err) {
+      if ((err as Error).name === 'AbortError') {
+        throw new ApiError(408, 'The request took too long — try again.');
+      }
+      throw new ApiError(0, `Network error: ${(err as Error).message}`);
+    }
+
+    if (!res.ok) {
+      const body = await res.text().catch(() => '');
+      throw new ApiError(res.status, `Request failed (${res.status})`, body);
+    }
+
+    let result: RoutineEditProposal | null = null;
+    let errorDetail: string | null = null;
+
+    const handleBlock = (raw: string) => {
+      const parsed = parseSseBlock(raw);
+      if (!parsed) return;
+      if (parsed.event === 'progress') {
+        onProgress?.({ received: (parsed.data as ParseProgressInfo).received ?? 0 });
+      } else if (parsed.event === 'result') {
+        result = parsed.data as RoutineEditProposal;
+      } else if (parsed.event === 'error') {
+        errorDetail = (parsed.data as { detail?: string }).detail ?? 'Failed to edit.';
+      }
+    };
+
+    let buffer = '';
+    const drain = (chunk: string) => {
+      buffer += chunk;
+      let idx: number;
+      while ((idx = buffer.indexOf('\n\n')) !== -1) {
+        const block = buffer.slice(0, idx);
+        buffer = buffer.slice(idx + 2);
+        if (block.trim()) handleBlock(block);
+      }
+    };
+
+    const reader = res.body?.getReader?.();
+    if (reader) {
+      const decoder = new TextDecoder();
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        drain(decoder.decode(value, { stream: true }));
+      }
+    } else {
+      drain(await res.text());
+    }
+    if (buffer.trim()) handleBlock(buffer);
+
+    if (errorDetail) throw new ApiError(502, errorDetail);
+    if (!result) throw new ApiError(0, 'The stream ended without a result.');
+    return result;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 // ---- companion (tool-calling coach) ----
 
 export interface CompanionMessage {
@@ -342,6 +437,7 @@ async function companionChat(
 export const api = {
   request,
   parseRoutineStream,
+  editRoutineStream,
   companionChat,
 
   // ---- auth ----

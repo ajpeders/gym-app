@@ -98,6 +98,30 @@ class ParsedProgram(BaseModel):
     routines: list[ParsedRoutine] = Field(default_factory=list)
 
 
+# One exercise's target fields — shared by the program-import schema and the
+# single-routine AI-edit schema so the rep-range shape can't drift between them.
+_ROUTINE_EXERCISE_ITEM: dict = {
+    "type": "object",
+    "additionalProperties": False,
+    "properties": {
+        "exercise": {"type": "string"},
+        "target_sets": {"anyOf": [{"type": "integer"}, {"type": "null"}]},
+        "target_reps": {"anyOf": [{"type": "integer"}, {"type": "null"}]},
+        "target_reps_max": {"anyOf": [{"type": "integer"}, {"type": "null"}]},
+        "target_weight": {"anyOf": [{"type": "number"}, {"type": "null"}]},
+        "notes": {"anyOf": [{"type": "string"}, {"type": "null"}]},
+    },
+    "required": [
+        "exercise",
+        "target_sets",
+        "target_reps",
+        "target_reps_max",
+        "target_weight",
+        "notes",
+    ],
+}
+
+
 PROGRAM_SCHEMA: dict = {
     "type": "object",
     "additionalProperties": False,
@@ -113,26 +137,7 @@ PROGRAM_SCHEMA: dict = {
                     "rest_day": {"type": "boolean"},
                     "exercises": {
                         "type": "array",
-                        "items": {
-                            "type": "object",
-                            "additionalProperties": False,
-                            "properties": {
-                                "exercise": {"type": "string"},
-                                "target_sets": {"anyOf": [{"type": "integer"}, {"type": "null"}]},
-                                "target_reps": {"anyOf": [{"type": "integer"}, {"type": "null"}]},
-                                "target_reps_max": {"anyOf": [{"type": "integer"}, {"type": "null"}]},
-                                "target_weight": {"anyOf": [{"type": "number"}, {"type": "null"}]},
-                                "notes": {"anyOf": [{"type": "string"}, {"type": "null"}]},
-                            },
-                            "required": [
-                                "exercise",
-                                "target_sets",
-                                "target_reps",
-                                "target_reps_max",
-                                "target_weight",
-                                "notes",
-                            ],
-                        },
+                        "items": _ROUTINE_EXERCISE_ITEM,
                     },
                 },
                 "required": ["name", "notes", "rest_day", "exercises"],
@@ -140,6 +145,29 @@ PROGRAM_SCHEMA: dict = {
         }
     },
     "required": ["routines"],
+}
+
+
+# --- Single-routine conversational edit (AI proposes the updated routine) ---
+
+
+class EditedRoutine(BaseModel):
+    reply: str = ""
+    name: str
+    notes: Optional[str] = None
+    exercises: list[ParsedRoutineExercise] = Field(default_factory=list)
+
+
+EDIT_ROUTINE_SCHEMA: dict = {
+    "type": "object",
+    "additionalProperties": False,
+    "properties": {
+        "reply": {"type": "string"},
+        "name": {"type": "string"},
+        "notes": {"anyOf": [{"type": "string"}, {"type": "null"}]},
+        "exercises": {"type": "array", "items": _ROUTINE_EXERCISE_ITEM},
+    },
+    "required": ["reply", "name", "notes", "exercises"],
 }
 
 

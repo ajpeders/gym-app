@@ -262,6 +262,30 @@ export interface ParseRoutineResult {
   routines: ParsedRoutine[];
 }
 
+// ---- AI routine edit (conversationally edit one routine) ----
+
+// The routine as the client currently has it, sent so follow-up edits build on
+// the last proposal. Exercises are by name (the model reasons over names).
+export interface RoutineEditWorkingExercise {
+  exercise: string;
+  target_sets: number | null;
+  target_reps: number | null;
+  target_reps_max: number | null;
+  target_weight: number | null;
+  notes?: string | null;
+}
+
+export interface RoutineEditProposal {
+  provider: string;
+  model: string;
+  units: string;
+  latency_ms: number;
+  reply: string;
+  name: string;
+  notes: string | null;
+  exercises: ParsedRoutineExercise[];
+}
+
 // ---- Athlete profile + coach check-in ----
 
 export interface AthleteProfile {

@@ -26,6 +26,24 @@ class RoutineRequest(BaseModel):
     text: str
 
 
+class EditRoutineExercise(BaseModel):
+    exercise: str
+    target_sets: int | None = None
+    target_reps: int | None = None
+    target_reps_max: int | None = None
+    target_weight: float | None = None
+    notes: str | None = None
+
+
+class EditRoutineRequest(BaseModel):
+    instruction: str
+    # The routine as it currently stands on the client (exercises by name), so
+    # follow-up edits build on the last proposal rather than the saved version.
+    name: str = ""
+    notes: str | None = None
+    exercises: list[EditRoutineExercise] = []
+
+
 class CheckinRequest(BaseModel):
     text: str
 
@@ -111,6 +129,50 @@ async def parse_routine_stream(
     async def event_stream():
         try:
             async for ev in service.parse_routine_stream(db, user, text):
+                if ev.get("type") == "progress":
+                    yield _sse("progress", {"received": ev.get("received", 0)})
+                else:
+                    payload = {k: v for k, v in ev.items() if k != "type"}
+                    yield _sse("result", payload)
+        except AIError as exc:
+            yield _sse("error", {"detail": str(exc)})
+        except Exception:  # noqa: BLE001
+            yield _sse("error", {"detail": "The AI request failed unexpectedly."})
+
+    return StreamingResponse(
+        event_stream(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",  # disable proxy buffering (nginx/Traefik)
+        },
+    )
+
+
+@router.post("/edit-routine/stream")
+async def edit_routine_stream(
+    body: EditRoutineRequest,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> StreamingResponse:
+    """SSE conversational edit of one routine: `progress` events while the model
+    generates, a final `result` event with the proposed routine (exercises
+    resolved to the catalog), or an `error` event. Persists nothing — the client
+    reviews and saves via PATCH /routines/{id}."""
+    instruction = (body.instruction or "").strip()
+    if not instruction:
+        raise HTTPException(status_code=400, detail="instruction is required")
+
+    working = {
+        "name": body.name,
+        "notes": body.notes,
+        "exercises": [e.model_dump() for e in body.exercises],
+    }
+
+    async def event_stream():
+        try:
+            async for ev in service.edit_routine_stream(db, user, working, instruction):
                 if ev.get("type") == "progress":
                     yield _sse("progress", {"received": ev.get("received", 0)})
                 else:

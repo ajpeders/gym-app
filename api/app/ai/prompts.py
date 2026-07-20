@@ -66,6 +66,34 @@ def routine_user_prompt(text: str) -> str:
     return f"Program:\n{text}"
 
 
+_EDIT_ROUTINE_RULES = (
+    "You are editing ONE strength-training routine. You are given the CURRENT routine as JSON "
+    "and a single instruction from the user. Apply the instruction and return the COMPLETE "
+    "updated routine (every exercise, not just the changed ones).\n"
+    "Rules:\n"
+    "- Keep every exercise and every value the instruction does NOT mention exactly as-is.\n"
+    "- Weights are in {units}. Output numeric values as stated; never convert units.\n"
+    "- '4x8' -> target_sets 4, target_reps 8. A REP RANGE like '3x8-12' or '8 to 12 reps' -> "
+    "target_reps is the LOW end (8) and target_reps_max is the HIGH end (12). A single rep count -> "
+    "target_reps that number and target_reps_max null. ALWAYS fill target_reps (the low end) for a "
+    "range; never leave it null while setting target_reps_max.\n"
+    "- To remove an exercise, drop it from the list. To add one, append it. To swap, replace the "
+    "named exercise with the new one.\n"
+    "- Sets/reps/weight not given for a new exercise -> leave those fields null.\n"
+    "- Preserve the user's exercise names. Never invent numbers.\n"
+    "- 'reply' is ONE short sentence describing what you changed, e.g. 'Added a 4th set to bench "
+    "and swapped lunges for Bulgarian split squats.'"
+)
+
+
+def edit_routine_system_prompt(units: str) -> str:
+    return _EDIT_ROUTINE_RULES.format(units=units)
+
+
+def edit_routine_user_prompt(routine_json: str, instruction: str) -> str:
+    return f"Current routine:\n{routine_json}\n\nInstruction:\n{instruction}"
+
+
 _CHECKIN_SYSTEM = (
     "You maintain a strength athlete's persistent training profile for a coaching app. "
     "Given the current profile (JSON) and a new check-in message, return the UPDATED profile.\n"
