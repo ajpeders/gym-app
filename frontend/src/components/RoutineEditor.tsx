@@ -34,6 +34,8 @@ interface RoutineEditorProps {
   saving?: boolean;
   onSave: (input: RoutineInput) => Promise<void> | void;
   onDelete?: () => void;
+  /** When set, a share button appears in the header (export the saved routine). */
+  onExport?: () => void;
 }
 
 const smallInput =
@@ -47,6 +49,7 @@ export function RoutineEditor({
   saving = false,
   onSave,
   onDelete,
+  onExport,
 }: RoutineEditorProps) {
   const { settings } = useSettings();
   const { configured: aiConfigured } = useAiStatus();
@@ -167,7 +170,24 @@ export function RoutineEditor({
 
   return (
     <SafeAreaView edges={['left', 'right', 'bottom']} className="flex-1 bg-iron-950">
-      <Stack.Screen options={{ headerShown: true, title }} />
+      <Stack.Screen
+        options={{
+          headerShown: true,
+          title,
+          headerRight: onExport
+            ? () => (
+                <Pressable
+                  onPress={onExport}
+                  hitSlop={12}
+                  accessibilityRole="button"
+                  accessibilityLabel="Export routine"
+                  className="pl-3 active:opacity-60">
+                  <Ionicons name="share-outline" size={22} color="#f97316" />
+                </Pressable>
+              )
+            : undefined,
+        }}
+      />
       <ScrollView className="flex-1" contentContainerClassName="px-4 pt-3 pb-28" keyboardShouldPersistTaps="handled">
         <Input label="Name" value={name} onChangeText={setName} placeholder="e.g. Push Day" />
         <Input

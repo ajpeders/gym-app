@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react';
-import { ScrollView, View } from 'react-native';
+import { Pressable, ScrollView, View } from 'react-native';
 import { Stack, useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 
 import { api } from '@/api/client';
 import type { Workout } from '@/api/types';
@@ -10,6 +11,7 @@ import { Text } from '@/components/ui/Text';
 import { Card } from '@/components/ui/Card';
 import { Loading, ErrorState } from '@/components/ui/Feedback';
 import { formatDateTime, formatDuration, titleCase } from '@/lib/format';
+import { promptExport, workoutToJson, workoutToText } from '@/lib/export';
 
 function Stat({ label, value }: { label: string; value: string }) {
   return (
@@ -55,7 +57,29 @@ export default function WorkoutDetailScreen() {
 
   return (
     <Screen scroll={false} padded={false}>
-      <Stack.Screen options={{ headerShown: true, title: workout?.name ?? 'Workout' }} />
+      <Stack.Screen
+        options={{
+          headerShown: true,
+          title: workout?.name ?? 'Workout',
+          headerRight: () =>
+            workout ? (
+              <Pressable
+                onPress={() =>
+                  promptExport(
+                    workout.name || 'Workout',
+                    workoutToText(workout, settings.units),
+                    workoutToJson(workout, settings.units),
+                  )
+                }
+                hitSlop={12}
+                accessibilityRole="button"
+                accessibilityLabel="Export workout"
+                className="pl-3 active:opacity-60">
+                <Ionicons name="share-outline" size={22} color="#f97316" />
+              </Pressable>
+            ) : null,
+        }}
+      />
       {loading ? (
         <Loading />
       ) : error || !workout ? (

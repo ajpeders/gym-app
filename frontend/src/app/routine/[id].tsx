@@ -1,12 +1,15 @@
 import { useCallback, useState } from 'react';
-import { Alert, Platform } from 'react-native';
+import { Alert, Platform, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 
 import { api } from '@/api/client';
 import type { Routine, RoutineInput } from '@/api/types';
+import { useSettings } from '@/state/settings';
 import { RoutineEditor, type DraftExercise } from '@/components/RoutineEditor';
 import { Loading, ErrorState } from '@/components/ui/Feedback';
+import { promptExport, routineToJson, routineToText } from '@/lib/export';
 
 function toDraft(routine: Routine): DraftExercise[] {
   return routine.exercises
@@ -31,6 +34,7 @@ function toDraft(routine: Routine): DraftExercise[] {
 export default function EditRoutineScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const { settings } = useSettings();
   const [routine, setRoutine] = useState<Routine | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -100,6 +104,13 @@ export default function EditRoutineScreen() {
       saving={saving}
       onSave={onSave}
       onDelete={onDelete}
+      onExport={() =>
+        promptExport(
+          routine.name,
+          routineToText(routine, settings.units),
+          routineToJson(routine, settings.units),
+        )
+      }
     />
   );
 }
