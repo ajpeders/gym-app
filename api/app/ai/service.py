@@ -51,8 +51,56 @@ def _stem(tok: str) -> str:
     return tok
 
 
+# Noise words that carry no matching signal — dropped so token-overlap focuses
+# on the meaningful parts of a name.
+_STOPWORDS = frozenset({"the", "a", "an", "with", "and", "to", "of", "for", "your"})
+
+# Single-token abbreviation expansions (applied to query names only).
+_ABBREV = {
+    "db": "dumbbell",
+    "bb": "barbell",
+    "ohp": "overhead press",
+    "rdl": "romanian deadlift",
+    "sldl": "stiff leg deadlift",
+    "bw": "bodyweight",
+}
+
+# Phrase-level synonyms applied to a query name before tokenizing, so
+# AI/imported names resolve to a real catalog entry (with images) instead of
+# spawning an image-less custom. Kept deliberately small + high-confidence.
+_PHRASE_SYNONYMS = [
+    ("dumbbell chest press", "dumbbell bench press"),
+    ("chest press", "bench press"),
+    ("chest fly", "chest fly"),  # guard: keep flyes as-is, not "bench fly"
+]
+
+
 def _norm(s: str) -> list[str]:
-    return [_stem(t) for t in _WORD_RE.sub(" ", (s or "").lower()).split()]
+    """Catalog-side normalization: stem + drop stopwords. No synonym rewriting,
+    so the catalog vocabulary stays untouched."""
+    return [
+        t
+        for t in (_stem(w) for w in _WORD_RE.sub(" ", (s or "").lower()).split())
+        if t and t not in _STOPWORDS
+    ]
+
+
+def _norm_query(s: str) -> list[str]:
+    """Query-side normalization for names coming from the AI or an import:
+    apply phrase synonyms + abbreviation expansion on top of :func:`_norm` so
+    'flat dumbbell chest press' lands on 'Dumbbell Bench Press'."""
+    text = (s or "").lower()
+    for phrase, repl in _PHRASE_SYNONYMS:
+        if phrase == repl:
+            continue
+        text = text.replace(phrase, repl)
+    toks: list[str] = []
+    for w in _WORD_RE.sub(" ", text).split():
+        for part in _ABBREV.get(w, w).split():
+            t = _stem(part)
+            if t and t not in _STOPWORDS:
+                toks.append(t)
+    return toks
 
 
 def _user_settings(db: Session, user_id: int) -> Settings | None:
@@ -183,25 +231,40 @@ def _load_catalog(db: Session, user_id: int) -> list[tuple[int, frozenset[str]]]
 
 
 def _match(name: str, catalog: list[tuple[int, frozenset[str]]]) -> tuple[int | None, str]:
-    target = frozenset(_norm(name))
+    target = frozenset(_norm_query(name))
     if not target:
         return None, "none"
     best_key: tuple = ()
     best_id: int | None = None
+    fb_key: tuple = ()
+    fb_id: int | None = None
     for ex_id, toks in catalog:
         if toks == target:
             return ex_id, "exact"
         if not toks:
             continue
         inter = len(target & toks)
-        # accept only when one name's words fully contain the other's
-        if inter == 0 or not (target <= toks or toks <= target):
+        if inter == 0:
             continue
-        # deterministic ranking: most overlap, closest size, shortest name, lowest id
-        key = (inter, -abs(len(toks) - len(target)), -len(toks), -ex_id)
-        if best_id is None or key > best_key:
-            best_key, best_id = key, ex_id
-    return (best_id, "fuzzy") if best_id is not None else (None, "none")
+        subset = target <= toks or toks <= target
+        if subset:
+            # deterministic ranking: most overlap, closest size, shortest, lowest id
+            key = (inter, -abs(len(toks) - len(target)), -len(toks), -ex_id)
+            if best_id is None or key > best_key:
+                best_key, best_id = key, ex_id
+        else:
+            # Conservative fuzzy fallback: strong two-sided overlap even when
+            # neither name fully contains the other (e.g. an extra qualifier on
+            # each side). Requires >=2 shared tokens covering most of the
+            # shorter name, so unrelated moves don't collide.
+            shorter = min(len(target), len(toks))
+            if inter >= 2 and inter >= shorter - 1:
+                key = (inter, -abs(len(toks) - len(target)), -len(toks), -ex_id)
+                if fb_id is None or key > fb_key:
+                    fb_key, fb_id = key, ex_id
+    if best_id is not None:
+        return best_id, "fuzzy"
+    return (fb_id, "fuzzy") if fb_id is not None else (None, "none")
 
 
 def match_exercise(db: Session, user_id: int, name: str) -> tuple[int | None, str]:
