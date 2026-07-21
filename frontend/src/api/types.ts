@@ -262,6 +262,27 @@ export interface ParseRoutineResult {
   routines: ParsedRoutine[];
 }
 
+// ---- Log a completed workout (one-shot, no live session) ----
+
+export interface LoggedSetInput {
+  reps?: number | null;
+  weight?: number | null;
+  rpe?: number | null;
+  set_type?: string;
+}
+
+export interface LoggedExerciseInput {
+  exercise_id: string;
+  sets: LoggedSetInput[];
+}
+
+export interface WorkoutLogInput {
+  name?: string | null;
+  started_at?: string;
+  notes?: string | null;
+  exercises: LoggedExerciseInput[];
+}
+
 // ---- Progress photos ----
 
 export interface ProgressPhoto {

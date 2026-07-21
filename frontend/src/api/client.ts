@@ -29,6 +29,7 @@ import type {
   User,
   Workout,
   WorkoutExercise,
+  WorkoutLogInput,
   WorkoutSet,
 } from './types';
 
@@ -527,6 +528,8 @@ export const api = {
   workout: (id: string) => request<Workout>(`/workouts/${id}`),
   startWorkout: (input: { routine_id?: string; name?: string; started_at?: string }) =>
     request<Workout>('/workouts/start', { method: 'POST', body: input }),
+  logWorkout: (input: WorkoutLogInput) =>
+    request<Workout>('/workouts/log', { method: 'POST', body: input }),
   updateWorkout: (id: string, input: Partial<Pick<Workout, 'name' | 'notes'>>) =>
     request<Workout>(`/workouts/${id}`, { method: 'PATCH', body: input }),
   finishWorkout: (id: string) =>

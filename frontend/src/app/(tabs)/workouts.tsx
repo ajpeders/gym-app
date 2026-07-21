@@ -193,11 +193,19 @@ export default function WorkoutsScreen() {
           <View className="mb-4">
             <DatePresetRow value={daysBack} onChange={setDaysBack} />
             <Button
-              title={daysBack === 0 ? 'Start blank workout' : 'Log a past workout'}
+              title={daysBack === 0 ? 'Start blank workout' : 'Start (live) — backdated'}
               size="lg"
               icon="add"
               loading={busy}
               onPress={startBlank}
+            />
+            <Button
+              title="Log a completed workout"
+              variant="secondary"
+              icon="create-outline"
+              className="mt-2"
+              disabled={busy}
+              onPress={() => router.push('/workout/log')}
             />
           </View>
         )}

@@ -228,6 +228,26 @@ class WorkoutUpdate(BaseModel):
     notes: Optional[str] = None
 
 
+# One-shot "log a completed workout after the fact" (no live session).
+class LoggedSetIn(BaseModel):
+    reps: Optional[int] = None
+    weight: Optional[float] = None
+    rpe: Optional[float] = None
+    set_type: str = "working"
+
+
+class LoggedExerciseIn(BaseModel):
+    exercise_id: int
+    sets: list[LoggedSetIn] = []
+
+
+class WorkoutLog(BaseModel):
+    name: Optional[str] = None
+    started_at: Optional[datetime] = None
+    notes: Optional[str] = None
+    exercises: list[LoggedExerciseIn] = []
+
+
 # ---------------------------------------------------------------------------
 # Body metrics
 # ---------------------------------------------------------------------------

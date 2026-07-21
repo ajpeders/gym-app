@@ -60,6 +60,7 @@ function RootNavigator() {
       <Stack.Screen name="(tabs)" />
       <Stack.Screen name="exercise/[id]" options={{ presentation: 'card' }} />
       <Stack.Screen name="workout/[id]" />
+      <Stack.Screen name="workout/log" />
       <Stack.Screen name="workout/active/[id]" />
       <Stack.Screen name="workout/add-exercise" options={{ presentation: 'modal' }} />
       <Stack.Screen name="routine/[id]" />

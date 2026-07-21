@@ -25,6 +25,7 @@ from ..schemas import (
     WorkoutExerciseCreate,
     WorkoutExerciseOut,
     WorkoutListOut,
+    WorkoutLog,
     WorkoutOut,
     WorkoutStart,
     WorkoutUpdate,
@@ -139,6 +140,45 @@ def create_workout(
     workout = Workout(
         owner_id=user.id, name=payload.name, started_at=_resolve_started_at(payload.started_at)
     )
+    db.add(workout)
+    db.commit()
+    db.refresh(workout)
+    return WorkoutOut.model_validate(workout)
+
+
+@router.post("/log", response_model=WorkoutOut, status_code=status.HTTP_201_CREATED)
+def log_workout(
+    payload: WorkoutLog,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> WorkoutOut:
+    """Log a whole completed workout in one shot (no live session) — for
+    recording a session you already did. Created already-finished at the given
+    date, with all exercises and their sets, atomically."""
+    started = _resolve_started_at(payload.started_at)
+    workout = Workout(
+        owner_id=user.id,
+        name=payload.name,
+        started_at=started,
+        finished_at=started,  # already done → completed
+        notes=payload.notes,
+    )
+    for i, ex in enumerate(payload.exercises):
+        _validate_exercise(db, ex.exercise_id, user)
+        we = WorkoutExercise(exercise_id=ex.exercise_id, order=i)
+        for j, s in enumerate(ex.sets):
+            we.sets.append(
+                SetEntry(
+                    set_number=j + 1,
+                    reps=s.reps,
+                    weight=s.weight,
+                    rpe=s.rpe,
+                    set_type=s.set_type,
+                    completed=True,
+                    completed_at=started,
+                )
+            )
+        workout.exercises.append(we)
     db.add(workout)
     db.commit()
     db.refresh(workout)
