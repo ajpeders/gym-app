@@ -57,14 +57,11 @@ export default function TabsLayout() {
       }}>
       {/* Visible tabs */}
       <Tabs.Screen name="index" options={{ title: 'Home', tabBarIcon: tabIcon('index') }} />
-      <Tabs.Screen
-        name="coach"
-        options={{ title: 'Coach', headerShown: true, tabBarIcon: tabIcon('coach') }}
-      />
       <Tabs.Screen name="settings" options={{ title: 'Settings', tabBarIcon: tabIcon('settings') }} />
 
       {/* Scope trimmed for now — kept as routes (reachable from Home), hidden from the
           tab bar. Roadmap: bring back as dedicated tabs. */}
+      <Tabs.Screen name="coach" options={{ href: null, headerShown: true }} />
       <Tabs.Screen name="workouts" options={{ href: null }} />
       <Tabs.Screen name="exercises" options={{ href: null }} />
       <Tabs.Screen name="routines" options={{ href: null }} />

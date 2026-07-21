@@ -645,11 +645,6 @@ export default function HomeScreen() {
             title="Exercises"
             onPress={() => router.push('/exercises')}
           />
-          <QuickLink
-            icon="chatbubbles-outline"
-            title="Coach"
-            onPress={() => router.push('/coach')}
-          />
         </View>
       </ScrollView>
 
