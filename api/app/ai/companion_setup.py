@@ -46,10 +46,11 @@ def _uid(request: Request) -> int | None:
         return None
 
 
-def _provider_for(s, cfg) -> Provider | None:
+def _provider_for(s, cfg, kind: str | None = None) -> Provider | None:
     """Build a companion Provider from the user's gym Settings (reuses gym's own
-    provider-selection helpers). None = not configured."""
-    if service._effective_provider(s, cfg) == "claude":
+    provider-selection helpers). `kind` overrides the user's default choice
+    (per-conversation picker). None = not configured."""
+    if (kind or service._effective_provider(s, cfg)) == "claude":
         if not service._provider_configured(s, "claude"):
             return None
         return AnthropicProvider(
@@ -70,18 +71,28 @@ def _provider_for(s, cfg) -> Provider | None:
 
 
 def resolve_provider(request: Request) -> Provider | None:
-    """Per-request: the logged-in user's own provider. Raises ValueError (→ 503
-    with detail) when they haven't set AI up — matching gym's no-silent-default rule."""
+    """Per-request: the logged-in user's own provider. The chat body may carry
+    `"provider": "ollama"|"claude"` to pick per conversation; otherwise the
+    user's Settings default applies. Raises ValueError (→ 503 with detail) when
+    the choice isn't configured — matching gym's no-silent-default rule."""
     uid = _uid(request)
     if uid is None:
         raise ValueError("Not signed in.")
+    hint = getattr(request.state, "provider_hint", None)
+    if hint is not None and hint not in ("ollama", "claude"):
+        raise ValueError(f"Unknown provider {hint!r} — use 'ollama' or 'claude'.")
     db = SessionLocal()
     try:
         user = db.get(User, uid)
         if user is None:
             raise ValueError("User not found.")
-        provider = _provider_for(service._user_settings(db, user.id), get_settings())
+        provider = _provider_for(service._user_settings(db, user.id), get_settings(), hint)
         if provider is None:
+            if hint:
+                raise ValueError(
+                    f"{'Claude' if hint == 'claude' else 'Ollama'} isn't set up — "
+                    "configure it in Settings first."
+                )
             raise ValueError(
                 "AI isn't set up yet — add your Ollama server or Claude key in Settings."
             )
