@@ -37,6 +37,15 @@ export const API_URL =
   process.env.EXPO_PUBLIC_API_URL?.replace(/\/$/, '') ?? 'http://localhost:8000';
 export const API_BASE = `${API_URL}/api`;
 
+// Catalog images are stored as server-relative paths ("/api/exercise-media/…")
+// so they work across dev/prod; external URLs (legacy free-exercise-db) pass
+// through untouched. Resolves against the configured API host.
+export function resolveMediaUrl(path: string | null | undefined): string | null {
+  if (!path) return null;
+  if (/^https?:\/\//i.test(path)) return path;
+  return `${API_URL}${path.startsWith('/') ? '' : '/'}${path}`;
+}
+
 export class ApiError extends Error {
   status: number;
   body: unknown;

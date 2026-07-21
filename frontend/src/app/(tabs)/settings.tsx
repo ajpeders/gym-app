@@ -186,6 +186,11 @@ export default function SettingsScreen() {
       </Card>
 
       <Button title="Log out" variant="danger" onPress={() => void logout()} />
+
+      <Text variant="caption" className="mt-6 text-center text-iron-500">
+        Exercise data from wger.de (CC-BY-SA 4.0) and free-exercise-db (public
+        domain).
+      </Text>
     </Screen>
   );
 }

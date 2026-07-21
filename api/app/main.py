@@ -12,6 +12,7 @@ from .db import SessionLocal, init_db
 from .routes import (
     ai,
     auth,
+    exercise_media,
     exercises,
     health,
     metrics,
@@ -29,7 +30,7 @@ logger = logging.getLogger("gym")
 
 def _seed_exercises() -> None:
     """Seed the global exercise catalog if enabled. Never crashes boot."""
-    from .seed.exercises import seed_if_empty
+    from .seed.wger import seed_if_empty
 
     db = SessionLocal()
     try:
@@ -66,7 +67,7 @@ app.add_middleware(
 )
 
 api = APIRouter(prefix="/api")
-for module in (health, auth, exercises, routines, workouts, metrics, settings, stats, profile, progress_photos, ai):
+for module in (health, auth, exercises, exercise_media, routines, workouts, metrics, settings, stats, profile, progress_photos, ai):
     api.include_router(module.router)
 app.include_router(api)
 

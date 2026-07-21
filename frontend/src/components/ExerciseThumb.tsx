@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { View } from 'react-native';
 import { Image } from 'expo-image';
 
+import { resolveMediaUrl } from '@/api/client';
 import { Text } from '@/components/ui/Text';
 
 interface Props {
@@ -31,7 +32,7 @@ export function ExerciseThumb({
   radius = 8,
   intervalMs = 850,
 }: Props) {
-  const frames = (images ?? []).filter(Boolean);
+  const frames = (images ?? []).map(resolveMediaUrl).filter((u): u is string => !!u);
   const w = width ?? size;
   const h = height ?? size;
   const [frame, setFrame] = useState(0);
