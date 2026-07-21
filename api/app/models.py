@@ -256,3 +256,19 @@ class BodyMetric(Base):
     notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
 
     owner: Mapped["User"] = relationship(back_populates="metrics")
+
+
+class ProgressPhoto(Base):
+    __tablename__ = "progress_photo"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    owner_id: Mapped[int] = mapped_column(
+        ForeignKey("user.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    # The day the photo represents (backdatable); distinct from created_at.
+    taken_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+    # Stored filename under uploads_dir/<owner_id>/; never a client path.
+    filename: Mapped[str] = mapped_column(String, nullable=False)
+    content_type: Mapped[str] = mapped_column(String, nullable=False, default="image/jpeg")
+    notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)

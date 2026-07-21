@@ -262,6 +262,16 @@ export interface ParseRoutineResult {
   routines: ParsedRoutine[];
 }
 
+// ---- Progress photos ----
+
+export interface ProgressPhoto {
+  id: number;
+  owner_id: number;
+  taken_at: string;
+  notes: string | null;
+  created_at: string;
+}
+
 // ---- AI routine edit (conversationally edit one routine) ----
 
 // The routine as the client currently has it, sent so follow-up edits build on

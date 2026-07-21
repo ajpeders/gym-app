@@ -251,6 +251,19 @@ class BodyMetricCreate(BaseModel):
 
 
 # ---------------------------------------------------------------------------
+# Progress photos
+# ---------------------------------------------------------------------------
+class ProgressPhotoOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    owner_id: int
+    taken_at: datetime
+    notes: Optional[str] = None
+    created_at: datetime
+
+
+# ---------------------------------------------------------------------------
 # Settings
 # ---------------------------------------------------------------------------
 class SettingsOut(BaseModel):

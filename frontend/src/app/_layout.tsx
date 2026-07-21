@@ -66,6 +66,7 @@ function RootNavigator() {
       <Stack.Screen name="routine/new" />
       <Stack.Screen name="profile" />
       <Stack.Screen name="routine-import" />
+      <Stack.Screen name="progress" />
     </Stack>
   );
 }

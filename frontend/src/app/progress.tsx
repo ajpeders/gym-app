@@ -1,0 +1,255 @@
+import { useCallback, useEffect, useState } from 'react';
+import { Alert, Dimensions, Modal, Pressable, ScrollView, TextInput, View } from 'react-native';
+import { Image } from 'expo-image';
+import { Stack, useFocusEffect } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
+
+import { api } from '@/api/client';
+import type { ProgressPhoto } from '@/api/types';
+import { Screen } from '@/components/ui/Screen';
+import { Text } from '@/components/ui/Text';
+import { Button } from '@/components/ui/Button';
+import { Loading, EmptyState } from '@/components/ui/Feedback';
+import { formatDate } from '@/lib/format';
+
+const GAP = 8;
+const COLS = 3;
+
+const DATE_PRESETS: { label: string; days: number }[] = [
+  { label: 'Today', days: 0 },
+  { label: 'Yesterday', days: 1 },
+  { label: '2 days ago', days: 2 },
+  { label: 'A week ago', days: 7 },
+];
+
+function isoForDaysBack(days: number): string {
+  const d = new Date();
+  d.setDate(d.getDate() - days);
+  d.setHours(12, 0, 0, 0);
+  return d.toISOString();
+}
+
+/** A progress photo whose auth'd image source is resolved lazily. */
+function ProgressImage({ id, size, radius = 8 }: { id: number; size: number; radius?: number }) {
+  const [source, setSource] = useState<{ uri: string; headers: Record<string, string> } | null>(null);
+  useEffect(() => {
+    let active = true;
+    api.progressPhotoImageSource(id).then((s) => active && setSource(s));
+    return () => {
+      active = false;
+    };
+  }, [id]);
+  return (
+    <View style={{ width: size, height: size, borderRadius: radius }} className="overflow-hidden bg-iron-800">
+      {source ? (
+        <Image source={source} style={{ width: size, height: size }} contentFit="cover" transition={150} />
+      ) : null}
+    </View>
+  );
+}
+
+export default function ProgressScreen() {
+  const [photos, setPhotos] = useState<ProgressPhoto[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Add sheet: a picked image awaiting date + notes before upload.
+  const [pending, setPending] = useState<ImagePicker.ImagePickerAsset | null>(null);
+  const [daysBack, setDaysBack] = useState(0);
+  const [notes, setNotes] = useState('');
+
+  // Full-screen viewer.
+  const [viewing, setViewing] = useState<ProgressPhoto | null>(null);
+
+  const width = Dimensions.get('window').width;
+  const cell = Math.floor((width - 32 - GAP * (COLS - 1)) / COLS);
+
+  const fetch = useCallback(async () => {
+    setError(null);
+    try {
+      setPhotos(await api.progressPhotos());
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to load photos');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      void fetch();
+    }, [fetch]),
+  );
+
+  async function pick(fromCamera: boolean) {
+    const perm = fromCamera
+      ? await ImagePicker.requestCameraPermissionsAsync()
+      : await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!perm.granted) {
+      Alert.alert('Permission needed', `Allow ${fromCamera ? 'camera' : 'photo'} access to add a progress photo.`);
+      return;
+    }
+    const result = fromCamera
+      ? await ImagePicker.launchCameraAsync({ quality: 0.7, allowsEditing: false })
+      : await ImagePicker.launchImageLibraryAsync({ quality: 0.7, mediaTypes: ['images'] });
+    if (result.canceled || !result.assets?.[0]) return;
+    setPending(result.assets[0]);
+    setDaysBack(0);
+    setNotes('');
+  }
+
+  function addPhoto() {
+    Alert.alert('Add progress photo', undefined, [
+      { text: 'Take photo', onPress: () => void pick(true) },
+      { text: 'Choose from library', onPress: () => void pick(false) },
+      { text: 'Cancel', style: 'cancel' },
+    ]);
+  }
+
+  async function confirmUpload() {
+    if (!pending) return;
+    setUploading(true);
+    setError(null);
+    try {
+      await api.uploadProgressPhoto({
+        uri: pending.uri,
+        mimeType: pending.mimeType,
+        fileName: pending.fileName,
+        takenAt: isoForDaysBack(daysBack),
+        notes: notes.trim() || undefined,
+      });
+      setPending(null);
+      await fetch();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Upload failed');
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  function confirmDelete(photo: ProgressPhoto) {
+    Alert.alert('Delete photo?', 'This cannot be undone.', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: async () => {
+          setViewing(null);
+          await api.deleteProgressPhoto(photo.id);
+          await fetch();
+        },
+      },
+    ]);
+  }
+
+  return (
+    <Screen scroll={false} padded={false}>
+      <Stack.Screen options={{ headerShown: true, title: 'Progress photos' }} />
+      <ScrollView className="flex-1" contentContainerClassName="px-4 pt-3 pb-28">
+        <Button title="Add progress photo" icon="camera" size="lg" className="mb-4" onPress={addPhoto} />
+        {error ? <Text className="mb-3 text-sm text-red-400">{error}</Text> : null}
+
+        {loading ? (
+          <Loading />
+        ) : photos.length === 0 ? (
+          <EmptyState
+            icon="IMG"
+            title="No photos yet"
+            subtitle="Add a photo to start tracking how you look over time."
+          />
+        ) : (
+          <View className="flex-row flex-wrap" style={{ gap: GAP }}>
+            {photos.map((p) => (
+              <Pressable key={p.id} onPress={() => setViewing(p)}>
+                <ProgressImage id={p.id} size={cell} />
+                <Text variant="caption" className="mt-1" numberOfLines={1}>
+                  {formatDate(p.taken_at)}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+        )}
+      </ScrollView>
+
+      {/* Add sheet — date + notes for the picked image */}
+      <Modal visible={!!pending} animationType="slide" transparent onRequestClose={() => setPending(null)}>
+        <View className="flex-1 justify-end bg-black/60">
+          <View className="rounded-t-2xl border-t border-iron-700 bg-iron-950 px-4 pb-8 pt-4">
+            <View className="mb-3 flex-row items-center justify-between">
+              <Text variant="heading">New progress photo</Text>
+              <Pressable onPress={() => setPending(null)} hitSlop={8}>
+                <Ionicons name="close" size={22} color="#a8a29e" />
+              </Pressable>
+            </View>
+
+            {pending ? (
+              <Image
+                source={{ uri: pending.uri }}
+                style={{ width: '100%', height: 220, borderRadius: 12 }}
+                contentFit="cover"
+              />
+            ) : null}
+
+            <Text variant="label" className="mb-1.5 mt-4 text-iron-300">
+              When was this taken?
+            </Text>
+            <View className="flex-row flex-wrap gap-2">
+              {DATE_PRESETS.map((preset) => {
+                const active = preset.days === daysBack;
+                return (
+                  <Pressable
+                    key={preset.days}
+                    onPress={() => setDaysBack(preset.days)}
+                    className={`rounded-full border px-3.5 py-2 ${
+                      active ? 'border-brand bg-brand/20' : 'border-iron-700 bg-iron-900'
+                    }`}>
+                    <Text variant="caption" className={active ? 'font-bold text-brand' : 'text-iron-200'}>
+                      {preset.label}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+
+            <TextInput
+              value={notes}
+              onChangeText={setNotes}
+              placeholder="Notes (optional) — e.g. week 4, morning"
+              placeholderTextColor="#78716c"
+              className="mt-4 rounded-lg border border-iron-700 bg-iron-900 px-4 py-3 text-base text-iron-50"
+            />
+
+            <Button
+              title="Save photo"
+              size="lg"
+              className="mt-4"
+              loading={uploading}
+              onPress={confirmUpload}
+            />
+          </View>
+        </View>
+      </Modal>
+
+      {/* Full-screen viewer */}
+      <Modal visible={!!viewing} animationType="fade" transparent onRequestClose={() => setViewing(null)}>
+        <View className="flex-1 items-center justify-center bg-black/95 px-4">
+          {viewing ? <ProgressImage id={viewing.id} size={width - 32} radius={12} /> : null}
+          {viewing ? (
+            <Text variant="body" className="mt-3 text-iron-200">
+              {formatDate(viewing.taken_at)}
+              {viewing.notes ? ` · ${viewing.notes}` : ''}
+            </Text>
+          ) : null}
+          <View className="mt-6 flex-row gap-3">
+            <Button title="Close" variant="secondary" onPress={() => setViewing(null)} />
+            {viewing ? (
+              <Button title="Delete" variant="danger" onPress={() => confirmDelete(viewing)} />
+            ) : null}
+          </View>
+        </View>
+      </Modal>
+    </Screen>
+  );
+}

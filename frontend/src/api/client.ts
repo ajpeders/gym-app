@@ -17,6 +17,7 @@ import type {
   Paginated,
   ParseResult,
   ParseRoutineResult,
+  ProgressPhoto,
   Routine,
   RoutineEditProposal,
   RoutineEditWorkingExercise,
@@ -333,6 +334,58 @@ async function editRoutineStream(
   }
 }
 
+export interface ProgressPhotoUpload {
+  uri: string;
+  mimeType?: string | null;
+  fileName?: string | null;
+  takenAt?: string;
+  notes?: string;
+}
+
+// Multipart upload of a progress photo. Goes outside `request` because it sends
+// FormData (a local file reference), not JSON — the platform sets the multipart
+// boundary Content-Type itself.
+async function uploadProgressPhoto(input: ProgressPhotoUpload): Promise<ProgressPhoto> {
+  const form = new FormData();
+  const mime = input.mimeType || 'image/jpeg';
+  const name = input.fileName || `photo.${mime.split('/')[1] ?? 'jpg'}`;
+  // RN FormData accepts this {uri,name,type} shape for a file part.
+  form.append('file', { uri: input.uri, name, type: mime } as unknown as Blob);
+  if (input.takenAt) form.append('taken_at', input.takenAt);
+  if (input.notes) form.append('notes', input.notes);
+
+  const headers: Record<string, string> = { Accept: 'application/json' };
+  const token = await getItem(TOKEN_KEY);
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+
+  let res: Response;
+  try {
+    res = await fetch(`${API_BASE}/progress-photos`, { method: 'POST', headers, body: form });
+  } catch (err) {
+    throw new ApiError(0, `Network error: ${(err as Error).message}`);
+  }
+  const text = await res.text();
+  const parsed = text ? JSON.parse(text) : undefined;
+  if (!res.ok) {
+    const detail =
+      parsed && typeof parsed === 'object' && 'detail' in parsed
+        ? String((parsed as { detail: unknown }).detail)
+        : `Upload failed (${res.status})`;
+    throw new ApiError(res.status, detail, parsed);
+  }
+  return parsed as ProgressPhoto;
+}
+
+// Source for <Image> that carries the bearer token (the image endpoint is
+// auth'd). expo-image supports per-request headers on the source.
+async function progressPhotoImageSource(id: number): Promise<{ uri: string; headers: Record<string, string> }> {
+  const token = await getItem(TOKEN_KEY);
+  return {
+    uri: `${API_BASE}/progress-photos/${id}/image`,
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  };
+}
+
 // ---- companion (tool-calling coach) ----
 
 export interface CompanionMessage {
@@ -496,6 +549,13 @@ export const api = {
     }),
   deleteSet: (id: string, weId: string, setId: string) =>
     request<void>(`/workouts/${id}/exercises/${weId}/sets/${setId}`, { method: 'DELETE' }),
+
+  // ---- progress photos ----
+  progressPhotos: () => request<ProgressPhoto[]>('/progress-photos'),
+  uploadProgressPhoto,
+  progressPhotoImageSource,
+  deleteProgressPhoto: (id: number) =>
+    request<void>(`/progress-photos/${id}`, { method: 'DELETE' }),
 
   // ---- metrics ----
   metrics: () => request<Metric[]>('/metrics'),

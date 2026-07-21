@@ -645,6 +645,11 @@ export default function HomeScreen() {
             title="Exercises"
             onPress={() => router.push('/exercises')}
           />
+          <QuickLink
+            icon="camera-outline"
+            title="Progress photos"
+            onPress={() => router.push('/progress')}
+          />
         </View>
       </ScrollView>
 

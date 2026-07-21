@@ -36,6 +36,12 @@ class Settings(BaseSettings):
         return f"sqlite:///{self.data_dir.rstrip('/')}/gym.db"
 
     @property
+    def uploads_dir(self) -> str:
+        """Where user-uploaded files (progress photos) live. Under data_dir so
+        the homelab nightly backup of state/ covers it."""
+        return f"{self.data_dir.rstrip('/')}/uploads"
+
+    @property
     def cors_origin_list(self) -> list[str]:
         raw = self.cors_origins.strip()
         if raw == "*" or not raw:

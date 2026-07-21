@@ -34,6 +34,13 @@
             "imageWidth": 76
           }
         }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow gym-app to access your photos to add progress pictures.",
+          "cameraPermission": "Allow gym-app to use the camera to take progress pictures."
+        }
       ]
     ],
     "experiments": {
