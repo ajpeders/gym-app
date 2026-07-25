@@ -22,7 +22,7 @@ class Settings(BaseSettings):
     # Default provider when a user hasn't chosen one in their settings.
     ai_provider: str = "ollama"
     ollama_url: str = "http://192.168.0.40:11434"
-    ollama_model: str = "qwen2.5:7b-instruct"
+    ollama_model: str = "qwen3:8b"
     claude_api_key: str = ""
     claude_model: str = "claude-opus-4-8"  # configurable; claude-haiku-4-5 is the cheap option
     ai_timeout: float = 120.0  # generous for cold model loads on first request
