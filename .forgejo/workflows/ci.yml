@@ -1,0 +1,27 @@
+name: ci
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  api:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # Byte-compile the FastAPI backend — catches syntax errors without
+      # installing runtime deps.
+      - name: python compile check
+        run: python3 -m compileall -q api/app
+  web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # Expo/React-Native TypeScript — full typecheck (same as the repo's
+      # `npm run typecheck`).
+      - name: npm ci
+        working-directory: frontend
+        run: npm ci --no-audit --no-fund
+      - name: tsc --noEmit
+        working-directory: frontend
+        run: npx tsc --noEmit
