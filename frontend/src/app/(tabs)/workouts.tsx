@@ -6,7 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { api } from '@/api/client';
 import type { Routine, Workout } from '@/api/types';
 import { useActiveWorkout } from '@/state/active-workout';
-import { Screen } from '@/components/ui/Screen';
+import { Screen, ScreenHeader, SectionHeader } from '@/components/ui/Screen';
 import { Text } from '@/components/ui/Text';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -152,7 +152,7 @@ export default function WorkoutsScreen() {
     <Screen scroll={false} padded={false}>
       <ScrollView
         className="flex-1"
-        contentContainerClassName="px-4 pt-2 pb-28"
+        contentContainerClassName="px-4 pt-4 pb-28"
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -162,17 +162,16 @@ export default function WorkoutsScreen() {
             }}
           />
         }>
-        <View className="mt-2 mb-4 px-0.5">
-          <Text variant="eyebrow">Training log</Text>
-          <Text variant="title" className="mt-1">
-            Workouts
-          </Text>
-        </View>
+        <ScreenHeader
+          eyebrow="Training log"
+          title="Workouts"
+          subtitle="Start a live session, backdate a missed one, or review your history."
+        />
 
         {activeId ? (
-          <Card elevated className="mb-4 border-brand bg-brand/10">
+          <Card elevated className="mb-4 rounded-[24px] border-brand bg-brand/10 p-5">
             <View className="mb-4 flex-row items-center">
-              <View className="mr-3 h-12 w-12 items-center justify-center rounded-lg bg-brand">
+              <View className="mr-3 h-12 w-12 items-center justify-center rounded-2xl bg-brand">
                 <Ionicons name="radio-button-on" size={14} color="#080706" />
               </View>
               <View className="flex-1">
@@ -190,7 +189,7 @@ export default function WorkoutsScreen() {
             />
           </Card>
         ) : (
-          <View className="mb-4">
+          <Card elevated className="mb-4 rounded-[24px] p-5">
             <DatePresetRow value={daysBack} onChange={setDaysBack} />
             <Button
               title={daysBack === 0 ? 'Start blank workout' : 'Start (live) — backdated'}
@@ -207,22 +206,20 @@ export default function WorkoutsScreen() {
               disabled={busy}
               onPress={() => router.push('/workout/log')}
             />
-          </View>
+          </Card>
         )}
 
         {routines.length > 0 ? (
           <View className="mb-5">
-            <Text variant="label" className="mb-2 text-iron-300">
-              Start from a routine
-            </Text>
+            <SectionHeader title="Quick Start" subtitle="Launch a workout from one of your saved plans." className="mt-0" />
             <ScrollView horizontal showsHorizontalScrollIndicator={false}>
               <View className="flex-row gap-2">
                 {routines.map((r) => (
                   <Card
                     key={r.id}
                     onPress={() => startFromRoutine(r)}
-                    className="w-44 border-iron-700 bg-iron-900">
-                    <View className="mb-3 h-10 w-10 items-center justify-center rounded-lg border border-brand/30 bg-brand/10">
+                    className="w-48 rounded-[22px] border-iron-700 bg-iron-900 p-5">
+                    <View className="mb-3 h-11 w-11 items-center justify-center rounded-2xl border border-brand/30 bg-brand/10">
                       <Ionicons name="clipboard-outline" size={20} color="#f97316" />
                     </View>
                     <Text variant="subheading" numberOfLines={1}>
@@ -238,12 +235,11 @@ export default function WorkoutsScreen() {
           </View>
         ) : null}
 
-        <View className="mb-2 flex-row items-end justify-between">
-          <Text variant="heading">History</Text>
-          {completed.length > 0 ? (
-            <Text variant="caption">{completed.length} completed</Text>
-          ) : null}
-        </View>
+        <SectionHeader
+          title="History"
+          subtitle={completed.length > 0 ? `${completed.length} completed sessions` : 'No completed sessions yet'}
+          className="mt-0"
+        />
 
         {loading ? (
           <Loading />

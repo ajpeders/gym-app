@@ -5,7 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { api } from '@/api/client';
 import type { Routine } from '@/api/types';
-import { Screen } from '@/components/ui/Screen';
+import { Screen, ScreenHeader } from '@/components/ui/Screen';
 import { Text } from '@/components/ui/Text';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -37,7 +37,7 @@ export default function RoutinesScreen() {
     <Screen scroll={false} padded={false}>
       <ScrollView
         className="flex-1"
-        contentContainerClassName="px-4 pt-2 pb-28"
+        contentContainerClassName="px-4 pt-4 pb-28"
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -47,12 +47,11 @@ export default function RoutinesScreen() {
             }}
           />
         }>
-        <View className="mt-2 mb-4">
-          <Text variant="eyebrow">Plans</Text>
-          <View className="mt-1 flex-row items-end justify-between">
-            <Text variant="title" className="flex-1">
-              Routines
-            </Text>
+        <ScreenHeader
+          eyebrow="Plans"
+          title="Splits"
+          subtitle="Build, import, and refine the plans you actually train from."
+          action={
             <View className="ml-3 flex-row gap-2">
               <Button
                 title="Import"
@@ -63,23 +62,23 @@ export default function RoutinesScreen() {
               />
               <Button title="New" size="sm" icon="add" onPress={() => router.push('/routine/new')} />
             </View>
-          </View>
-        </View>
+          }
+        />
 
         {loading ? (
           <Loading />
         ) : routines.length === 0 ? (
           <EmptyState
             icon="PLAN"
-            title="No routines yet"
-            subtitle="Create a routine to plan your sessions and start workouts faster."
+            title="No splits yet"
+            subtitle="Create a split to plan your sessions and start workouts faster."
           />
         ) : (
           <View className="gap-2">
             {routines.map((r) => (
-              <Card key={r.id} onPress={() => router.push(`/routine/${r.id}`)}>
+              <Card key={r.id} onPress={() => router.push(`/routine/${r.id}`)} className="rounded-[22px] p-5">
                 <View className="flex-row items-center">
-                  <View className="mr-3 h-12 w-12 items-center justify-center rounded-lg border border-brand/30 bg-brand/10">
+                  <View className="mr-3 h-12 w-12 items-center justify-center rounded-2xl border border-brand/30 bg-brand/10">
                     <Ionicons name="clipboard-outline" size={22} color="#f97316" />
                   </View>
                   <View className="flex-1">

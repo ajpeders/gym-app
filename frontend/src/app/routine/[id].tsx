@@ -47,7 +47,7 @@ export default function EditRoutineScreen() {
     try {
       setRoutine(await api.routine(id));
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load routine');
+      setError(err instanceof Error ? err.message : 'Failed to load split');
     } finally {
       setLoading(false);
     }
@@ -77,10 +77,10 @@ export default function EditRoutineScreen() {
       router.replace('/(tabs)/routines');
     };
     if (Platform.OS === 'web') {
-      if (typeof window !== 'undefined' && window.confirm('Delete this routine?')) void doDelete();
+      if (typeof window !== 'undefined' && window.confirm('Delete this split?')) void doDelete();
       return;
     }
-    Alert.alert('Delete routine?', 'This cannot be undone.', [
+    Alert.alert('Delete split?', 'This cannot be undone.', [
       { text: 'Cancel', style: 'cancel' },
       { text: 'Delete', style: 'destructive', onPress: () => void doDelete() },
     ]);
@@ -89,7 +89,7 @@ export default function EditRoutineScreen() {
   if (loading || error || !routine) {
     return (
       <SafeAreaView className="flex-1 bg-iron-950">
-        <Stack.Screen options={{ headerShown: true, title: 'Routine' }} />
+        <Stack.Screen options={{ headerShown: true, title: 'Split' }} />
         {loading ? <Loading /> : <ErrorState message={error ?? 'Not found'} onRetry={fetch} />}
       </SafeAreaView>
     );
@@ -97,7 +97,7 @@ export default function EditRoutineScreen() {
 
   return (
     <RoutineEditor
-      title="Edit routine"
+      title="Edit split"
       initialName={routine.name}
       initialNotes={routine.notes ?? ''}
       initialExercises={toDraft(routine)}

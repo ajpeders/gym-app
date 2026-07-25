@@ -103,7 +103,7 @@ export function RoutineAiEdit({ visible, units, initialWorking, onApply, onClose
       );
       setProposal(p);
       setWorking(proposalToWorking(p));
-      setTurns((prev) => [...prev, { role: 'assistant', content: p.reply || 'Updated the routine.' }]);
+      setTurns((prev) => [...prev, { role: 'assistant', content: p.reply || 'Updated the split.' }]);
       requestAnimationFrame(() => scrollRef.current?.scrollToEnd({ animated: true }));
     } catch (e) {
       const msg = e instanceof ApiError ? aiParseErrorMessage(e) : 'Something went wrong — try again.';
@@ -232,7 +232,7 @@ export function RoutineAiEdit({ visible, units, initialWorking, onApply, onClose
 }
 
 const EDIT_STAGES = [
-  'Reading your routine',
+  'Reading your split',
   'Working out the change',
   'Matching exercises',
   'Finalizing',

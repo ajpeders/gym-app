@@ -15,6 +15,12 @@ interface Props {
   animate?: boolean;
   radius?: number;
   intervalMs?: number;
+  /**
+   * 'cover' fills the box (crops edges) — good for small square tiles.
+   * 'contain' shows the whole image (letterboxed) — use for the large demo so
+   * nothing gets cut off. Defaults to 'contain' when animating, else 'cover'.
+   */
+  fit?: 'cover' | 'contain';
 }
 
 /**
@@ -31,7 +37,9 @@ export function ExerciseThumb({
   animate = false,
   radius = 8,
   intervalMs = 850,
+  fit,
 }: Props) {
+  const contentFit = fit ?? (animate ? 'contain' : 'cover');
   const frames = (images ?? []).map(resolveMediaUrl).filter((u): u is string => !!u);
   const w = width ?? size;
   const h = height ?? size;
@@ -58,7 +66,7 @@ export function ExerciseThumb({
       <Image
         source={{ uri: frames[animate ? frame % frames.length : 0] }}
         style={{ width: w, height: h }}
-        contentFit="cover"
+        contentFit={contentFit}
         transition={animate ? 300 : 0}
       />
     </View>

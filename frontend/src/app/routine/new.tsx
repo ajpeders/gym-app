@@ -15,11 +15,11 @@ export default function NewRoutineScreen() {
       await api.createRoutine(input);
       router.replace('/(tabs)/routines');
     } catch (err) {
-      throw err instanceof ApiError ? err : new Error('Failed to save routine');
+      throw err instanceof ApiError ? err : new Error('Failed to save split');
     } finally {
       setSaving(false);
     }
   }
 
-  return <RoutineEditor title="New routine" saving={saving} onSave={onSave} />;
+  return <RoutineEditor title="New split" saving={saving} onSave={onSave} />;
 }

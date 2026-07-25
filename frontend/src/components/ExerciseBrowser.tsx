@@ -87,14 +87,21 @@ export function ExerciseBrowser({ onSelect, renderTrailing }: ExerciseBrowserPro
   }, [load]);
 
   const canLoadMore = items.length < total && !loading && !loadingMore;
+  const activeFilters = [muscle, equipment, category].filter(Boolean).length;
 
   function toggle(setter: (v: string | null) => void, current: string | null, value: string) {
     setter(current === value ? null : value);
   }
 
+  function clearFilters() {
+    setMuscle(null);
+    setEquipment(null);
+    setCategory(null);
+  }
+
   return (
     <View className="flex-1">
-      <View className="mx-4 flex-row items-center rounded-lg border border-iron-700 bg-iron-900 px-3">
+      <View className="mx-4 flex-row items-center rounded-[18px] border border-iron-700 bg-iron-900 px-3">
         <Ionicons name="search" size={18} color="#78716c" />
         <TextInput
           value={query}
@@ -107,10 +114,25 @@ export function ExerciseBrowser({ onSelect, renderTrailing }: ExerciseBrowserPro
         />
       </View>
 
+      <View className="mt-3 flex-row items-center justify-between px-4">
+        <Text variant="caption" className="text-iron-400">
+          Filter by muscle, equipment, or category
+        </Text>
+        {activeFilters > 0 ? (
+          <Text
+            variant="caption"
+            accessibilityRole="button"
+            onPress={clearFilters}
+            className="font-bold text-brand">
+            Clear {activeFilters}
+          </Text>
+        ) : null}
+      </View>
+
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        className="mt-3 max-h-11"
+        className="mt-2 max-h-11"
         contentContainerClassName="px-4">
         {MUSCLES.map((m) => (
           <Chip
@@ -170,7 +192,7 @@ export function ExerciseBrowser({ onSelect, renderTrailing }: ExerciseBrowserPro
           }}
           scrollEventThrottle={400}>
           <Text variant="caption" className="py-2 text-iron-400">
-            {total} exercises loaded
+            {items.length} of {total} exercises
           </Text>
           {items.map((ex) => (
             <ExerciseRow

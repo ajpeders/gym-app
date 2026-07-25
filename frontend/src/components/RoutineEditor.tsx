@@ -142,7 +142,7 @@ export function RoutineEditor({
   async function save() {
     setError(null);
     if (!name.trim()) {
-      setError('Give your routine a name.');
+      setError('Give your split a name.');
       return;
     }
     if (exercises.length === 0) {
@@ -180,7 +180,7 @@ export function RoutineEditor({
                   onPress={onExport}
                   hitSlop={12}
                   accessibilityRole="button"
-                  accessibilityLabel="Export routine"
+                  accessibilityLabel="Export split"
                   className="pl-3 active:opacity-60">
                   <Ionicons name="share-outline" size={22} color="#f97316" />
                 </Pressable>
@@ -275,10 +275,10 @@ export function RoutineEditor({
 
         {error ? <Text className="text-red-500 text-sm mt-3">{error}</Text> : null}
 
-        <Button title="Save routine" size="lg" className="mt-4" loading={saving} onPress={save} />
+        <Button title="Save split" size="lg" className="mt-4" loading={saving} onPress={save} />
 
         {onDelete ? (
-          <Button title="Delete routine" variant="danger" className="mt-3" onPress={onDelete} />
+          <Button title="Delete split" variant="danger" className="mt-3" onPress={onDelete} />
         ) : null}
       </ScrollView>
 

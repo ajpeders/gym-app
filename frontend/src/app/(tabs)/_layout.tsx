@@ -7,6 +7,8 @@ type IoniconName = React.ComponentProps<typeof Ionicons>['name'];
 // [filled (active), outline (inactive)]
 const ICONS: Record<string, [IoniconName, IoniconName]> = {
   index: ['home', 'home-outline'],
+  workouts: ['barbell', 'barbell-outline'],
+  routines: ['calendar', 'calendar-outline'],
   coach: ['chatbubbles', 'chatbubbles-outline'],
   settings: ['settings', 'settings-outline'],
 };
@@ -41,30 +43,33 @@ export default function TabsLayout() {
           left: 12,
           right: 12,
           bottom: Platform.OS === 'ios' ? 12 : 10,
-          borderRadius: 18,
-          backgroundColor: '#12100e',
-          borderColor: '#292524',
+          borderRadius: 22,
+          backgroundColor: '#100f0d',
+          borderColor: '#2a2521',
           borderWidth: 1,
-          height: Platform.OS === 'ios' ? 74 : 64,
+          height: Platform.OS === 'ios' ? 78 : 68,
           paddingBottom: Platform.OS === 'ios' ? 14 : 8,
-          paddingTop: 7,
+          paddingTop: 8,
         },
         tabBarItemStyle: {
-          borderRadius: 8,
+          borderRadius: 12,
           marginHorizontal: 4,
         },
-        tabBarLabelStyle: { fontSize: 11, fontWeight: '800', marginTop: 2 },
+        tabBarLabelStyle: { fontSize: 11, fontWeight: '800', marginTop: 1 },
       }}>
-      {/* Visible tabs */}
       <Tabs.Screen name="index" options={{ title: 'Home', tabBarIcon: tabIcon('index') }} />
+      <Tabs.Screen
+        name="workouts"
+        options={{ title: 'Workouts', tabBarIcon: tabIcon('workouts') }}
+      />
+      <Tabs.Screen
+        name="routines"
+        options={{ title: 'Splits', tabBarIcon: tabIcon('routines') }}
+      />
       <Tabs.Screen name="settings" options={{ title: 'Settings', tabBarIcon: tabIcon('settings') }} />
 
-      {/* Scope trimmed for now — kept as routes (reachable from Home), hidden from the
-          tab bar. Roadmap: bring back as dedicated tabs. */}
       <Tabs.Screen name="coach" options={{ href: null, headerShown: true }} />
-      <Tabs.Screen name="workouts" options={{ href: null }} />
       <Tabs.Screen name="exercises" options={{ href: null }} />
-      <Tabs.Screen name="routines" options={{ href: null }} />
     </Tabs>
   );
 }

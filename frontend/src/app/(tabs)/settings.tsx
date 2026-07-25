@@ -7,7 +7,7 @@ import { api, ApiError } from '@/api/client';
 import type { AiModelsResult, AiProvider, AiProviders, Units } from '@/api/types';
 import { useAuth } from '@/state/auth';
 import { useSettings } from '@/state/settings';
-import { Screen } from '@/components/ui/Screen';
+import { Screen, ScreenHeader, SectionHeader } from '@/components/ui/Screen';
 import { Text } from '@/components/ui/Text';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -95,11 +95,13 @@ export default function SettingsScreen() {
 
   return (
     <Screen>
-      <Text variant="title" className="mt-2 mb-4">
-        Settings
-      </Text>
+      <ScreenHeader
+        eyebrow="Preferences"
+        title="Settings"
+        subtitle="Tune units, workout behavior, and your AI provider from one place."
+      />
 
-      <Card className="mb-4">
+      <Card className="mb-4 rounded-[22px] p-5">
         <Text variant="muted">Signed in as</Text>
         <Text variant="subheading" className="mt-0.5">
           {user?.display_name}
@@ -107,7 +109,7 @@ export default function SettingsScreen() {
         <Text variant="muted">{user?.email}</Text>
       </Card>
 
-      <Card className="mb-4" onPress={() => router.push('/profile')}>
+      <Card className="mb-4 rounded-[22px] p-5" onPress={() => router.push('/profile')}>
         <View className="flex-row items-center justify-between">
           <View className="flex-1 pr-3">
             <Text variant="subheading">Your profile</Text>
@@ -119,10 +121,8 @@ export default function SettingsScreen() {
         </View>
       </Card>
 
-      <Text variant="label" className="mb-2">
-        UNITS {saving ? '· saving…' : ''}
-      </Text>
-      <Card className="mb-4">
+      <SectionHeader title={`Units${saving ? ' · saving…' : ''}`} className="mt-0" />
+      <Card className="mb-4 rounded-[22px] p-5">
         <Segmented<Units>
           options={[
             { label: 'Kilograms (kg)', value: 'kg' },
@@ -133,10 +133,8 @@ export default function SettingsScreen() {
         />
       </Card>
 
-      <Text variant="label" className="mb-2">
-        TRAINING
-      </Text>
-      <Card className="mb-4 gap-3">
+      <SectionHeader title="Training" />
+      <Card className="mb-4 gap-3 rounded-[22px] p-5">
         <Row
           title="Quick-add buttons"
           subtitle="Show one-tap set buttons during a workout."
@@ -164,15 +162,11 @@ export default function SettingsScreen() {
         />
       </Card>
 
-      <Text variant="label" className="mb-2">
-        AI PROVIDER
-      </Text>
+      <SectionHeader title="AI Provider" />
       <AiProviderControl patch={patch} />
 
-      <Text variant="label" className="mb-2">
-        REST TIMER
-      </Text>
-      <Card className="mb-6">
+      <SectionHeader title="Rest Timer" />
+      <Card className="mb-6 rounded-[22px] p-5">
         <Segmented<string>
           options={[
             { label: '60s', value: '60' },

@@ -29,7 +29,7 @@ import { FormError } from '@/components/ui/Feedback';
 
 type Phase = 'input' | 'parsing' | 'review' | 'saving' | 'done';
 
-const PLACEHOLDER = 'Paste your routine here.';
+const PLACEHOLDER = 'Paste your split here.';
 
 const MATCH_META: Record<ParsedMatch, { icon: string; label: string; className: string }> = {
   exact: { icon: '✓', label: 'matched', className: 'border-green-500/40 bg-green-500/10 text-green-300' },
@@ -193,7 +193,7 @@ export default function RoutineImportScreen() {
       setSavedCount(done);
       setPhase('done');
     } catch {
-      setError('Saving failed — some routines may not have saved. Try again.');
+      setError('Saving failed — some splits may not have saved. Try again.');
       setPhase('review');
     }
   }
@@ -222,7 +222,7 @@ export default function RoutineImportScreen() {
   if (phase === 'parsing') {
     return (
       <Screen scroll={false} padded={false}>
-        <Stack.Screen options={{ headerShown: true, title: 'Import routine' }} />
+        <Stack.Screen options={{ headerShown: true, title: 'Import split' }} />
         <ParseProgress received={received} />
       </Screen>
     );
@@ -232,19 +232,19 @@ export default function RoutineImportScreen() {
   if (phase === 'done') {
     return (
       <Screen scroll={false} padded={false}>
-        <Stack.Screen options={{ headerShown: true, title: 'Import routine' }} />
+        <Stack.Screen options={{ headerShown: true, title: 'Import split' }} />
         <View className="flex-1 items-center justify-center px-6">
           <View className="mb-4 h-16 w-16 items-center justify-center rounded-full border border-brand/40 bg-brand/10">
             <Ionicons name="checkmark" size={34} color="#f97316" />
           </View>
           <Text variant="heading" className="text-center">
-            Saved {savedCount} {savedCount === 1 ? 'routine' : 'routines'}
+            Saved {savedCount} {savedCount === 1 ? 'split' : 'splits'}
           </Text>
           <Text variant="muted" className="mt-1.5 text-center">
             Your routines are ready. Start a workout from any of them.
           </Text>
           <View className="mt-6 w-full gap-2">
-            <Button title="View routines" size="lg" onPress={() => router.replace('/routines')} />
+            <Button title="View splits" size="lg" onPress={() => router.replace('/routines')} />
             <Button title="Import another" variant="secondary" onPress={() => reset(true)} />
           </View>
         </View>
@@ -308,7 +308,7 @@ export default function RoutineImportScreen() {
                   saving
                     ? 'Saving…'
                     : saveableCount > 0
-                      ? `Save ${saveableCount} ${saveableCount === 1 ? 'routine' : 'routines'}`
+                      ? `Save ${saveableCount} ${saveableCount === 1 ? 'split' : 'splits'}`
                       : 'Nothing selected'
                 }
                 loading={saving}
@@ -325,7 +325,7 @@ export default function RoutineImportScreen() {
   // ---- input ----
   return (
     <Screen scroll={false} padded={false}>
-      <Stack.Screen options={{ headerShown: true, title: 'Import routine' }} />
+      <Stack.Screen options={{ headerShown: true, title: 'Import split' }} />
       <KeyboardAvoidingView
         className="flex-1"
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -371,7 +371,7 @@ const PARSE_STAGES = [
   'Reading your notes',
   'Finding the exercises',
   'Matching them to the catalog',
-  'Building your routines',
+  'Building your splits',
   'Almost there',
 ];
 

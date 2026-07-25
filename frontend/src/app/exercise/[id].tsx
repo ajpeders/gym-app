@@ -80,6 +80,7 @@ export default function ExerciseDetailScreen() {
                 width={imgWidth}
                 height={imgWidth * 0.66}
                 animate={exercise.images.length > 1}
+                fit="contain"
                 radius={8}
                 intervalMs={900}
               />

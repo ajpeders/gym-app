@@ -16,11 +16,12 @@ import { api, ApiError } from '@/api/client';
 import type { Routine, RoutineExercise, RoutineInput, Workout, WorkoutExercise } from '@/api/types';
 import { useActiveWorkout } from '@/state/active-workout';
 import { useSettings } from '@/state/settings';
-import { Screen } from '@/components/ui/Screen';
+import { Screen, ScreenHeader, SectionHeader } from '@/components/ui/Screen';
 import { Text } from '@/components/ui/Text';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { ExerciseThumb } from '@/components/ExerciseThumb';
+import { HomeProfileCard } from '@/components/HomeProfileCard';
 import { formatRepRange } from '@/lib/format';
 
 type IoniconName = React.ComponentProps<typeof Ionicons>['name'];
@@ -49,7 +50,15 @@ function sameRoutine(routineId: string, sourceId?: number | null): boolean {
   return sourceId != null && String(sourceId) === String(routineId);
 }
 
-function ExerciseLine({ ex, units }: { ex: RoutineExercise; units: string }) {
+function ExerciseLine({
+  ex,
+  units,
+  onPress,
+}: {
+  ex: RoutineExercise;
+  units: string;
+  onPress?: () => void;
+}) {
   const name = ex.exercise?.name ?? 'Exercise';
   const sets =
     ex.target_sets != null
@@ -64,7 +73,11 @@ function ExerciseLine({ ex, units }: { ex: RoutineExercise; units: string }) {
   const detail = [sets, reps, weight, rest].filter(Boolean).join(' · ');
 
   return (
-    <View className="flex-row items-center border-b border-iron-800 py-3">
+    <Pressable
+      onPress={onPress}
+      disabled={!onPress}
+      accessibilityRole={onPress ? 'button' : undefined}
+      className="flex-row items-center border-b border-iron-800 py-3 active:opacity-70">
       <ExerciseThumb images={ex.exercise?.images} size={40} radius={6} />
       <View className="ml-3 flex-1">
         <Text variant="subheading" numberOfLines={1}>
@@ -74,11 +87,20 @@ function ExerciseLine({ ex, units }: { ex: RoutineExercise; units: string }) {
           {detail}
         </Text>
       </View>
-    </View>
+      {onPress ? <Ionicons name="chevron-forward" size={16} color="#57534e" /> : null}
+    </Pressable>
   );
 }
 
-function WorkoutExerciseLine({ ex, units }: { ex: WorkoutExercise; units: string }) {
+function WorkoutExerciseLine({
+  ex,
+  units,
+  onPress,
+}: {
+  ex: WorkoutExercise;
+  units: string;
+  onPress?: () => void;
+}) {
   const name = ex.exercise?.name ?? 'Exercise';
   const completedSets = ex.sets.filter((set) => set.completed !== false);
   const detail =
@@ -92,7 +114,11 @@ function WorkoutExerciseLine({ ex, units }: { ex: WorkoutExercise; units: string
       : 'No sets logged yet';
 
   return (
-    <View className="flex-row items-center border-b border-brand/20 py-3">
+    <Pressable
+      onPress={onPress}
+      disabled={!onPress}
+      accessibilityRole={onPress ? 'button' : undefined}
+      className="flex-row items-center border-b border-brand/20 py-3 active:opacity-70">
       <ExerciseThumb images={ex.exercise?.images} size={40} radius={6} />
       <View className="ml-3 flex-1">
         <Text variant="subheading" numberOfLines={1}>
@@ -105,42 +131,43 @@ function WorkoutExerciseLine({ ex, units }: { ex: WorkoutExercise; units: string
           {detail}
         </Text>
       </View>
-    </View>
+      {onPress ? <Ionicons name="chevron-forward" size={16} color="#57534e" /> : null}
+    </Pressable>
   );
 }
 
 function QuickLink({
   icon,
   title,
+  subtitle,
   onPress,
 }: {
   icon: IoniconName;
   title: string;
+  subtitle: string;
   onPress: () => void;
 }) {
   return (
     <Pressable
       onPress={onPress}
       accessibilityRole="button"
-      className="flex-row items-center rounded-lg border border-iron-800 bg-iron-900/80 px-3 py-3 active:opacity-75">
-      <View className="mr-3 h-9 w-9 items-center justify-center rounded-lg bg-iron-800">
+      className="min-h-[118px] flex-1 rounded-[20px] border border-iron-800 bg-iron-900/85 p-4 active:opacity-75">
+      <View className="h-11 w-11 items-center justify-center rounded-2xl border border-brand/25 bg-brand/10">
         <Ionicons name={icon} size={18} color="#f97316" />
       </View>
-      <Text variant="body" className="ml-3 flex-1" numberOfLines={1}>
+      <Text variant="subheading" className="mt-4" numberOfLines={1}>
         {title}
       </Text>
-      <Ionicons name="chevron-forward" size={18} color="#57534e" />
+      <Text variant="caption" className="mt-1 text-iron-300" numberOfLines={2}>
+        {subtitle}
+      </Text>
+      <View className="mt-4 flex-row items-center">
+        <Text variant="caption" className="font-bold text-brand">
+          Open
+        </Text>
+        <Ionicons name="arrow-forward" size={14} color="#f97316" style={{ marginLeft: 6 }} />
+      </View>
     </Pressable>
-  );
-}
-
-function SectionHeader({ title }: { title: string }) {
-  return (
-    <View className="mb-2 mt-6">
-      <Text variant="label" className="uppercase text-iron-300">
-        {title}
-      </Text>
-    </View>
   );
 }
 
@@ -309,7 +336,7 @@ export default function HomeScreen() {
       }
 
       if (exercises.length === 0) {
-        throw new Error('AI could not match any exercises in the updated routine.');
+        throw new Error('AI could not match any exercises in the updated split.');
       }
 
       const input: RoutineInput = {
@@ -323,7 +350,7 @@ export default function HomeScreen() {
       setAiPrompt('');
       // Keep the sheet open and show what the coach did, rather than silently
       // closing — the user asked for a response after every AI edit.
-      setAiReply(proposal.reply?.trim() || 'Updated your routine.');
+      setAiReply(proposal.reply?.trim() || 'Updated your split.');
     } catch (err) {
       if (err instanceof ApiError && err.status === 502) {
         setAiError('AI provider unavailable - check Settings.');
@@ -364,6 +391,12 @@ export default function HomeScreen() {
     (total, ex) => total + ex.sets.filter((set) => set.completed !== false).length,
     0,
   );
+  const completedCount = todays ? 1 : 0;
+  const summaryLabel = active
+    ? 'Workout in progress'
+    : selectedRoutine
+      ? 'Plan ready to start'
+      : 'Set up your first split';
 
   return (
     <Screen scroll={false} padded={false}>
@@ -379,27 +412,47 @@ export default function HomeScreen() {
             }}
           />
         }>
-        <View className="mt-3 px-0.5">
-          <Text variant="eyebrow">{dateLabel}</Text>
-          <View className="mt-1 flex-row items-end justify-between">
-            <Text variant="title" className="flex-1">
-              Today's routine
-            </Text>
-            {todays ? (
-              <View className="ml-3 flex-row items-center rounded-full border border-mint/30 bg-mint/10 px-2.5 py-1">
+        <ScreenHeader
+          eyebrow={dateLabel}
+          title="Today's training"
+          subtitle={summaryLabel}
+          action={
+            todays ? (
+              <View className="flex-row items-center rounded-full border border-mint/30 bg-mint/10 px-2.5 py-1">
                 <Ionicons name="checkmark-circle" size={14} color="#34d399" />
                 <Text variant="caption" className="ml-1 font-bold text-mint">
                   Logged
                 </Text>
               </View>
-            ) : null}
-          </View>
+            ) : null
+          }
+        />
+
+        <View className="mb-1 flex-row gap-2">
+          <MetricPill
+            icon="calendar-outline"
+            value={selectedRoutine ? 'Ready' : 'None'}
+            label="Split"
+            tone="brand"
+          />
+          <MetricPill
+            icon="checkmark-circle-outline"
+            value={String(completedCount)}
+            label="Completed today"
+            tone="mint"
+          />
+          <MetricPill
+            icon="albums-outline"
+            value={String(routines.length)}
+            label="Plans saved"
+            tone="steel"
+          />
         </View>
 
         {active ? (
-          <Card elevated className="mt-5 border-brand bg-brand/10">
+          <Card elevated className="mt-5 rounded-[24px] border-brand bg-brand/10 p-5">
             <View className="flex-row items-center">
-              <View className="mr-3 h-12 w-12 items-center justify-center rounded-lg bg-brand">
+              <View className="mr-3 h-12 w-12 items-center justify-center rounded-2xl bg-brand">
                 <Ionicons name="barbell" size={23} color="#080706" />
               </View>
               <View className="flex-1">
@@ -436,7 +489,16 @@ export default function HomeScreen() {
             <View className="mt-3">
               {activePreviewExercises.length > 0 ? (
                 activePreviewExercises.map((ex) => (
-                  <WorkoutExerciseLine key={ex.id} ex={ex} units={settings.units} />
+                  <WorkoutExerciseLine
+                    key={ex.id}
+                    ex={ex}
+                    units={settings.units}
+                    onPress={
+                      ex.exercise_id
+                        ? () => router.push(`/exercise/${ex.exercise_id}`)
+                        : undefined
+                    }
+                  />
                 ))
               ) : (
                 <Text variant="muted">No exercises added yet.</Text>
@@ -457,22 +519,22 @@ export default function HomeScreen() {
             />
           </Card>
         ) : routines.length === 0 ? (
-          <Card elevated className="mt-5">
-            <View className="mb-4 h-12 w-12 items-center justify-center rounded-lg border border-brand/30 bg-brand/10">
+          <Card elevated className="mt-5 rounded-[24px] p-5">
+            <View className="mb-4 h-12 w-12 items-center justify-center rounded-2xl border border-brand/30 bg-brand/10">
               <Ionicons name="clipboard-outline" size={24} color="#f97316" />
             </View>
-            <Text variant="heading">No routine yet</Text>
+            <Text variant="heading">No split yet</Text>
             <Text variant="muted" className="mt-1">
               Build your first plan or import one from notes.
             </Text>
             <View className="mt-4 gap-3">
               <Button
-                title="Import routine"
+                title="Import split"
                 icon="document-text-outline"
                 onPress={() => router.push('/routine-import')}
               />
               <Button
-                title="Create routine"
+                title="Create split"
                 variant="secondary"
                 icon="add"
                 onPress={() => router.push('/routine/new')}
@@ -480,13 +542,13 @@ export default function HomeScreen() {
             </View>
           </Card>
         ) : selectedRoutine ? (
-          <Card elevated className="mt-5">
+          <Card elevated className="mt-5 rounded-[24px] p-5">
             {routines.length > 1 ? (
               <Pressable
                 onPress={() => setPickerOpen((v) => !v)}
                 accessibilityRole="button"
                 className="flex-row items-center active:opacity-70">
-                <View className="mr-3 h-12 w-12 items-center justify-center rounded-lg border border-brand/30 bg-brand/10">
+                <View className="mr-3 h-12 w-12 items-center justify-center rounded-2xl border border-brand/30 bg-brand/10">
                   <Ionicons name="calendar-outline" size={23} color="#f97316" />
                 </View>
                 <View className="flex-1">
@@ -505,7 +567,7 @@ export default function HomeScreen() {
               </Pressable>
             ) : (
               <View className="flex-row items-center">
-                <View className="mr-3 h-12 w-12 items-center justify-center rounded-lg border border-brand/30 bg-brand/10">
+                <View className="mr-3 h-12 w-12 items-center justify-center rounded-2xl border border-brand/30 bg-brand/10">
                   <Ionicons name="calendar-outline" size={23} color="#f97316" />
                 </View>
                 <View className="flex-1">
@@ -566,10 +628,19 @@ export default function HomeScreen() {
             <View className="mt-3">
               {selectedExercises.length > 0 ? (
                 previewExercises.map((ex, i) => (
-                  <ExerciseLine key={ex.id ?? i} ex={ex} units={settings.units} />
+                  <ExerciseLine
+                    key={ex.id ?? i}
+                    ex={ex}
+                    units={settings.units}
+                    onPress={
+                      ex.exercise_id
+                        ? () => router.push(`/exercise/${ex.exercise_id}`)
+                        : undefined
+                    }
+                  />
                 ))
               ) : (
-                <Text variant="muted">This routine has no exercises yet.</Text>
+                <Text variant="muted">This split has no exercises yet.</Text>
               )}
               {hiddenExercises > 0 ? (
                 <Text variant="caption" className="pt-2 text-center">
@@ -579,7 +650,7 @@ export default function HomeScreen() {
             </View>
 
             <Button
-              title="Start routine"
+              title="Start split"
               size="lg"
               icon="play"
               className="mt-4"
@@ -623,31 +694,48 @@ export default function HomeScreen() {
           </Card>
         ) : null}
 
-        <SectionHeader title="More" />
-        <View className="gap-2">
+        <HomeProfileCard />
+
+        <SectionHeader title="Explore" subtitle="Move between the main parts of the app without hunting through the dashboard." />
+        <View className="flex-row flex-wrap gap-3">
           <QuickLink
             icon="clipboard-outline"
-            title="Routines"
+            title="Splits"
+            subtitle="Open plans, edit structure, and build new templates."
             onPress={() => router.push('/routines')}
           />
           <QuickLink
             icon="barbell-outline"
             title="Workout history"
+            subtitle="Resume sessions or review completed logs."
             onPress={() => router.push('/workouts')}
           />
+        </View>
+        <View className="mt-3 flex-row flex-wrap gap-3">
           <QuickLink
             icon="document-text-outline"
-            title="Import routine"
+            title="Import split"
+            subtitle="Paste rough notes and turn them into a structured plan."
             onPress={() => router.push('/routine-import')}
           />
           <QuickLink
             icon="fitness-outline"
             title="Exercises"
+            subtitle="Browse the full exercise library and movement details."
             onPress={() => router.push('/exercises')}
+          />
+        </View>
+        <View className="mt-3 flex-row flex-wrap gap-3">
+          <QuickLink
+            icon="chatbubbles-outline"
+            title="Coach"
+            subtitle="Ask questions, review progress, or log training with AI."
+            onPress={() => router.push('/coach')}
           />
           <QuickLink
             icon="camera-outline"
             title="Progress photos"
+            subtitle="Track changes over time with visual check-ins."
             onPress={() => router.push('/progress')}
           />
         </View>
