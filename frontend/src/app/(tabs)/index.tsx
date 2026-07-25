@@ -13,7 +13,7 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
 import { api, ApiError } from '@/api/client';
-import type { Routine, RoutineExercise, RoutineInput, Workout, WorkoutExercise } from '@/api/types';
+import type { Routine, RoutineExercise, RoutineInput, Split, Workout, WorkoutExercise } from '@/api/types';
 import { useActiveWorkout } from '@/state/active-workout';
 import { useSettings } from '@/state/settings';
 import { Screen, ScreenHeader, SectionHeader } from '@/components/ui/Screen';
@@ -221,6 +221,8 @@ export default function HomeScreen() {
 
   const [todays, setTodays] = useState<Workout | null>(null);
   const [routines, setRoutines] = useState<Routine[]>([]);
+  // The user's active weekly split, if any — drives today's day + the day picker.
+  const [split, setSplit] = useState<Split | null>(null);
   // The routine most recently started from (derived from recent workouts).
   const [lastUsedId, setLastUsedId] = useState<string | null>(null);
   // The user's manual pick for this session (overrides last-used until refresh).
@@ -237,11 +239,16 @@ export default function HomeScreen() {
 
   const fetchData = useCallback(async () => {
     try {
-      const [w, r] = await Promise.all([
+      const [w, r, splits] = await Promise.all([
         api.workouts({ limit: 12 }).catch(() => ({ items: [] as Workout[], total: 0 })),
         api.routines().catch(() => [] as Routine[]),
+        api.splits().catch(() => [] as Split[]),
       ]);
-      setRoutines(r);
+      const activeSplit = splits.find((s) => s.is_active) ?? splits[0] ?? null;
+      setSplit(activeSplit);
+      // When a split is active its own day-routines are the plan pool; otherwise
+      // fall back to all routines.
+      setRoutines(activeSplit ? activeSplit.routines : r);
 
       const completed = w.items.filter(isCompleted);
       setTodays(completed.find((it) => isToday(it.started_at)) ?? null);
@@ -365,10 +372,28 @@ export default function HomeScreen() {
   const now = new Date();
   const dayName = DOW[now.getDay()];
   const dateLabel = `${dayName}, ${MON[now.getMonth()]} ${now.getDate()}`;
-  const dayRoutine =
-    routines.find((r) => r.name.toLowerCase().includes(dayName.toLowerCase())) ?? null;
 
-  // Resolve today's routine: manual pick → weekday-named routine → last used → first.
+  // Today's day-routine: prefer the active split's schedule (the entry whose
+  // `day` names today → the routine with that day_label), then fall back to a
+  // weekday-named routine.
+  const todaysSchedule = split?.schedule.find((e) =>
+    e.day.toLowerCase().includes(dayName.toLowerCase()),
+  );
+  const scheduledRestToday =
+    !!todaysSchedule && /rest|walk|off/i.test(todaysSchedule.label ?? '');
+  const dayRoutine =
+    (todaysSchedule && !scheduledRestToday
+      ? routines.find(
+          (r) =>
+            (r.day_label && r.day_label.toLowerCase() === todaysSchedule.day.toLowerCase()) ||
+            (todaysSchedule.label &&
+              r.name.toLowerCase().includes(todaysSchedule.label.toLowerCase())),
+        )
+      : null) ??
+    routines.find((r) => r.name.toLowerCase().includes(dayName.toLowerCase())) ??
+    null;
+
+  // Resolve today's routine: manual pick → today's scheduled day → last used → first.
   const selectedId = pickedId ?? dayRoutine?.id ?? lastUsedId;
   const selectedRoutine =
     routines.find((r) => String(r.id) === String(selectedId)) ?? routines[0] ?? null;
