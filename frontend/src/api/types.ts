@@ -64,9 +64,39 @@ export interface Routine {
   id: string;
   name: string;
   notes: string | null;
+  split_id?: number | null;
+  day_label?: string | null;
+  day_order?: number;
   exercises: RoutineExercise[];
   created_at?: string;
   updated_at?: string;
+}
+
+export interface ScheduleEntry {
+  day: string;
+  label?: string | null;
+  routine_id?: number | null;
+}
+
+export interface Split {
+  id: number;
+  owner_id: number;
+  name: string;
+  schedule: ScheduleEntry[];
+  rules: string[];
+  notes: string | null;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+  routines: Routine[];
+}
+
+export interface SplitInput {
+  name?: string;
+  schedule?: ScheduleEntry[];
+  rules?: string[];
+  notes?: string | null;
+  is_active?: boolean;
 }
 
 export interface RoutineExerciseInput {

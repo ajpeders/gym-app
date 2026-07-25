@@ -22,6 +22,8 @@ import type {
   RoutineEditProposal,
   RoutineEditWorkingExercise,
   RoutineInput,
+  Split,
+  SplitInput,
   Settings,
   SettingsUpdate,
   SetInput,
@@ -520,6 +522,15 @@ export const api = {
     request<Exercise>(`/exercises/${id}`, { method: 'PATCH', body: input }),
   deleteExercise: (id: string) =>
     request<void>(`/exercises/${id}`, { method: 'DELETE' }),
+
+  // ---- splits (weekly plans) ----
+  splits: () => request<Split[]>('/splits'),
+  split: (id: string) => request<Split>(`/splits/${id}`),
+  createSplit: (input: SplitInput) =>
+    request<Split>('/splits', { method: 'POST', body: input }),
+  updateSplit: (id: string, input: SplitInput) =>
+    request<Split>(`/splits/${id}`, { method: 'PATCH', body: input }),
+  deleteSplit: (id: string) => request<void>(`/splits/${id}`, { method: 'DELETE' }),
 
   // ---- routines ----
   routines: () => request<Routine[]>('/routines'),

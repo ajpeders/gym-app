@@ -65,6 +65,7 @@ function RootNavigator() {
       <Stack.Screen name="workout/add-exercise" options={{ presentation: 'modal' }} />
       <Stack.Screen name="routine/[id]" />
       <Stack.Screen name="routine/new" />
+      <Stack.Screen name="split/[id]" />
       <Stack.Screen name="profile" />
       <Stack.Screen name="routine-import" />
       <Stack.Screen name="progress" />

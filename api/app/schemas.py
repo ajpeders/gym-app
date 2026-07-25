@@ -120,12 +120,18 @@ class RoutineExerciseOut(BaseModel):
 class RoutineCreate(BaseModel):
     name: str
     notes: Optional[str] = None
+    split_id: Optional[int] = None
+    day_label: Optional[str] = None
+    day_order: int = 0
     exercises: list[RoutineExerciseIn] = []
 
 
 class RoutineUpdate(BaseModel):
     name: Optional[str] = None
     notes: Optional[str] = None
+    split_id: Optional[int] = None
+    day_label: Optional[str] = None
+    day_order: Optional[int] = None
     exercises: Optional[list[RoutineExerciseIn]] = None
 
 
@@ -136,9 +142,52 @@ class RoutineOut(BaseModel):
     owner_id: int
     name: str
     notes: Optional[str] = None
+    split_id: Optional[int] = None
+    day_label: Optional[str] = None
+    day_order: int = 0
     created_at: datetime
     updated_at: datetime
     exercises: list[RoutineExerciseOut] = []
+
+
+# ---------------------------------------------------------------------------
+# Split (weekly plan owning day-routines + schedule + rules)
+# ---------------------------------------------------------------------------
+class ScheduleEntry(BaseModel):
+    day: str
+    label: Optional[str] = None
+    # Optional link to the routine that fulfils this day (null for rest days).
+    routine_id: Optional[int] = None
+
+
+class SplitOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    owner_id: int
+    name: str
+    schedule: list[dict[str, Any]] = []
+    rules: list[str] = []
+    notes: Optional[str] = None
+    is_active: bool = False
+    created_at: datetime
+    updated_at: datetime
+    routines: list[RoutineOut] = []
+
+
+class SplitCreate(BaseModel):
+    name: str
+    schedule: list[dict[str, Any]] = []
+    rules: list[str] = []
+    notes: Optional[str] = None
+
+
+class SplitUpdate(BaseModel):
+    name: Optional[str] = None
+    schedule: Optional[list[dict[str, Any]]] = None
+    rules: Optional[list[str]] = None
+    notes: Optional[str] = None
+    is_active: Optional[bool] = None
 
 
 # ---------------------------------------------------------------------------

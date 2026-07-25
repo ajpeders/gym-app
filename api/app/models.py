@@ -141,6 +141,33 @@ class Exercise(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
 
 
+class Split(Base):
+    """A weekly training plan that owns several day-routines, plus the weekly
+    schedule and plan-level progression rules."""
+
+    __tablename__ = "split"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    owner_id: Mapped[int] = mapped_column(
+        ForeignKey("user.id", ondelete="CASCADE"), nullable=False
+    )
+    name: Mapped[str] = mapped_column(String, nullable=False)
+    # Weekly schedule: list of {"day": "Monday", "label": "Push"} entries.
+    schedule: Mapped[list[Any]] = mapped_column(JSON, default=list)
+    # Plan-level progression rules: list of short strings.
+    rules: Mapped[list[Any]] = mapped_column(JSON, default=list)
+    notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, onupdate=utcnow)
+
+    owner: Mapped["User"] = relationship()
+    routines: Mapped[list["Routine"]] = relationship(
+        back_populates="split",
+        order_by="Routine.day_order",
+    )
+
+
 class Routine(Base):
     __tablename__ = "routine"
 
@@ -150,10 +177,19 @@ class Routine(Base):
     )
     name: Mapped[str] = mapped_column(String, nullable=False)
     notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    # A routine (day) may belong to a split (weekly plan). Null = standalone.
+    split_id: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("split.id", ondelete="SET NULL"), nullable=True
+    )
+    # Which weekday/slot this day maps to in the split, e.g. "Monday" or "Optional".
+    day_label: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    # Ordering of days within the split.
+    day_order: Mapped[int] = mapped_column(Integer, default=0)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, onupdate=utcnow)
 
     owner: Mapped["User"] = relationship(back_populates="routines")
+    split: Mapped[Optional["Split"]] = relationship(back_populates="routines")
     exercises: Mapped[list["RoutineExercise"]] = relationship(
         back_populates="routine",
         cascade="all, delete-orphan",

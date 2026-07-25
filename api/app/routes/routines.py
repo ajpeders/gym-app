@@ -68,7 +68,14 @@ def create_routine(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ) -> RoutineOut:
-    routine = Routine(owner_id=user.id, name=payload.name, notes=payload.notes)
+    routine = Routine(
+        owner_id=user.id,
+        name=payload.name,
+        notes=payload.notes,
+        split_id=payload.split_id,
+        day_label=payload.day_label,
+        day_order=payload.day_order,
+    )
     routine.exercises = _build_routine_exercises(db, payload.exercises, user)
     db.add(routine)
     db.commit()
@@ -97,6 +104,12 @@ def update_routine(
         routine.name = payload.name
     if payload.notes is not None:
         routine.notes = payload.notes
+    if payload.split_id is not None:
+        routine.split_id = payload.split_id
+    if payload.day_label is not None:
+        routine.day_label = payload.day_label
+    if payload.day_order is not None:
+        routine.day_order = payload.day_order
     if payload.exercises is not None:
         routine.exercises = _build_routine_exercises(db, payload.exercises, user)
     db.commit()

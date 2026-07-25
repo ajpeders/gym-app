@@ -39,6 +39,9 @@ _ADDED_COLUMNS: list[tuple[str, str, str]] = [
     ("settings", "ollama_model", "VARCHAR"),
     ("settings", "claude_model", "VARCHAR"),
     ("routine_exercise", "target_reps_max", "INTEGER"),
+    ("routine", "split_id", "INTEGER"),
+    ("routine", "day_label", "VARCHAR"),
+    ("routine", "day_order", "INTEGER"),
 ]
 
 
