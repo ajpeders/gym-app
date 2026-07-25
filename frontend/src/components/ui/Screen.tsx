@@ -27,6 +27,7 @@ export function Screen({
   ...rest
 }: ScreenProps) {
   const pad = padded ? 'px-4' : '';
+  const contentWidth = 'w-full max-w-[960px] self-center';
 
   return (
     <SafeAreaView edges={edges} className={`flex-1 bg-iron-950 ${className ?? ''}`}>
@@ -46,13 +47,13 @@ export function Screen({
       {scroll ? (
         <ScrollView
           className="flex-1"
-          contentContainerClassName={`${pad} pb-28 pt-4 ${contentClassName ?? ''}`}
+          contentContainerClassName={`${contentWidth} ${pad} pb-28 pt-4 ${contentClassName ?? ''}`}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled">
           {children}
         </ScrollView>
       ) : (
-        <View className={`flex-1 ${pad}`} {...rest}>
+        <View className={`flex-1 ${contentWidth} ${pad}`} {...rest}>
           {children}
         </View>
       )}
@@ -76,7 +77,7 @@ export function ScreenHeader({
   return (
     <View className={`mb-5 ${className ?? ''}`}>
       {eyebrow ? <Text variant="eyebrow">{eyebrow}</Text> : null}
-      <View className="mt-1 flex-row items-end justify-between gap-3">
+      <View className="mt-1 flex-row items-start justify-between gap-3">
         <View className="flex-1">
           <Text variant="title">{title}</Text>
           {subtitle ? (

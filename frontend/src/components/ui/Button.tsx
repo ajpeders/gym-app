@@ -30,9 +30,9 @@ const label: Record<Variant, string> = {
 };
 
 const sizing: Record<Size, string> = {
-  sm: 'min-h-[38px] px-3.5 py-2 rounded-lg',
-  md: 'min-h-[48px] px-4 py-3 rounded-lg',
-  lg: 'min-h-[56px] px-5 py-4 rounded-lg',
+  sm: 'min-h-[38px] px-3.5 py-2 rounded-xl',
+  md: 'min-h-[48px] px-4 py-3 rounded-xl',
+  lg: 'min-h-[56px] px-5 py-4 rounded-xl',
 };
 
 const labelSize: Record<Size, string> = {

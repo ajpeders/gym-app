@@ -40,9 +40,11 @@ export default function TabsLayout() {
         tabBarInactiveTintColor: '#a8a29e',
         tabBarStyle: {
           position: 'absolute',
-          left: 12,
-          right: 12,
+          left: Platform.OS === 'web' ? 0 : 12,
+          right: Platform.OS === 'web' ? 0 : 12,
           bottom: Platform.OS === 'ios' ? 12 : 10,
+          maxWidth: 960,
+          marginHorizontal: Platform.OS === 'web' ? 'auto' : 0,
           borderRadius: 22,
           backgroundColor: '#100f0d',
           borderColor: '#2a2521',
@@ -66,9 +68,9 @@ export default function TabsLayout() {
         name="routines"
         options={{ title: 'Splits', tabBarIcon: tabIcon('routines') }}
       />
+      <Tabs.Screen name="coach" options={{ title: 'Coach', tabBarIcon: tabIcon('coach') }} />
       <Tabs.Screen name="settings" options={{ title: 'Settings', tabBarIcon: tabIcon('settings') }} />
 
-      <Tabs.Screen name="coach" options={{ href: null, headerShown: true }} />
       <Tabs.Screen name="exercises" options={{ href: null }} />
     </Tabs>
   );

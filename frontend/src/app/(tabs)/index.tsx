@@ -151,22 +151,24 @@ function QuickLink({
     <Pressable
       onPress={onPress}
       accessibilityRole="button"
-      className="min-h-[118px] flex-1 rounded-[20px] border border-iron-800 bg-iron-900/85 p-4 active:opacity-75">
-      <View className="h-11 w-11 items-center justify-center rounded-2xl border border-brand/25 bg-brand/10">
-        <Ionicons name={icon} size={18} color="#f97316" />
+      className="min-h-[104px] flex-1 rounded-[18px] border border-iron-800 bg-iron-900/85 p-4 active:opacity-75">
+      <View className="flex-row items-start">
+        <View className="h-10 w-10 items-center justify-center rounded-xl border border-brand/25 bg-brand/10">
+          <Ionicons name={icon} size={18} color="#f97316" />
+        </View>
+        <Ionicons
+          name="arrow-up-outline"
+          size={15}
+          color="#78716c"
+          style={{ marginLeft: 'auto', transform: [{ rotate: '45deg' }] }}
+        />
       </View>
-      <Text variant="subheading" className="mt-4" numberOfLines={1}>
+      <Text variant="subheading" className="mt-3" numberOfLines={1}>
         {title}
       </Text>
       <Text variant="caption" className="mt-1 text-iron-300" numberOfLines={2}>
         {subtitle}
       </Text>
-      <View className="mt-4 flex-row items-center">
-        <Text variant="caption" className="font-bold text-brand">
-          Open
-        </Text>
-        <Ionicons name="arrow-forward" size={14} color="#f97316" style={{ marginLeft: 6 }} />
-      </View>
     </Pressable>
   );
 }
@@ -463,13 +465,13 @@ export default function HomeScreen() {
           <MetricPill
             icon="checkmark-circle-outline"
             value={String(completedCount)}
-            label="Completed today"
+            label="Done today"
             tone="mint"
           />
           <MetricPill
             icon="albums-outline"
             value={String(routines.length)}
-            label="Plans saved"
+            label="Saved plans"
             tone="steel"
           />
         </View>
@@ -721,47 +723,36 @@ export default function HomeScreen() {
 
         <HomeProfileCard />
 
-        <SectionHeader title="Explore" subtitle="Move between the main parts of the app without hunting through the dashboard." />
-        <View className="flex-row flex-wrap gap-3">
-          <QuickLink
-            icon="clipboard-outline"
-            title="Splits"
-            subtitle="Open plans, edit structure, and build new templates."
-            onPress={() => router.push('/routines')}
-          />
-          <QuickLink
-            icon="barbell-outline"
-            title="Workout history"
-            subtitle="Resume sessions or review completed logs."
-            onPress={() => router.push('/workouts')}
-          />
-        </View>
-        <View className="mt-3 flex-row flex-wrap gap-3">
-          <QuickLink
-            icon="document-text-outline"
-            title="Import split"
-            subtitle="Paste rough notes and turn them into a structured plan."
-            onPress={() => router.push('/routine-import')}
-          />
+        <SectionHeader
+          title="More tools"
+          subtitle="Useful extras that stay out of the way until you need them."
+        />
+        <View className="flex-row gap-3">
           <QuickLink
             icon="fitness-outline"
             title="Exercises"
-            subtitle="Browse the full exercise library and movement details."
+            subtitle="Browse the movement library."
             onPress={() => router.push('/exercises')}
           />
-        </View>
-        <View className="mt-3 flex-row flex-wrap gap-3">
           <QuickLink
-            icon="chatbubbles-outline"
-            title="Coach"
-            subtitle="Ask questions, review progress, or log training with AI."
-            onPress={() => router.push('/coach')}
+            icon="document-text-outline"
+            title="Import"
+            subtitle="Turn notes into a structured plan."
+            onPress={() => router.push('/routine-import')}
           />
+        </View>
+        <View className="mt-3 flex-row gap-3">
           <QuickLink
             icon="camera-outline"
-            title="Progress photos"
-            subtitle="Track changes over time with visual check-ins."
+            title="Progress"
+            subtitle="Compare photos over time."
             onPress={() => router.push('/progress')}
+          />
+          <QuickLink
+            icon="person-outline"
+            title="Profile"
+            subtitle="Update goals and limitations."
+            onPress={() => router.push('/profile')}
           />
         </View>
       </ScrollView>
