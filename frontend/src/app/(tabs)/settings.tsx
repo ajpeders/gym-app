@@ -163,20 +163,6 @@ export default function SettingsScreen() {
       <SectionHeader title="AI Provider" />
       <AiProviderControl patch={patch} />
 
-      <SectionHeader title="Rest Timer" />
-      <Card className="mb-6 rounded-[22px] p-5">
-        <Segmented<string>
-          options={[
-            { label: '60s', value: '60' },
-            { label: '90s', value: '90' },
-            { label: '120s', value: '120' },
-            { label: '180s', value: '180' },
-          ]}
-          value={String(settings.rest_timer_default)}
-          onChange={(v) => patch(() => update({ rest_timer_default: Number(v) }))}
-        />
-      </Card>
-
       <Button title="Log out" variant="danger" onPress={() => void logout()} />
 
       <Text variant="caption" className="mt-6 text-center text-iron-500">

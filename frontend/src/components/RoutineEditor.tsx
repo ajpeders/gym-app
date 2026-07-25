@@ -256,11 +256,6 @@ export function RoutineEditor({
                   onChangeText={(v) => update(idx, { target_weight: v })}
                   decimal
                 />
-                <Field
-                  label="Rest (s)"
-                  value={e.rest_seconds}
-                  onChangeText={(v) => update(idx, { rest_seconds: v })}
-                />
               </View>
             </Card>
           ))

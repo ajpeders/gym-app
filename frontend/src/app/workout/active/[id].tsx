@@ -7,12 +7,10 @@ import { Ionicons } from '@expo/vector-icons';
 import type { SetInput } from '@/api/types';
 import { useActiveWorkout } from '@/state/active-workout';
 import { useSettings } from '@/state/settings';
-import { useRestTimer } from '@/hooks/use-rest-timer';
 import { Text } from '@/components/ui/Text';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Loading } from '@/components/ui/Feedback';
-import { RestTimerBar } from '@/components/workout/RestTimerBar';
 import { ActiveExerciseCard } from '@/components/workout/ActiveExerciseCard';
 import { NaturalLanguageLog } from '@/components/workout/NaturalLanguageLog';
 import { formatDuration } from '@/lib/format';
@@ -47,7 +45,6 @@ export default function ActiveWorkoutScreen() {
 
   const [ready, setReady] = useState(false);
   const [finishing, setFinishing] = useState(false);
-  const timer = useRestTimer(settings.rest_timer_default);
 
   // Tick for the running-duration display.
   const [, setNow] = useState(Date.now());
@@ -70,10 +67,8 @@ export default function ActiveWorkoutScreen() {
   const onLogSet = useCallback(
     async (weId: string, input: SetInput) => {
       await addSet(weId, input);
-      // auto-start rest timer after logging a set
-      timer.start();
     },
-    [addSet, timer],
+    [addSet],
   );
 
   async function onFinish() {
@@ -142,10 +137,6 @@ export default function ActiveWorkoutScreen() {
             label="Volume"
             value={`${Math.round(totalVolume)} ${settings.units}`}
           />
-        </View>
-
-        <View className="mb-3">
-          <RestTimerBar timer={timer} />
         </View>
 
         {/* natural-language set logging */}

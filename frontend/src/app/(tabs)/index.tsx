@@ -69,8 +69,7 @@ function ExerciseLine({
     ? `${repRange} rep${repRange === '1' ? '' : 's'}`
     : 'Reps not set';
   const weight = ex.target_weight != null ? `${ex.target_weight}${units}` : null;
-  const rest = ex.rest_seconds != null ? `${ex.rest_seconds}s rest` : null;
-  const detail = [sets, reps, weight, rest].filter(Boolean).join(' · ');
+  const detail = [sets, reps, weight].filter(Boolean).join(' · ');
 
   return (
     <Pressable
@@ -402,13 +401,6 @@ export default function HomeScreen() {
   const selectedExercises = selectedRoutine
     ? [...selectedRoutine.exercises].sort((a, b) => a.order - b.order)
     : [];
-  const restValues = selectedExercises
-    .map((ex) => ex.rest_seconds)
-    .filter((rest): rest is number => rest != null);
-  const avgRest =
-    restValues.length > 0
-      ? `${Math.round(restValues.reduce((total, rest) => total + rest, 0) / restValues.length)}s`
-      : 'Open';
   const previewExercises = selectedExercises.slice(0, 8);
   const hiddenExercises = Math.max(0, selectedExercises.length - previewExercises.length);
   const activeExercises = active ? [...active.exercises].sort((a, b) => a.order - b.order) : [];
@@ -615,7 +607,6 @@ export default function HomeScreen() {
                 label="Exercises"
                 tone="brand"
               />
-              <MetricPill icon="timer-outline" value={avgRest} label="Avg rest" tone="steel" />
             </View>
 
             {pickerOpen && routines.length > 1 ? (
