@@ -22,14 +22,14 @@ function Segmented<T extends string>({
   onChange: (v: T) => void;
 }) {
   return (
-    <View className="flex-row rounded-lg border border-iron-700 bg-iron-950 p-1">
+    <View className="flex-row rounded-xl border border-iron-700 bg-iron-950 p-1">
       {options.map((opt) => {
         const active = opt.value === value;
         return (
           <Pressable
             key={opt.value}
             onPress={() => onChange(opt.value)}
-            className={`flex-1 items-center rounded-md py-2 ${
+            className={`flex-1 items-center rounded-lg py-2.5 ${
               active ? 'bg-brand' : ''
             }`}>
             <Text
@@ -101,23 +101,21 @@ export default function SettingsScreen() {
         subtitle="Tune units, workout behavior, and your AI provider from one place."
       />
 
-      <Card className="mb-4 rounded-[22px] p-5">
-        <Text variant="muted">Signed in as</Text>
-        <Text variant="subheading" className="mt-0.5">
-          {user?.display_name}
-        </Text>
-        <Text variant="muted">{user?.email}</Text>
-      </Card>
-
       <Card className="mb-4 rounded-[22px] p-5" onPress={() => router.push('/profile')}>
         <View className="flex-row items-center justify-between">
-          <View className="flex-1 pr-3">
-            <Text variant="subheading">Your profile</Text>
-            <Text variant="muted" className="mt-0.5">
-              Level, goals, injuries, equipment — what your coach remembers.
-            </Text>
+          <View className="mr-3 h-12 w-12 items-center justify-center rounded-2xl border border-brand/30 bg-brand/10">
+            <Ionicons name="person-outline" size={21} color="#f97316" />
           </View>
-          <Text className="text-xl text-brand">›</Text>
+          <View className="flex-1 pr-3">
+            <Text variant="subheading">{user?.display_name ?? 'Your profile'}</Text>
+            <Text variant="caption" className="mt-0.5 text-iron-300">{user?.email}</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={18} color="#57534e" />
+        </View>
+        <View className="mt-4 border-t border-iron-800 pt-3">
+          <Text variant="caption" className="text-iron-300">
+            Goals, injuries, equipment, and everything your coach remembers.
+          </Text>
         </View>
       </Card>
 

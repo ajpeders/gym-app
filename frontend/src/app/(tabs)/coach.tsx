@@ -14,7 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { api, ApiError } from '@/api/client';
 import type { CompanionEvent, CompanionMessage } from '@/api/client';
 import { useAiStatus } from '@/hooks/use-ai-status';
-import { Screen } from '@/components/ui/Screen';
+import { Screen, ScreenHeader } from '@/components/ui/Screen';
 import { Text } from '@/components/ui/Text';
 import { Button } from '@/components/ui/Button';
 import { Loading } from '@/components/ui/Feedback';
@@ -187,28 +187,33 @@ function TypingBubble() {
 
 function EmptyIntro({ onPick }: { onPick: (q: string) => void }) {
   return (
-    <View className="px-1 py-6">
-      <View className="mb-4 items-center">
-        <View className="mb-3 h-14 w-14 items-center justify-center rounded-lg border border-brand/40 bg-brand/10">
-          <Ionicons name="chatbubbles" size={26} color="#f97316" />
+    <View>
+      <View className="mb-5 rounded-[24px] border border-brand/30 bg-brand/10 p-5">
+        <View className="mb-4 h-14 w-14 items-center justify-center rounded-2xl border border-brand/30 bg-brand/15">
+          <Ionicons name="sparkles" size={25} color="#f97316" />
         </View>
-        <Text variant="heading" className="text-center">
-          Your coach
+        <Text variant="heading">
+          What can I help with?
         </Text>
-        <Text variant="muted" className="mt-1 text-center">
-          Ask about training, or tell it to log a set — it can update your log for you.
+        <Text variant="muted" className="mt-1">
+          Ask about your training, review progress, or log a set without digging through forms.
         </Text>
       </View>
-      <View className="flex-row flex-wrap justify-center">
+      <Text variant="eyebrow" className="mb-2">
+        Try asking
+      </Text>
+      <View className="gap-2">
         {SUGGESTIONS.map((s) => (
           <Pressable
             key={s}
             onPress={() => onPick(s)}
             accessibilityRole="button"
-            className="mb-2 mr-2 rounded-full border border-iron-700 bg-iron-900/90 px-3.5 py-2 active:opacity-70">
-            <Text variant="caption" className="text-iron-100">
-              {s}
-            </Text>
+            className="flex-row items-center rounded-[18px] border border-iron-800 bg-iron-900/90 px-4 py-3.5 active:opacity-70">
+            <View className="mr-3 h-9 w-9 items-center justify-center rounded-xl bg-iron-800">
+              <Ionicons name="arrow-up-outline" size={16} color="#f97316" style={{ transform: [{ rotate: '45deg' }] }} />
+            </View>
+            <Text variant="label" className="flex-1 text-iron-100">{s}</Text>
+            <Ionicons name="chevron-forward" size={16} color="#57534e" />
           </Pressable>
         ))}
       </View>
@@ -348,7 +353,7 @@ export default function CoachScreen() {
     return (
       <Screen scroll={false} padded={false}>
         <View className="flex-1 items-center justify-center px-8">
-          <View className="mb-4 h-16 w-16 items-center justify-center rounded-lg border border-brand/40 bg-brand/10">
+          <View className="mb-4 h-16 w-16 items-center justify-center rounded-2xl border border-brand/40 bg-brand/10">
             <Ionicons name="sparkles" size={28} color="#f97316" />
           </View>
           <Text variant="heading" className="text-center">
@@ -379,11 +384,18 @@ export default function CoachScreen() {
         <ScrollView
           ref={scrollRef}
           className="flex-1"
-          contentContainerClassName="px-4 pt-3 pb-4"
+          contentContainerClassName="px-4 pt-4 pb-4"
           keyboardShouldPersistTaps="handled"
           onContentSizeChange={scrollToEnd}>
           {items.length === 0 && !sending ? (
-            <EmptyIntro onPick={setInput} />
+            <>
+              <ScreenHeader
+                eyebrow="AI training partner"
+                title="Coach"
+                subtitle="Advice grounded in your plans, history, goals, and limitations."
+              />
+              <EmptyIntro onPick={setInput} />
+            </>
           ) : (
             items.map((m) => {
               switch (m.kind) {
@@ -411,7 +423,7 @@ export default function CoachScreen() {
           {sending ? <TypingBubble /> : null}
         </ScrollView>
 
-        <View className="border-t border-iron-800 bg-iron-950 px-3 pb-6 pt-2.5">
+        <View className="border-t border-iron-800 bg-iron-950/95 px-3 pb-6 pt-2.5">
           <View className="flex-row items-end">
             <TextInput
               value={input}
@@ -421,7 +433,7 @@ export default function CoachScreen() {
               selectionColor="#f97316"
               multiline
               editable={!sending && !hasConfirm}
-              className="max-h-32 min-h-[44px] flex-1 rounded-lg border border-iron-700 bg-iron-900 px-4 py-2.5 text-base text-iron-50"
+              className="max-h-32 min-h-[48px] flex-1 rounded-xl border border-iron-700 bg-iron-900 px-4 py-3 text-base text-iron-50"
               style={{ textAlignVertical: 'center' }}
             />
             <Pressable
@@ -429,7 +441,7 @@ export default function CoachScreen() {
               disabled={!canSend}
               accessibilityRole="button"
               accessibilityLabel="Send message"
-              className={`ml-2 h-11 w-11 items-center justify-center rounded-lg ${
+              className={`ml-2 h-12 w-12 items-center justify-center rounded-xl ${
                 canSend ? 'bg-brand active:bg-brand-600' : 'bg-iron-800 opacity-50'
               }`}>
               <Ionicons name="arrow-up" size={20} color="#080706" />
