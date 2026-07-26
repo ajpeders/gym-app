@@ -4,7 +4,7 @@ import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-rou
 import { Ionicons } from '@expo/vector-icons';
 
 import { api } from '@/api/client';
-import type { Split, Workout } from '@/api/types';
+import type { Split, TodayWorkout, Workout } from '@/api/types';
 import { useActiveWorkout } from '@/state/active-workout';
 import { Screen } from '@/components/ui/Screen';
 import { Text } from '@/components/ui/Text';
@@ -18,6 +18,7 @@ export default function SplitDetailScreen() {
   const router = useRouter();
   const { start } = useActiveWorkout();
   const [split, setSplit] = useState<Split | null>(null);
+  const [today, setToday] = useState<TodayWorkout[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -26,7 +27,12 @@ export default function SplitDetailScreen() {
     setLoading(true);
     setError(null);
     try {
-      setSplit(await api.split(id));
+      const [s, t] = await Promise.all([
+        api.split(id),
+        api.splitToday().catch(() => [] as TodayWorkout[]),
+      ]);
+      setSplit(s);
+      setToday(t);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load split');
     } finally {
@@ -40,7 +46,9 @@ export default function SplitDetailScreen() {
     }, [fetch]),
   );
 
-  const today = new Date().getDay();
+  const todayDow = new Date().getDay();
+  // Ids of today's workouts already logged this week (from GET /splits/today).
+  const doneToday = new Set(today.filter((w) => w.done_this_week).map((w) => w.id));
 
   if (loading || error || !split) {
     return (
@@ -73,9 +81,10 @@ export default function SplitDetailScreen() {
         <Card className="mb-1 rounded-[20px] p-2">
           {DOW.map((dayName, day) => {
             const dayWorkouts = workoutsForDay(day);
-            const isToday = day === today;
+            const isToday = day === todayDow;
             const isRest = dayWorkouts.length === 0;
             const primary = dayWorkouts[0];
+            const isDone = isToday && dayWorkouts.some((w) => doneToday.has(w.id));
             return (
               <Pressable
                 key={dayName}
@@ -105,6 +114,14 @@ export default function SplitDetailScreen() {
                     ? 'Rest'
                     : dayWorkouts.map((w) => w.name).join(', ')}
                 </Text>
+                {isDone ? (
+                  <View className="mr-2 flex-row items-center rounded-full bg-brand/15 px-2 py-1">
+                    <Ionicons name="checkmark-circle" size={13} color="#f97316" />
+                    <Text variant="caption" className="ml-1 font-bold text-brand">
+                      Done
+                    </Text>
+                  </View>
+                ) : null}
                 {primary ? (
                   <Ionicons name="chevron-forward" size={16} color="#57534e" />
                 ) : (
