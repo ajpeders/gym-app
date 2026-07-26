@@ -1,25 +1,38 @@
 import { View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 
 import { Text } from './Text';
 
 type Size = 'md' | 'lg';
 
 const box: Record<Size, string> = {
-  md: 'h-16 w-16 rounded-lg',
-  lg: 'h-20 w-20 rounded-xl',
+  md: 'h-12 w-12 rounded-xl',
+  lg: 'h-14 w-14 rounded-2xl',
 };
 
-const mark: Record<Size, string> = {
-  md: 'text-3xl',
-  lg: 'text-4xl',
+const icon: Record<Size, number> = {
+  md: 23,
+  lg: 27,
 };
 
-/** App brand mark — the boxed "GYM" lockup used on auth and splash screens. */
+/** Compact training mark used on auth and splash screens. */
 export function Logo({ size = 'md' }: { size?: Size }) {
   return (
-    <View
-      className={`items-center justify-center border-2 border-brand bg-iron-900 ${box[size]}`}>
-      <Text className={`font-black text-brand ${mark[size]}`}>GYM</Text>
+    <View className="flex-row items-center">
+      <View className={`items-center justify-center bg-brand ${box[size]}`}>
+        <Ionicons name="barbell" size={icon[size]} color="#080706" />
+      </View>
+      <View className="ml-3">
+        <Text
+          className={`${
+            size === 'lg' ? 'text-2xl' : 'text-xl'
+          } font-black tracking-[-0.5px] text-iron-50`}>
+          GYM
+        </Text>
+        <Text variant="eyebrow" className="text-iron-400">
+          Training log
+        </Text>
+      </View>
     </View>
   );
 }

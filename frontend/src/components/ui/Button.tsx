@@ -17,7 +17,7 @@ interface ButtonProps extends Omit<PressableProps, 'children'> {
 
 const container: Record<Variant, string> = {
   primary: 'bg-brand active:bg-brand-600',
-  secondary: 'border border-iron-700 bg-iron-850 active:bg-iron-800',
+  secondary: 'border border-iron-700 bg-transparent active:bg-iron-800',
   ghost: 'bg-transparent active:bg-iron-900',
   danger: 'bg-red-700 active:bg-red-800',
 };
@@ -30,9 +30,9 @@ const label: Record<Variant, string> = {
 };
 
 const sizing: Record<Size, string> = {
-  sm: 'min-h-[38px] px-3.5 py-2 rounded-xl',
-  md: 'min-h-[48px] px-4 py-3 rounded-xl',
-  lg: 'min-h-[56px] px-5 py-4 rounded-xl',
+  sm: 'min-h-[40px] px-3.5 py-2 rounded-lg',
+  md: 'min-h-[50px] px-4 py-3 rounded-lg',
+  lg: 'min-h-[56px] px-5 py-4 rounded-lg',
 };
 
 const labelSize: Record<Size, string> = {

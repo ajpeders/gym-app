@@ -27,27 +27,17 @@ export function Screen({
   ...rest
 }: ScreenProps) {
   const pad = padded ? 'px-4' : '';
-  const contentWidth = 'w-full max-w-[960px] self-center';
+  const contentWidth = 'w-full max-w-[760px] self-center';
 
   return (
     <SafeAreaView edges={edges} className={`flex-1 bg-iron-950 ${className ?? ''}`}>
-      <View
-        pointerEvents="none"
-        className="absolute inset-x-0 top-0 h-48 border-b border-iron-900 bg-iron-900/70"
-      />
-      <View
-        pointerEvents="none"
-        className="absolute -left-8 top-0 h-32 w-48 rounded-full bg-brand/12"
-      />
-      <View
-        pointerEvents="none"
-        className="absolute right-0 top-12 h-28 w-32 rounded-full bg-steel/10"
-      />
-      <View pointerEvents="none" className="absolute left-0 right-0 top-0 h-px bg-brand/80" />
+      <View pointerEvents="none" className="absolute inset-x-0 top-0 h-40 bg-iron-900/45" />
+      <View pointerEvents="none" className="absolute left-0 top-0 h-1 w-28 bg-brand" />
+      <View pointerEvents="none" className="absolute left-28 right-0 top-0 h-px bg-iron-700" />
       {scroll ? (
         <ScrollView
           className="flex-1"
-          contentContainerClassName={`${contentWidth} ${pad} pb-28 pt-4 ${contentClassName ?? ''}`}
+          contentContainerClassName={`${contentWidth} ${pad} pb-28 pt-5 ${contentClassName ?? ''}`}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled">
           {children}
@@ -75,9 +65,9 @@ export function ScreenHeader({
   className?: string;
 }) {
   return (
-    <View className={`mb-5 ${className ?? ''}`}>
+    <View className={`mb-6 ${className ?? ''}`}>
       {eyebrow ? <Text variant="eyebrow">{eyebrow}</Text> : null}
-      <View className="mt-1 flex-row items-start justify-between gap-3">
+      <View className="mt-1.5 flex-row items-start justify-between gap-3">
         <View className="flex-1">
           <Text variant="title">{title}</Text>
           {subtitle ? (
@@ -104,9 +94,9 @@ export function SectionHeader({
   className?: string;
 }) {
   return (
-    <View className={`mb-3 mt-6 flex-row items-end justify-between gap-3 ${className ?? ''}`}>
+    <View className={`mb-3 mt-7 flex-row items-end justify-between gap-3 ${className ?? ''}`}>
       <View className="flex-1">
-        <Text variant="label" className="uppercase text-iron-200">
+        <Text variant="heading" className="text-iron-50">
           {title}
         </Text>
         {subtitle ? (

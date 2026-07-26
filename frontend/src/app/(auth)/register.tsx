@@ -48,14 +48,14 @@ export default function RegisterScreen() {
     <Screen scroll={false} padded={false} edges={['top', 'bottom', 'left', 'right']}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        className="flex-1 justify-center px-6">
-        <View className="mb-10 items-center">
+        className="w-full max-w-[440px] flex-1 self-center justify-center px-6">
+        <View className="mb-10 items-start">
           <Logo size="lg" />
-          <Text variant="title" className="mt-4">
+          <Text variant="title" className="mt-6">
             Create account
           </Text>
           <Text variant="muted" className="mt-1">
-            Start tracking your workouts
+            Build the habit. Keep the record.
           </Text>
         </View>
 

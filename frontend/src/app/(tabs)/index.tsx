@@ -410,7 +410,6 @@ export default function HomeScreen() {
     (total, ex) => total + ex.sets.filter((set) => set.completed !== false).length,
     0,
   );
-  const completedCount = todays ? 1 : 0;
   const summaryLabel = active
     ? 'Workout in progress'
     : selectedRoutine
@@ -433,7 +432,7 @@ export default function HomeScreen() {
         }>
         <ScreenHeader
           eyebrow={dateLabel}
-          title="Today's training"
+          title="Today"
           subtitle={summaryLabel}
           action={
             todays ? (
@@ -447,29 +446,8 @@ export default function HomeScreen() {
           }
         />
 
-        <View className="mb-1 flex-row gap-2">
-          <MetricPill
-            icon="calendar-outline"
-            value={selectedRoutine ? 'Ready' : 'None'}
-            label="Split"
-            tone="brand"
-          />
-          <MetricPill
-            icon="checkmark-circle-outline"
-            value={String(completedCount)}
-            label="Done today"
-            tone="mint"
-          />
-          <MetricPill
-            icon="albums-outline"
-            value={String(routines.length)}
-            label="Saved plans"
-            tone="steel"
-          />
-        </View>
-
         {active ? (
-          <Card elevated className="mt-5 rounded-[24px] border-brand bg-brand/10 p-5">
+          <Card elevated className="border-brand bg-brand/10 p-5">
             <View className="flex-row items-center">
               <View className="mr-3 h-12 w-12 items-center justify-center rounded-2xl bg-brand">
                 <Ionicons name="barbell" size={23} color="#080706" />
@@ -538,7 +516,7 @@ export default function HomeScreen() {
             />
           </Card>
         ) : routines.length === 0 ? (
-          <Card elevated className="mt-5 rounded-[24px] p-5">
+          <Card elevated className="p-5">
             <View className="mb-4 h-12 w-12 items-center justify-center rounded-2xl border border-brand/30 bg-brand/10">
               <Ionicons name="clipboard-outline" size={24} color="#f97316" />
             </View>
@@ -561,7 +539,7 @@ export default function HomeScreen() {
             </View>
           </Card>
         ) : selectedRoutine ? (
-          <Card elevated className="mt-5 rounded-[24px] p-5">
+          <Card elevated className="p-5">
             {routines.length > 1 ? (
               <Pressable
                 onPress={() => setPickerOpen((v) => !v)}

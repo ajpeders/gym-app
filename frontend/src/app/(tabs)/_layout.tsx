@@ -18,10 +18,14 @@ function tabIcon(name: keyof typeof ICONS) {
     const [active, inactive] = ICONS[name];
     return (
       <View
-        className={`h-9 w-12 items-center justify-center rounded-lg ${
-          focused ? 'bg-brand/15' : 'bg-transparent'
+        className={`h-8 w-11 items-center justify-center rounded-lg ${
+          focused ? 'bg-brand' : 'bg-transparent'
         }`}>
-        <Ionicons name={focused ? active : inactive} size={size ?? 22} color={color} />
+        <Ionicons
+          name={focused ? active : inactive}
+          size={size ?? 22}
+          color={focused ? '#080706' : color}
+        />
       </View>
     );
   };
@@ -43,13 +47,13 @@ export default function TabsLayout() {
           left: Platform.OS === 'web' ? 0 : 12,
           right: Platform.OS === 'web' ? 0 : 12,
           bottom: Platform.OS === 'ios' ? 12 : 10,
-          maxWidth: 960,
+          maxWidth: 760,
           marginHorizontal: Platform.OS === 'web' ? 'auto' : 0,
-          borderRadius: 22,
-          backgroundColor: '#100f0d',
+          borderRadius: 18,
+          backgroundColor: '#171412',
           borderColor: '#2a2521',
           borderWidth: 1,
-          height: Platform.OS === 'ios' ? 78 : 68,
+          height: Platform.OS === 'ios' ? 76 : 66,
           paddingBottom: Platform.OS === 'ios' ? 14 : 8,
           paddingTop: 8,
         },
@@ -57,7 +61,7 @@ export default function TabsLayout() {
           borderRadius: 12,
           marginHorizontal: 4,
         },
-        tabBarLabelStyle: { fontSize: 11, fontWeight: '800', marginTop: 1 },
+        tabBarLabelStyle: { fontSize: 10, fontWeight: '800', marginTop: 2 },
       }}>
       <Tabs.Screen name="index" options={{ title: 'Home', tabBarIcon: tabIcon('index') }} />
       <Tabs.Screen

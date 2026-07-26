@@ -39,14 +39,14 @@ export default function LoginScreen() {
     <Screen scroll={false} padded={false} edges={['top', 'bottom', 'left', 'right']}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        className="flex-1 justify-center px-6">
-        <View className="mb-10 items-center">
+        className="w-full max-w-[440px] flex-1 self-center justify-center px-6">
+        <View className="mb-10 items-start">
           <Logo size="lg" />
-          <Text variant="title" className="mt-4">
+          <Text variant="title" className="mt-6">
             Welcome back
           </Text>
           <Text variant="muted" className="mt-1">
-            Log in to your gym tracker
+            Pick up where you left off.
           </Text>
         </View>
 
