@@ -4,7 +4,12 @@
 > a local (Ollama) or frontier (Claude) model. Native-first (Expo / React
 > Native) with a web build from the same codebase.
 
-Status: **Phase 0–2 shipped; Phase 3 (AI) in progress; prepping for launch** · Last updated: 2026-07-26
+Status: **Phase 0–2 shipped; Phase 3 (AI) largely done; Phase 4 (insights) started; prepping for launch** · Last updated: 2026-07-26
+
+> Reconciled against the codebase on 2026-07-26. Two deviations from the original
+> plan are now reality: **Alembic was dropped** for hand-rolled additive column
+> migrations (`api/app/db.py` `_ADDED_COLUMNS`), and a **Split** layer (a weekly
+> plan owning several day-`Routine`s) was added on top of the model sketch below.
 
 ---
 
@@ -59,7 +64,7 @@ one-shot generated programs.
 |---|---|---|
 | App (mobile + web) | **Expo (Expo Router) + React Native + TypeScript** | `react-native-web` for the web build; one codebase → iOS/Android/web |
 | Styling | **NativeWind** (Tailwind for RN) | keeps the Tailwind muscle memory from your other apps |
-| Backend | **Python FastAPI** + SQLAlchemy + Alembic | matches docuAI/discordbot AI-app pattern |
+| Backend | **Python FastAPI** + SQLAlchemy (~~Alembic~~ → hand-rolled additive migrations) | matches docuAI/discordbot AI-app pattern; Alembic deferred — `db.py` ALTERs new columns in idempotently |
 | DB | **SQLite** to start → Postgres if needed | lives in `state/gym-app/`, covered by homelab backup |
 | AI | **Provider abstraction**: Ollama (default) ⇄ Claude (toggle) ⇄ **on-device** | Ollama at `192.168.0.40:11434` / `.47`; Claude via API key; on-device on capable phones (Core ML / `llama.rn` / ExecuTorch) — fully private, no signal needed |
 | Exercise data | **free-exercise-db** (~870 exercises + images, public domain) | seeded into our DB at first boot |
@@ -85,72 +90,77 @@ Repo layout (own git repo under `apps/gym-app/`, gitignored by homelab):
 gym-app/
   api/                 # FastAPI backend (Dockerfile)
     app/
-      models/          # SQLAlchemy models
-      routes/          # REST endpoints
-      ai/              # domain schemas + prompts (provider layer lives in `companion`)
+      models.py        # SQLAlchemy models (single module)
+      schemas.py       # Pydantic DTOs
+      routes/          # REST endpoints (one router per resource)
+      ai/              # domain schemas + prompts + companion wiring (provider seam lives in `companion`)
       seed/            # exercise DB importer
-  app/                 # Expo / React Native source (Dockerfile builds web)
-    src/{screens,components,api,state,styles}
+    tests/             # pytest (auth, workouts, exercises)
+  frontend/            # Expo / React Native source (Dockerfile builds web)
+    src/{app,components,api,state,lib,hooks}
   docker-compose.yml   # api + web services, Traefik labels
   ROADMAP.md
 ```
 
 ---
 
-## Data model (first cut)
+## Data model (as built — see `api/app/models.py`)
 
-- **exercise** — name, category, primary/secondary muscles, equipment, instructions, images, is_custom
-- **routine** (template) → **routine_exercise** (ordered, target sets/reps/rest)
-- **workout** (a logged session) → **workout_exercise** → **set** (reps, weight, RPE, type: warmup/working/drop, completed_at)
-- **session** (live, in-progress workout state: current exercise, timer, flags)
+- **exercise** — name, category, primary/secondary muscles, equipment, instructions, images, is_custom, **tracking_type** (weight_reps / bodyweight / time)
+- **split** (weekly plan) → **routine** (a day, `day_label`/`day_order`) → **routine_exercise** (ordered, target sets / rep-range / weight / rest)
+- **workout** (a logged session) → **workout_exercise** (snapshots the routine targets) → **sets** (reps, weight, RPE, duration_seconds, type, completed_at, notes)
 - **body_metric** — bodyweight + measurements over time
-- **personal_record** — derived PRs (1RM est, max weight/reps/volume) per exercise
-- **user** + **settings** (units kg/lb, AI provider/model, feature toggles)
-- **ai_message** — chat/coach history for context
-- **athlete_profile** — persistent per-user memory the AI reads + writes (injuries, cue notes that landed, RPE→weight calibration, equipment, goals, preferences); the companion's backbone (the Tier-1 moat)
+- **user** + **settings** (units kg/lb, per-user Ollama/Claude config, feature flags)
+- **coach_message** — per-user coach chat history for context
+- **athlete_profile** — persistent per-user memory the AI reads + writes (experience, goals, injuries, equipment, preferences, durable notes, transient session_note); the companion's backbone (the Tier-1 moat)
+- **schedule_day** — one routine (or rest) per weekday, per user
+- **progress_photo** — per-user photos with a backdatable `taken_at` (EXIF-derived)
+
+*Not separate tables (diverged from the first cut):* live **session** state lives client-side (`state/active-workout.tsx`); **personal records** are derived on the fly in `/stats/summary`, not stored.
 
 ---
 
 ## Roadmap
 
-Checkbox = not started. Phases are ordered; later phases assume earlier ones.
+`[ ]` = not started · `[x]` = shipped · `[~]` = partial (see note). Phases are ordered; later phases assume earlier ones.
 
-### Phase 0 — Foundation
-- [ ] `git init` the app repo; scaffold Expo (Expo Router + TS + NativeWind)
-- [ ] Scaffold FastAPI + SQLAlchemy + Alembic + SQLite
-- [ ] Auth (token/JWT) + settings model
-- [ ] `services/gym-app` compose + Traefik wiring + `state/gym-app` volume
-- [ ] Import **free-exercise-db** → exercise catalog (+ images)
-- [ ] Dev workflow: run api + Expo locally; CI lint/test (match your Vitest/pytest setup)
+### Phase 0 — Foundation ✅
+- [x] `git init` the app repo; scaffold Expo (Expo Router + TS + NativeWind)
+- [x] Scaffold FastAPI + SQLAlchemy + SQLite *(Alembic dropped — hand-rolled additive migrations in `db.py`)*
+- [x] Auth (token/JWT) + settings model
+- [x] `services/gym-app` compose + Traefik wiring + `state/gym-app` volume
+- [x] Import **free-exercise-db** → exercise catalog (+ images) *(`app/seed/`)*
+- [x] Dev workflow: run api + Expo locally; CI *(`.forgejo/ci.yml`: `py_compile` + `tsc --noEmit`; pytest not yet wired into CI)*
 
-### Phase 1 — Core tracking (MVP)
-- [ ] Browse / search / filter exercises (by muscle, equipment, category)
-- [ ] Exercise detail (instructions, images); create custom exercises
-- [ ] Log a workout: add exercises, log sets (reps / weight / RPE / set type)
-- [ ] Workout history + view/edit past workouts
-- [ ] Routines/templates: build reusable plans, start a workout from one
-- [ ] **User-defined routines**: users create their own routines, edit/add-to/duplicate existing ones, and import a routine (paste text or pick a template)
-- [ ] **Import anything** (moat #3): notes-app text → routines (✅ built via `/api/ai/parse-routine`); next: Hevy/Strong CSV export, a photo of a gym whiteboard (vision), a PDF coach program
-- [ ] Units (kg/lb), basic settings screen
-- [ ] **Bottom nav: re-add Workouts / Exercises / Routines as tabs** — trimmed to Home + Settings during early dev; the screens still exist as routes (reachable from Home), just hidden from the tab bar
+### Phase 1 — Core tracking (MVP) ✅
+- [x] Browse / search / filter exercises (by muscle, equipment, category)
+- [x] Exercise detail (instructions, images); create custom exercises
+- [x] Log a workout: add exercises, log sets (reps / weight / RPE / set type) *(+ `tracking_type`: weight_reps / bodyweight / time)*
+- [x] Workout history + view/edit past workouts *(incl. one-shot `/workouts/log` for already-done sessions)*
+- [x] Routines/templates: build reusable plans, start a workout from one *(targets snapshotted onto the workout)*
+- [x] **User-defined routines**: create/edit/duplicate, import (paste text or pick a template); **Splits** group day-routines into a weekly plan
+- [~] **Import anything** (moat #3): notes-app text → routines ✅ (`/api/ai/parse-routine`); **next: Hevy/Strong CSV, whiteboard photo (vision), PDF coach program**
+- [x] Units (kg/lb), basic settings screen
+- [x] **Bottom nav tabs restored** — Home / Workouts / Routines / Coach / Settings (Exercises reachable as a route, hidden from the bar)
 
-### Phase 2 — Live workout mode
-- [x] Start session (blank or from routine); active-session screen *(built)*
-- [x] **Quick-action set buttons** (auto-fill from last session) — *toggleable* *(built)*
-- [ ] Rest timer (per-set) with local notifications; supersets — *timer UI removed 2026-07-26 at user request; data model kept*
-- [ ] Inline progress (this session vs last); session summary on finish
-- [ ] **Contextual AI prompts during the set** (e.g. nudge, form cue) — *toggleable*
+### Phase 2 — Live workout mode ✅ (mostly)
+- [x] Start session (blank or from routine); active-session screen *(`workout/active/[id]`)*
+- [x] **Quick-action set buttons** (auto-fill from last session) — toggleable via `feature_flags.quick_buttons`
+- [ ] Rest timer + supersets — *live timer UI, `use-rest-timer` hook, and the `rest_timer_default` setting removed 2026-07-26 at user request; per-routine `rest_seconds` (planned rest) kept. Local notifications never built (no `expo-notifications` dep).*
+- [x] Inline progress (this session vs last); session summary on finish
+- [ ] **Contextual AI prompts during the set** (e.g. nudge, form cue) — toggleable; `feature_flags.in_set_prompts` defaults off, not yet wired
 
-### Phase 3 — AI provider layer + natural-language logging
-- [ ] Provider abstraction: Ollama default ⇄ Claude; pick provider/model in settings
+### Phase 3 — AI provider layer + natural-language logging (largely done)
+- [x] Provider abstraction: Ollama ⇄ Claude; pick provider/model in settings *(BYO per-user, no silent default; `/ai/providers`,`/models`,`/test`)*
 - [ ] **On-device AI — iPhone first** (capable phones): run a small model directly on the phone's hardware (iOS: Apple Foundation Models / MLX / Core ML; Android: `llama.rn` / ExecuTorch) — fully private, works offline with no Ollama/Claude needed. Auto-detect support and offer it as a third provider alongside Ollama/Claude. The ultimate "no-setup, no-cost, no-network" local option.
-- [ ] **Bring-your-own-model setup guide** (self-hosted / remote Ollama): when a user picks the Ollama provider with *their own* server, walk them through a guided checklist instead of a raw settings form — enter URL → verify reachability → list + pick a model → prompt to `ollama pull` if it's missing → test round-trip. Lets a non-homelab user wire up a local or remote model without guessing, and turns the per-user AI config into onboarding. (Companion to on-device: on-device = zero-setup local; this = "I already run Ollama somewhere.")
+- [~] **Bring-your-own-model setup guide** (self-hosted / remote Ollama): backend building blocks exist — `/ai/models` (list + pick), `/ai/test` (round-trip), URL normalization — and the `use-ai-status` hook; **the guided onboarding checklist UI itself is still pending**.
 - [x] **Natural-language logging**: "bench 3x8 @60kg, felt easy" → structured sets *(built)*
 - [x] **Routine import from notes**: paste a multi-day program → structured routines *(built)*
 - [ ] **Voice companion** (moat #5): speak to the AI, not just type — voice → NL logging, and a spoken pre-session check-in that updates the athlete profile ("shoulder's tight, going lighter"); on-device speech where available
 - [ ] **Siri / App Intents (iOS)** (moat #5): "Hey Siri, tell my coach my shoulder's tight" / "Hey Siri, log bench 3x8 @60" → hands-free check-in + logging without opening the app, via App Intents + Shortcuts (needs an EAS dev/native build — not available in Expo Go)
-- [ ] Robustness: validation/repair of model output, fallbacks, cost/latency display
-- [x] **Exercise→catalog matching v2**: stemming, stopwords, phrase synonyms (chest press → bench press) + abbreviation expansion (db/bb/ohp/rdl) and a conservative two-sided-overlap fallback *(built)*
+- [~] Robustness: Pydantic schema validation ✅, per-request `latency_ms` display ✅, no-silent-default errors ✅; **automatic output repair loop + provider fallback still basic**
+- [x] **Exercise→catalog matching v2**: stemming, stopwords, phrase synonyms (chest press → bench press) + abbreviation expansion (db/bb/ohp/rdl) and a conservative two-sided-overlap fallback *(`ai/service.py` `_stem`/`_match`)*
+- [x] **Tool-calling companion coach**: `companion` package mounted at `/api/companion` — reads + logs training by calling gym's own API as tools (write-confirm gate), grounded in athlete profile + history *(added since last plan)*
 
 ### Shipped 2026-07 (beyond the phase lists)
 
@@ -212,8 +222,8 @@ Found while actually training with the app. Ordered by how much they hurt.
 - [ ] **Launch checklist** — accounts/onboarding for a non-homelab user, EAS
       build + distribution, error reporting, and a data-export/delete story.
 
-### Phase 4 — AI insights & coaching
-- [ ] **Progress analysis**: trends, PRs, plateaus, volume per muscle, frequency
+### Phase 4 — AI insights & coaching (started)
+- [~] **Progress analysis**: `/stats/summary` ships streak, weekly volume, and recent PRs (+ a `progress` screen); **plateaus, per-muscle volume, frequency still to do**
 - [ ] **Muscle coverage & volume analysis** *(lower priority — pro depth, after the core companion + memory)*: per session + per week, hard sets per muscle (primary = full, secondary = partial credit using the exercise DB's muscle tags), coverage gaps, balance ratios (push/pull, quad/ham), neglected muscles, and volume vs landmarks (MEV/MAV/MRV). Deterministic math; AI interprets + recommends the fix
 - [ ] **Advanced metrics** *(lower priority)*: e1RM trends, tonnage, rep-PRs, double progression, RIR/RPE autoregulation, periodization/deload tracking
 - [ ] Charts/dashboard (volume over time, est 1RM, body metrics)
@@ -221,17 +231,17 @@ Found while actually training with the app. Ordered by how much they hurt.
 - [ ] **AI-generated routines**: generate a full multi-day routine/program from goals + experience level + available equipment + weekly schedule (and athlete memory once present) → saved as normal editable routines. The inverse of Import (bring a plan *in* ↔ generate one *out*); reuses the same routine/exercise-catalog-matching pipeline so generated exercises resolve to the real catalog. Keep it **editable + regenerable, not one-shot** — one-shot programs aren't a moat (line "Not moats"); the defensibility comes from regenerating against *your* logged history, calibration, and recovery signal
 - [ ] Progressive-overload suggestions for the next session
 - [ ] **Form / exercise Q&A** chat coach (RAG over exercise DB)
-- [ ] **Athlete memory** (Tier-1 moat): per-user `athlete_profile` the AI reads + writes each session (injuries, cues that landed, RPE→weight calibration, equipment, goals) — the companion's backbone
+- [x] **Athlete memory** (Tier-1 moat): `athlete_profile` model + `/ai/check-in` (NL → profile) + `/profile` CRUD; injected into every coach/parse prompt via `profile_summary`. *(Calibration/recovery signals below still to layer on.)*
 - [ ] **Personal calibration flywheel** (moat #4): per-user adaptive weight/RPE predictions that sharpen with each logged set
 - [ ] **Recovery from usage** (moat #4): infer readiness from in-app timing (inter-session gaps, per-muscle last-trained) to gate volume/intensity
 - [ ] **Lavish AI** (Tier-1 moat): regenerate in-session UI / re-plan per session without rationing — free on local compute
 
 ### Phase 5 — Polish & power features
 - [ ] PRs, achievements, streaks
-- [ ] Offline-first sync (native) with conflict resolution
-- [ ] Push notifications (rest done, workout reminders) via ntfy/web-push
+- [~] Offline-first sync (native): a persisted set-log queue with retries survives restarts/dead zones (`lib/offline.ts`); **conflict resolution not yet built**
+- [ ] Push notifications (rest done, workout reminders) via ntfy/web-push *(no `expo-notifications` yet)*
 - [ ] Plate / warmup / 1RM calculators
-- [ ] Export/import (CSV/JSON); fold into homelab backup
+- [~] Export/import: text + JSON export via native Share sheet (`lib/export.ts`); **CSV + re-import + backup fold-in still to do**
 - [ ] Multi-user profiles (optional)
 - [ ] **Social / OAuth login** ("log in with other apps" — Google / Apple / GitHub) via expo-auth-session; optional alongside the existing email/password auth
 - [ ] Apple Health / Google Fit + Apple Watch (stretch)
@@ -242,10 +252,10 @@ Found while actually training with the app. Ordered by how much they hurt.
 - [ ] **Open / self-hostable**: homelab-native extensibility (MCP-style), self-host tier → community moat (only if personal → product)
 
 ### Cross-cutting (ongoing)
-- [ ] Tests (pytest backend, Vitest/RN Testing Library frontend)
-- [ ] Security (auth on every route, input validation, secrets in `.env`)
-- [ ] Observability (structured logs, AI request tracing)
-- [ ] Docs (README, ARCHITECTURE, HOWTO — your usual set)
+- [~] Tests: backend pytest (`api/tests/`: auth, workouts, exercises) ✅; **frontend tests + pytest-in-CI still missing**
+- [x] Security: auth + per-owner scoping on every route, Pydantic validation, secrets via `GYM_*` env; no published host port (Traefik TLS + `local-only`); JWT-default startup warning
+- [~] Observability: `logging` on boot/seed + `latency_ms` on AI calls; **structured logs + full AI request tracing still to do**
+- [~] Docs: README ✅, ROADMAP ✅, PROPOSAL ✅; **ARCHITECTURE.md + HOWTO.md still missing**
 
 ---
 
