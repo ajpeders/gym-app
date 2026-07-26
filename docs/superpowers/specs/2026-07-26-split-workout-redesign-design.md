@@ -110,15 +110,57 @@ workout, one such session marks it done across all its candidate days.
 - **New `GET /api/splits/today`**: returns the active split's workout(s) for the
   current weekday, each with a `done_this_week` boolean. Centralizes the Sun–Sat +
   floating derivation server-side (previously computed in the client).
+- **`/api/stats/summary`** (`routes/stats.py`): unchanged path, but its queries
+  reference the renamed models directly (`select(Workout)`, `join(WorkoutExercise…)`,
+  `SetEntry.workout_exercise_id`, `WorkoutExercise.exercise_id`) → must move to
+  `Session`, `SessionExercise`, `session_exercise_id`. **Deliberate note:** stats'
+  "this week" is a rolling 7-day window (`week_ago`) and stays that way — it is a
+  *volume* metric, distinct from the split's Sunday-based "done this week." The two
+  are intentionally different; a code comment will say so to prevent future
+  "bug" confusion.
 - **companion `EXPOSE`**: update the tool allowlist to the new paths
   (`/api/workouts`, `/api/sessions`, `/api/splits/*`, `/api/stats/*`).
 
+### Route-module rename order
+Mirrors the model collision: `routes/workouts.py` (logged bouts) → `routes/sessions.py`
+**first**, then `routes/routines.py` (plans) → `routes/workouts.py`. `main.py`'s
+router imports/registration and the `/api` prefix wiring update accordingly.
+
+### AI import pipeline (plan-day = "Routine" today)
+The natural-language program importer models the plan-day as "Routine" throughout
+and must rename with it (`Routine → Workout`), or the vocabulary drift simply moves
+here. In scope for this redesign:
+- `api/app/ai/base.py` — `ParsedRoutine`/`ParsedRoutineExercise`, `ParsedProgram.routines`,
+  `EDIT_ROUTINE_SCHEMA`, `EditedRoutine`, `PROGRAM_SCHEMA`/`_ROUTINE_EXERCISE_ITEM`.
+- `api/app/ai/prompts.py` — `routine_system_prompt`, `edit_routine_*`, rule text.
+- `api/app/ai/service.py` — `_build_routine_result`, `program.routines`, the
+  `parse_routine` / `parse_routine_stream` / `edit_routine_stream` entrypoints.
+- `api/app/routes/ai.py` — `RoutineRequest`, `EditRoutineRequest`, the
+  `/parse-routine`, `/parse-routine/stream`, `/edit-routine/stream` route names →
+  `/parse-workout`, etc.
+- `frontend/src/app/routine-import.tsx` → `workout-import.tsx` (`ParsedRoutine`,
+  `ParseRoutineResult`, `RoutineExerciseInput`, and the calling client methods).
+
+The exercise-*matcher* itself (`_match`/`_stem`) is name-neutral and untouched.
+
 ## Frontend
 
-- **Screen renames:** `app/routine/*` → `app/workout/*`; `app/workout/{active,log,
+- **Screen renames:** `app/routine/*` → `app/workout/*`; `app/routine-import.tsx`
+  (top-level sibling) → `app/workout-import.tsx`; `app/workout/{active,log,
   add-exercise,[id]}` → `app/session/*`. Components `RoutineEditor` →
   `WorkoutEditor`, `RoutineAiEdit` → `WorkoutAiEdit`; matching `api/client`,
   `api/types`, `state` (active-session), and all display strings.
+- **`lib/offline.ts`** (offline set-logging queue): models the *logged bout*, so it
+  renames with `Workout → Session` — the `Workout`/`WorkoutSet` types, the
+  `CACHE_KEY = 'gymapp.offline.workout'` storage key, `cacheWorkout` /
+  `readCachedWorkout` / `dropWorkoutFromQueue` / `withPendingSets`, and
+  `QueuedSet.workoutId`. Bumping the storage-key string also harmlessly discards any
+  stale offline cache under the old key (acceptable — clean rebuild).
+- **`lib/export.ts`**: `Routine`/`Workout` types + `routineToText`/`routineToJson`/
+  `workoutToText`/`workoutToJson` rename to the plan/session split, along with the
+  wire discriminator strings (`type: 'routine'` → `'workout'`, `type: 'workout'` →
+  `'session'`). Consumers `app/workout/[id].tsx` (plan) and `app/session/[id].tsx`
+  (log) update with them.
 - **Tabs:** current "Routines" (plans) → **Workouts**; current "Workouts" (log
   history) → **History**. Result: Home / Workouts / History / Coach / Settings.
 - **New UI:** in the workout editor, a Sun–Sat weekday picker + a "floating (do
@@ -138,6 +180,9 @@ workout, one such session marks it done across all its candidate days.
 
 ## Testing
 - **Backend (pytest):**
+  - Existing `tests/test_workouts.py` (currently the logged-bout endpoints) is
+    **renamed** to `tests/test_sessions.py` and repointed at `/api/sessions`; a new
+    `tests/test_workouts.py` covers the plan-day endpoints.
   - Workout CRUD carries `weekdays` + `floating`; validation rejects bad weekdays.
   - Session logging works at `/api/sessions` (start → add exercise → add set →
     finish); `source_workout_id` snapshots targets.
@@ -145,8 +190,38 @@ workout, one such session marks it done across all its candidate days.
     floating workout marked done across candidate days after one session; week
     boundary (Sun-based) respected.
   - Split active-toggle keeps exactly one active per user.
+  - New `tests/test_stats.py`: `/stats/summary` runs against the renamed
+    `Session`/`SessionExercise` models (guards the query breakage the rename would
+    otherwise hide).
 - **Frontend:** `tsc --noEmit` passes; smoke-run the app (Metro) to confirm the
   renamed routes resolve.
+
+## Rename ripple — file inventory
+The single source of truth for what the rename touches (the prose above narrates
+these; this is the checklist):
+
+**Backend**
+- `models.py` — the six model renames + FK columns; remove `ScheduleDay`.
+- `schemas.py` — `Routine*`→`Workout*`, `Workout*`→`Session*` DTOs; add `weekdays` +
+  `floating`; drop `schedule`, `day_label`.
+- `routes/routines.py`→`workouts.py`; `routes/workouts.py`→`sessions.py`;
+  `routes/splits.py` (+ `today`); `routes/stats.py` (queries); `routes/ai.py`.
+- `ai/base.py`, `ai/prompts.py`, `ai/service.py` — the import pipeline.
+- `ai/companion_setup.py` — `EXPOSE` paths.
+- `main.py` — router imports/registration.
+- `db.py` — reset `_ADDED_COLUMNS` to the new base schema.
+- `seed/*` — only if any seed references old model/table names (verify; catalog
+  seed touches `Exercise` only, expected untouched).
+- `tests/` — as above.
+
+**Frontend**
+- `app/routine/*`→`app/workout/*`; `app/routine-import.tsx`→`app/workout-import.tsx`;
+  `app/workout/*`→`app/session/*`; `(tabs)/routines.tsx`→workouts, `(tabs)/workouts.tsx`
+  →history, `(tabs)/_layout.tsx` labels; `(tabs)/index.tsx` (Home today logic).
+- `components/RoutineEditor.tsx`→`WorkoutEditor.tsx`, `RoutineAiEdit.tsx`→`WorkoutAiEdit.tsx`.
+- `api/types.ts`, `api/client.ts` — type + method + path renames.
+- `state/active-workout.tsx` — session state + its use of `offline.ts`.
+- `lib/offline.ts`, `lib/export.ts` — as above.
 
 ## Out of scope (deferred)
 - Calendar-scheduled splits / mesocycle periodization (chose one-active-toggle).
