@@ -4,7 +4,7 @@
 > a local (Ollama) or frontier (Claude) model. Native-first (Expo / React
 > Native) with a web build from the same codebase.
 
-Status: **Phase 0–1 shipped; Phase 3 (AI) in progress** · Last updated: 2026-07-01
+Status: **Phase 0–2 shipped; Phase 3 (AI) in progress; prepping for launch** · Last updated: 2026-07-26
 
 ---
 
@@ -135,9 +135,9 @@ Checkbox = not started. Phases are ordered; later phases assume earlier ones.
 - [ ] **Bottom nav: re-add Workouts / Exercises / Routines as tabs** — trimmed to Home + Settings during early dev; the screens still exist as routes (reachable from Home), just hidden from the tab bar
 
 ### Phase 2 — Live workout mode
-- [ ] Start session (blank or from routine); active-session screen
-- [ ] **Quick-action set buttons** (auto-fill from last session) — *toggleable*
-- [ ] Rest timer (per-set) with local notifications; supersets
+- [x] Start session (blank or from routine); active-session screen *(built)*
+- [x] **Quick-action set buttons** (auto-fill from last session) — *toggleable* *(built)*
+- [ ] Rest timer (per-set) with local notifications; supersets — *timer UI removed 2026-07-26 at user request; data model kept*
 - [ ] Inline progress (this session vs last); session summary on finish
 - [ ] **Contextual AI prompts during the set** (e.g. nudge, form cue) — *toggleable*
 
@@ -150,7 +150,61 @@ Checkbox = not started. Phases are ordered; later phases assume earlier ones.
 - [ ] **Voice companion** (moat #5): speak to the AI, not just type — voice → NL logging, and a spoken pre-session check-in that updates the athlete profile ("shoulder's tight, going lighter"); on-device speech where available
 - [ ] **Siri / App Intents (iOS)** (moat #5): "Hey Siri, tell my coach my shoulder's tight" / "Hey Siri, log bench 3x8 @60" → hands-free check-in + logging without opening the app, via App Intents + Shortcuts (needs an EAS dev/native build — not available in Expo Go)
 - [ ] Robustness: validation/repair of model output, fallbacks, cost/latency display
-- [ ] **Exercise→catalog matching v2**: stemming (raise/raises) + bidirectional token overlap so "cable triceps pushdown" matches "Triceps Pushdown" (current matcher too strict)
+- [x] **Exercise→catalog matching v2**: stemming, stopwords, phrase synonyms (chest press → bench press) + abbreviation expansion (db/bb/ohp/rdl) and a conservative two-sided-overlap fallback *(built)*
+
+### Shipped 2026-07 (beyond the phase lists)
+
+- **Splits** — a weekly plan that owns its day-routines plus the weekly schedule
+  and progression rules; Home picks today's day from that schedule.
+- **Offline-first set logging** — sets are written to the device before the
+  network, shown immediately, and auto-synced the moment connectivity returns
+  (NetInfo + foreground + backstop timer). Survives app restarts and API
+  redeploys; the workout screen renders from cache when offline.
+- **Per-movement logging** — exercises carry a tracking type (weight×reps /
+  bodyweight / timed), inferred from equipment + name; planks and dead hangs
+  log seconds, bodyweight moves lead with reps and treat load as optional.
+- **Rep ranges** (8–12) end to end, **per-set notes**, and true **set
+  timestamps** (client-supplied so offline sessions keep real times).
+- **Catalog migrated to wger** (~850 exercises, muscles/categories/multilingual)
+  with data *and* images mirrored into our own storage — no runtime dependency
+  on wger, covered by the nightly backup.
+- **Progress photos** — camera/library, EXIF-dated, gallery + viewer.
+- **Export** a split or workout as readable text or JSON via the share sheet.
+- **Log a completed workout** after the fact, and backdate live sessions.
+- **Personal-trainer coach voice** shared by both coach surfaces.
+
+### Launch prep — open items (from 2026-07 user testing)
+
+Found while actually training with the app. Ordered by how much they hurt.
+
+- [ ] **Import quality** — the AI routine import drops data: `Sets` are lost on
+      almost every exercise, some exercises vanish entirely (Cable Fly, Face
+      Pulls, Leg Extension, Rear-Delt Fly), abs work collapses to "Plank", and
+      variants get swapped (seated *dumbbell* → *cable* press, *standing* →
+      *donkey* calf raise). Rep-ranges + matcher v2 landed since, so a re-import
+      would improve — but the dropped-sets and missing-exercise bugs are
+      prompt/parse issues that remain. Highest-value fix before anyone else
+      imports a plan.
+- [ ] **Duplicate in-progress workouts** — starting a workout doesn't detect or
+      resume an already-active one, so taps pile up sessions (3 were open during
+      testing). Resume-or-prompt on start, and clean up the strays.
+- [ ] **Terminology cleanup** — settled meaning is routine = one day, split =
+      the week. A few display strings still call a day-routine a "split" (left
+      over from the rename that predated the Split model).
+- [ ] **Progression nudge** — the plan's own rule is "hit the top of the rep
+      range for all sets → add weight next time". The app has the targets and
+      the logged reps but says nothing. Flag it when you clear the range.
+- [ ] **Exercise images** — ~44% of the wger catalog has no image (free-exercise-db
+      backfill got coverage to ~56%). Options: let users upload/replace an image
+      per exercise (also fixes "that Plank photo looks wrong"), or license real
+      demo GIFs (Gym Visual — paid; the only source with true animated GIFs).
+- [ ] **Offline beyond sets** — logged sets are queued and auto-sync, but
+      starting/finishing a workout and every other write still needs the
+      network. Extend the queue if mid-session connectivity proves flaky.
+- [ ] **UI/UX pass** — a deliberate visual + flow review of every screen before
+      launch (in progress).
+- [ ] **Launch checklist** — accounts/onboarding for a non-homelab user, EAS
+      build + distribution, error reporting, and a data-export/delete story.
 
 ### Phase 4 — AI insights & coaching
 - [ ] **Progress analysis**: trends, PRs, plateaus, volume per muscle, frequency
