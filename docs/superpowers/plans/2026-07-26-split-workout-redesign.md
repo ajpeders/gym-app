@@ -33,6 +33,7 @@ Renames the ORM models and DTOs, adds `weekdays`/`floating`, removes `ScheduleDa
   - `Split`: **remove** `schedule` column; keep `rules`, `is_active`, `name`, `notes`; `routines` relationship → `workouts` (order_by `Workout.order`).
   - **Delete** the `ScheduleDay` class entirely.
   - Update `User` relationships: `routines`→(removed; workouts reached via splits/standalone), `workouts`→`sessions`. Keep `metrics`, `settings`. (A user's plan-workouts are reached through splits or `Workout.owner_id`; keep a `sessions` relationship on User for the logged bouts.)
+  - **Fix the matching `back_populates` strings** (else `configure_mappers()` raises on import): plan-`Workout.owner` → `back_populates="..."` unused (User no longer has a plan-workout collection, so make `Workout.owner` a plain `relationship()` with no back_populates, or drop it); plan-`Workout.split` → `back_populates="workouts"`; logged-`Session.owner` → `back_populates="sessions"`. Every renamed relationship's counterpart string must be updated in lockstep.
 
 - [ ] **Step 2: Reset `_ADDED_COLUMNS` in `db.py`.** The list currently references old table names (`routine`, `routine_exercise`, `workout_exercise`, plus the deleted `sets.*`/`exercise.tracking_type` which are now part of the base schema on a clean rebuild). Replace the whole list with `[]` (empty) — the clean rebuild bakes every column into `create_all()`, so no additive migrations are pending. Leave the `_ensure_columns()` machinery in place for future use.
 
@@ -53,7 +54,7 @@ git commit -m "refactor(models): rename to Split/Workout/Session + weekday sched
 **Files:**
 - Modify: `api/app/schemas.py`
 
-- [ ] **Step 1: Rename the DTOs to match the models.** `Routine*`→`Workout*` (plan), `Workout*`→`Session*` (log), keeping every field. On the plan-workout Out/Create/Update DTOs: add `weekdays: list[int]` and `floating: bool`; remove `day_label`/`day_order`, add `order`. On `SplitOut/Create/Update`: remove `schedule`. Add a validator on `weekdays` (each int in `0..6`, no duplicates) — raise on violation so FastAPI returns 422:
+- [ ] **Step 1: Rename the DTOs to match the models.** `Routine*`→`Workout*` (plan), `Workout*`→`Session*` (log), keeping every field. On the plan-workout Out/Create/Update DTOs: add `weekdays: list[int]` and `floating: bool`; remove `day_label`/`day_order`, add `order`. On `SplitOut/Create/Update`: remove `schedule`. **Explicitly rename the session-start payload field `WorkoutStart.routine_id` → `WorkoutStart.workout_id`** (the FK into a plan `Workout`) — this is the "start a session from a plan-workout" input that Task 2.2's test posts and that `source_workout_id` is derived from; if left as `routine_id`, the started session's source stays unset and Task 2.2 fails. Add a validator on `weekdays` (each int in `0..6`, no duplicates) — raise on violation so FastAPI returns 422:
 
 ```python
 from pydantic import field_validator
@@ -115,7 +116,7 @@ git mv workouts.py sessions.py
 git mv routines.py workouts.py
 ```
 
-- [ ] **Step 2: In `sessions.py`** (was workouts.py): `router = APIRouter(prefix="/sessions", tags=["sessions"])`; update model imports `Workout→Session`, `WorkoutExercise→SessionExercise`; `source_routine_id`→`source_workout_id`; helper/var names `workout`→`session`; the "start from a routine" logic reads a plan `Workout` by id and snapshots its `WorkoutExercise` targets onto `SessionExercise`.
+- [ ] **Step 2: In `sessions.py`** (was workouts.py): `router = APIRouter(prefix="/sessions", tags=["sessions"])`; update model imports `Workout→Session`, `WorkoutExercise→SessionExercise`; `source_routine_id`→`source_workout_id`; `start_workout` reads `payload.workout_id` (renamed in Task 1.2) to set `source_workout_id`; helper/var names `workout`→`session`; the "start from a plan" logic reads a plan `Workout` by id and snapshots its `WorkoutExercise` targets onto `SessionExercise`. **Name-collision note:** this file imports both the SQLAlchemy `Session` (type of `db`) and the ORM model `Session`. It's benign at runtime because `from __future__ import annotations` makes the `db: Session` annotation an unevaluated string and `Depends(get_db)` supplies the value — but for clarity import the SA session type as `from sqlalchemy.orm import Session as SASession` and annotate `db: SASession`. Apply the same convention wherever both are imported (`splits.py`, `stats.py`).
 
 - [ ] **Step 3: In `workouts.py`** (was routines.py): `router = APIRouter(prefix="/workouts", tags=["workouts"])`; `Routine→Workout`, `RoutineExercise→WorkoutExercise`; accept/return `weekdays`+`floating`, drop `day_label`/`day_order`, use `order`.
 
@@ -178,7 +179,9 @@ from ..models import Session, Workout
 from ..schemas import TodayWorkout
 
 def _week_start(now: datetime) -> datetime:
-    """Sunday 00:00 UTC of the current week (weekday(): Mon=0..Sun=6)."""
+    """Sunday 00:00 of the current week. Uses UTC (sessions store started_at in
+    UTC and no per-user timezone is tracked) — a deliberate deviation from the
+    spec's 'local'; revisit if user timezones are added. weekday(): Mon=0..Sun=6."""
     days_since_sun = (now.weekday() + 1) % 7
     d = (now - timedelta(days=days_since_sun)).replace(hour=0, minute=0, second=0, microsecond=0)
     return d
@@ -194,7 +197,7 @@ def _done_this_week(db, user_id, workout_id, now) -> bool:
     ) is not None
 
 @router.get("/today", response_model=list[TodayWorkout])
-def today(db: Session_ = Depends(get_db), user: User = Depends(get_current_user)):
+def today(db: SASession = Depends(get_db), user: User = Depends(get_current_user)):
     now = datetime.now(timezone.utc)
     weekday = (now.weekday() + 1) % 7  # 0=Sun..6=Sat
     active = db.scalar(select(Split).where(Split.owner_id == user.id, Split.is_active.is_(True)))
@@ -210,7 +213,7 @@ def today(db: Session_ = Depends(get_db), user: User = Depends(get_current_user)
     return out
 ```
 
-Note: alias the SQLAlchemy `Session` type import as `Session_` in the `Depends(get_db)` signature to avoid clashing with the `Session` model; or keep the ORM model imported as `Session` and type the db param as `SASession`. Pick one consistently across the file.
+Note: import the SQLAlchemy session type as `from sqlalchemy.orm import Session as SASession` and annotate `db: SASession` throughout the file, so it never clashes with the ORM `Session` model (same convention as `sessions.py`/`stats.py`).
 
 - [ ] **Step 4: Run tests, expect PASS.** Run: `cd api && .venv/bin/python -m pytest tests/test_splits.py -q`.
 
@@ -228,11 +231,11 @@ git commit -m "feat(splits): GET /splits/today with derived done-this-week"
 - Modify: `api/app/ai/base.py`, `api/app/ai/prompts.py`, `api/app/ai/service.py`
 - Modify: `api/app/ai/companion_setup.py`
 
-- [ ] **Step 1: `stats.py`** — repoint queries to `Session`/`SessionExercise`/`session_exercise_id`. Add a one-line comment above the `week_ago` calc: `# rolling 7-day volume window — intentionally NOT the split's Sunday-based "done this week"`.
+- [ ] **Step 1: `stats.py`** — repoint queries to `Session`/`SessionExercise`/`session_exercise_id`. Import the ORM model as `Session` and the SA session type as `SASession` (it currently imports `from sqlalchemy.orm import Session`) so `select(Session)` (model) and `db: SASession` (type) don't collide. Add a one-line comment above the `week_ago` calc: `# rolling 7-day volume window — intentionally NOT the split's Sunday-based "done this week"`.
 
 - [ ] **Step 2: AI import pipeline** — mechanical `Routine→Workout` rename of the symbols listed in the spec's "AI import pipeline" section (`ParsedRoutine`, `ParsedRoutineExercise`, `ParsedProgram.routines`, `PROGRAM_SCHEMA`/`_ROUTINE_EXERCISE_ITEM`, `EDIT_ROUTINE_SCHEMA`, `EditedRoutine`, `_build_routine_result`, `routine_system_prompt`, `edit_routine_*`, and route names `/parse-routine*`→`/parse-workout*`, `/edit-routine/stream`→`/edit-workout/stream`, `RoutineRequest`→`WorkoutRequest`, `EditRoutineRequest`→`EditWorkoutRequest`). The `_match`/`_stem` matcher is untouched.
 
-- [ ] **Step 3: `companion_setup.py`** — update `EXPOSE` to `GET/POST /api/workouts*`, `GET/POST /api/sessions*`, `PATCH /api/sessions/*`, `GET /api/splits*`, `GET /api/stats/*`; keep `EXCLUDE` for auth/settings/profile/ai.
+- [ ] **Step 3: `companion_setup.py`** — update `EXPOSE` to `GET/POST /api/workouts*`, `GET/POST /api/sessions*`, `PATCH /api/sessions/*`, `GET /api/splits*`, `GET /api/stats/*`; keep `EXCLUDE` for auth/settings/profile/ai. **Deliberate parity:** the old allowlist exposed `PATCH /api/workouts/*` (logged bouts, now `sessions`) but not `PATCH` on plans (`routines`) — so plan editing stays off-limits to the coach, unchanged. Only add `PATCH /api/workouts/*` if you intend to newly let the coach edit plans (out of scope here).
 
 - [ ] **Step 4: Verify import.** Run: `cd api && .venv/bin/python -c "import app.main; print('ok')"` → `ok`.
 
