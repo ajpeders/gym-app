@@ -124,6 +124,8 @@ export interface WorkoutSet {
   order?: number;
   completed?: boolean;
   notes?: string | null;
+  /** Client-only: logged locally, not yet pushed to the server. */
+  pending?: boolean;
 }
 
 export interface WorkoutExercise {

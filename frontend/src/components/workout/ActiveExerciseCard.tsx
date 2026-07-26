@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import { Keyboard, Pressable, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 
 import type { SetInput, Units, WorkoutExercise } from '@/api/types';
 import { Text } from '@/components/ui/Text';
 import { Card } from '@/components/ui/Card';
+import { ExerciseThumb } from '@/components/ExerciseThumb';
 import { formatRepRange, titleCase } from '@/lib/format';
 
 interface Props {
@@ -27,6 +29,7 @@ export function ActiveExerciseCard({
   onRemoveSet,
   onRemoveExercise,
 }: Props) {
+  const router = useRouter();
   const sets = workoutExercise.sets ?? [];
   const last = sets[sets.length - 1];
   const [reps, setReps] = useState('');
@@ -95,13 +98,24 @@ export function ActiveExerciseCard({
   return (
     <Card className="mb-3">
       <View className="flex-row items-center justify-between">
-        <View className="mr-3 h-10 w-10 items-center justify-center rounded-lg border border-brand/30 bg-brand/10">
-          <Ionicons name="barbell-outline" size={20} color="#f97316" />
-        </View>
-        <View className="flex-1">
-          <Text variant="subheading" numberOfLines={1}>
-            {name}
-          </Text>
+        <Pressable
+          onPress={() => router.push(`/exercise/${workoutExercise.exercise_id}`)}
+          accessibilityRole="button"
+          accessibilityLabel={`How to do ${name}`}
+          className="mr-3 flex-1 flex-row items-center active:opacity-70">
+          <ExerciseThumb images={workoutExercise.exercise?.images} size={40} radius={8} />
+          <View className="ml-3 flex-1">
+            <View className="flex-row items-center">
+              <Text variant="subheading" numberOfLines={1} className="flex-shrink">
+                {name}
+              </Text>
+              <Ionicons
+                name="information-circle-outline"
+                size={15}
+                color="#f97316"
+                style={{ marginLeft: 5 }}
+              />
+            </View>
           {targetLabel ? (
             <Text variant="caption" numberOfLines={1} className="mt-0.5 font-semibold text-brand">
               Target: {targetLabel}
@@ -111,7 +125,8 @@ export function ActiveExerciseCard({
               {workoutExercise.exercise.primary_muscles.map(titleCase).join(', ')}
             </Text>
           ) : null}
-        </View>
+          </View>
+        </Pressable>
         <Pressable
           onPress={onRemoveExercise}
           hitSlop={8}
@@ -155,6 +170,14 @@ export function ActiveExerciseCard({
                 <Text variant="body" className="w-12">
                   {s.rpe ?? '-'}
                 </Text>
+                {s.pending ? (
+                  <Ionicons
+                    name="cloud-upload-outline"
+                    size={14}
+                    color="#a8a29e"
+                    style={{ marginRight: 4 }}
+                  />
+                ) : null}
                 <Pressable
                   onPress={() => onRemoveSet(s.id)}
                   hitSlop={8}

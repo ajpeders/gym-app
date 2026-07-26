@@ -41,6 +41,8 @@ export default function ActiveWorkoutScreen() {
     removeExercise,
     finish,
     discard,
+    pendingCount,
+    sync,
   } = useActiveWorkout();
 
   const [ready, setReady] = useState(false);
@@ -145,6 +147,21 @@ export default function ActiveWorkoutScreen() {
             value={`${Math.round(totalVolume)} ${settings.units}`}
           />
         </View>
+
+        {pendingCount > 0 ? (
+          <Pressable
+            onPress={() => void sync()}
+            className="mb-3 flex-row items-center rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2.5 active:opacity-70">
+            <Ionicons name="cloud-offline-outline" size={16} color="#fbbf24" />
+            <Text variant="caption" className="ml-2 flex-1 font-semibold text-amber-300">
+              {pendingCount} set{pendingCount === 1 ? '' : 's'} saved on this device — will sync
+              automatically
+            </Text>
+            <Text variant="caption" className="font-bold text-amber-300">
+              Retry
+            </Text>
+          </Pressable>
+        ) : null}
 
         {/* natural-language set logging */}
         <NaturalLanguageLog workoutId={workout.id} units={settings.units} onApplied={refresh} />
