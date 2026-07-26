@@ -361,7 +361,6 @@ class SettingsOut(BaseModel):
     ollama_model: Optional[str] = None
     claude_model: Optional[str] = None
     feature_flags: dict[str, Any] = {}
-    rest_timer_default: int
 
 
 class SettingsUpdate(BaseModel):
@@ -373,7 +372,6 @@ class SettingsUpdate(BaseModel):
     claude_api_key: Optional[str] = None  # write-only; never returned in SettingsOut
     claude_model: Optional[str] = None
     feature_flags: Optional[dict[str, Any]] = None
-    rest_timer_default: Optional[int] = None
 
 
 # ---------------------------------------------------------------------------

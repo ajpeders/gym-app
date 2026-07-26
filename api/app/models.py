@@ -64,7 +64,6 @@ class Settings(Base):
     feature_flags: Mapped[dict[str, Any]] = mapped_column(
         JSON, default=lambda: {"quick_buttons": True, "in_set_prompts": False}
     )
-    rest_timer_default: Mapped[int] = mapped_column(Integer, default=120)
 
     user: Mapped["User"] = relationship(back_populates="settings")
 

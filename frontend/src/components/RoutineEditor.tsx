@@ -82,8 +82,8 @@ export function RoutineEditor({
 
   // Load an AI proposal into the draft form for review — the form is the final
   // review surface, so nothing persists until the user taps Save. Exercises the
-  // matcher couldn't resolve (no exercise_id) are dropped. Rest timers are kept
-  // from the matching existing exercise, else the user's default.
+  // matcher couldn't resolve (no exercise_id) are dropped. Planned rest is kept
+  // from the matching existing exercise, else left blank.
   function applyProposal(p: RoutineEditProposal) {
     const prevRest = new Map(exercises.map((e) => [e.exercise_id, e.rest_seconds]));
     const drafts: DraftExercise[] = p.exercises
@@ -96,7 +96,7 @@ export function RoutineEditor({
           target_sets: e.target_sets != null ? String(e.target_sets) : '',
           target_reps: formatRepRange(e.target_reps, e.target_reps_max) ?? '',
           target_weight: e.target_weight != null ? String(e.target_weight) : '',
-          rest_seconds: prevRest.get(id) ?? String(settings.rest_timer_default),
+          rest_seconds: prevRest.get(id) ?? '',
         };
       });
     if (p.name.trim()) setName(p.name.trim());
@@ -115,7 +115,7 @@ export function RoutineEditor({
         target_sets: '3',
         target_reps: '8',
         target_weight: '',
-        rest_seconds: String(settings.rest_timer_default),
+        rest_seconds: '',
       },
     ]);
     setPicking(false);

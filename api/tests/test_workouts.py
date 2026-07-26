@@ -137,7 +137,6 @@ def test_settings_and_stats(client, auth):
     s = client.get("/api/settings", headers=headers)
     assert s.status_code == 200
     assert s.json()["units"] == "kg"
-    assert s.json()["rest_timer_default"] == 120
 
     upd = client.patch(
         "/api/settings",

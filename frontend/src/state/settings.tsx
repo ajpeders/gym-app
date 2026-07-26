@@ -9,7 +9,6 @@ const DEFAULT_SETTINGS: Settings = {
   feature_flags: { quick_buttons: true, in_set_prompts: false },
   ai_provider: 'ollama',
   ai_model: null,
-  rest_timer_default: 90,
 };
 
 interface SettingsContextValue {

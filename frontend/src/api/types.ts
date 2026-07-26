@@ -207,7 +207,6 @@ export interface Settings {
   ollama_model?: string | null;
   claude_model?: string | null;
   ollama_url?: string | null;
-  rest_timer_default: number;
 }
 
 // Write-only settings patch. `claude_api_key` is accepted by PATCH /settings
