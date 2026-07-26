@@ -9,10 +9,30 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      # Byte-compile the FastAPI backend — catches syntax errors without
-      # installing runtime deps.
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      # Fast fail on syntax errors before the slower dependency install.
       - name: python compile check
         run: python3 -m compileall -q api/app
+      - name: install deps
+        working-directory: api
+        env:
+          # `companion` lives in a PRIVATE Forgejo repo, so pip's git clone needs
+          # credentials. Define FORGEJO_TOKEN in this repo's Actions secrets
+          # (Settings → Actions → Secrets). Best-effort: if the secret is absent
+          # the install still tries an unauthenticated clone.
+          FORGEJO_TOKEN: ${{ secrets.FORGEJO_TOKEN }}
+        run: |
+          if [ -n "$FORGEJO_TOKEN" ]; then
+            git config --global credential.helper store
+            printf 'https://oauth2:%s@git.thelunadog.com\n' "$FORGEJO_TOKEN" > "$HOME/.git-credentials"
+          fi
+          python3 -m pip install --no-cache-dir -r requirements.txt
+          rm -f "$HOME/.git-credentials"
+      - name: pytest
+        working-directory: api
+        run: python3 -m pytest -q
   web:
     runs-on: ubuntu-latest
     steps:
