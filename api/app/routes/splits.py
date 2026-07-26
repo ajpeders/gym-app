@@ -1,13 +1,15 @@
 """Split (weekly plan) CRUD — a plan owns several day-workouts + rules."""
 from __future__ import annotations
 
+from datetime import datetime, timedelta, timezone
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session as SASession
 
 from ..db import get_db
-from ..models import Split, User, Workout
-from ..schemas import SplitCreate, SplitOut, SplitUpdate
+from ..models import Session, Split, User, Workout
+from ..schemas import SplitCreate, SplitOut, SplitUpdate, TodayWorkout
 from ..security import get_current_user
 
 router = APIRouter(prefix="/splits", tags=["splits"])
@@ -48,6 +50,32 @@ def create_split(
     db.commit()
     db.refresh(split)
     return SplitOut.model_validate(split)
+
+
+def _week_start(now: datetime) -> datetime:
+    # Sunday 00:00 UTC (sessions store started_at in UTC; no per-user tz tracked).
+    days_since_sun = (now.weekday() + 1) % 7
+    return (now - timedelta(days=days_since_sun)).replace(hour=0, minute=0, second=0, microsecond=0)
+
+
+def _done_this_week(db: SASession, user_id: int, workout_id: int, now: datetime) -> bool:
+    return db.scalar(select(Session.id).where(
+        Session.owner_id == user_id,
+        Session.source_workout_id == workout_id,
+        Session.started_at >= _week_start(now),
+    ).limit(1)) is not None
+
+
+@router.get("/today", response_model=list[TodayWorkout])
+def today(db: SASession = Depends(get_db), user: User = Depends(get_current_user)):
+    now = datetime.now(timezone.utc)
+    weekday = (now.weekday() + 1) % 7  # 0=Sun..6=Sat
+    active = db.scalar(select(Split).where(Split.owner_id == user.id, Split.is_active.is_(True)))
+    if active is None:
+        return []
+    return [TodayWorkout(id=w.id, name=w.name, floating=w.floating, weekdays=w.weekdays,
+                         done_this_week=_done_this_week(db, user.id, w.id, now))
+            for w in active.workouts if weekday in (w.weekdays or [])]
 
 
 @router.get("/{split_id}", response_model=SplitOut)
