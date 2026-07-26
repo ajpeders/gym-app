@@ -26,12 +26,12 @@ jobs:
         run: python3 -m compileall -q api/app
       - name: install deps
         working-directory: api
-        # `companion` (public repo on our forgejo) is a git+ssh dep in
-        # requirements.txt for dev machines. The CI sandbox can't reach
-        # git.thelunadog.com (hairpin NAT is dropped) or SSH, but anonymous
-        # http to forgejo:3000 works — rewrite the URL for this job only.
+        # `companion` (public repo on our forgejo) is a git+https dep in
+        # requirements.txt. The CI sandbox can't reach git.thelunadog.com
+        # (resolves to a firewalled RFC1918 address), but anonymous http to
+        # forgejo:3000 works — rewrite the URL for this job only.
         run: |
-          git config --global url."http://forgejo:3000/".insteadOf "ssh://git@git.thelunadog.com/"
+          git config --global url."http://forgejo:3000/".insteadOf "https://git.thelunadog.com/"
           python3 -m pip install --no-cache-dir -r requirements.txt
       - name: pytest
         working-directory: api
