@@ -87,3 +87,11 @@ export function parseRepRange(input: string): { min: number | null; max: number 
 export function formatLoad(weight: number | null | undefined, units: string): string {
   return weight == null ? 'BW' : `${weight} ${units}`;
 }
+
+/** Wall-clock time a set was logged, e.g. "6:42 PM". Empty when unknown. */
+export function formatTimeOfDay(iso: string | null | undefined): string {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  return d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+}

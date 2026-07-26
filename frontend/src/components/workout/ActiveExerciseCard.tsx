@@ -7,7 +7,7 @@ import type { SetInput, Units, WorkoutExercise } from '@/api/types';
 import { Text } from '@/components/ui/Text';
 import { Card } from '@/components/ui/Card';
 import { ExerciseThumb } from '@/components/ExerciseThumb';
-import { formatLoad, formatRepRange, titleCase } from '@/lib/format';
+import { formatLoad, formatRepRange, formatTimeOfDay, titleCase } from '@/lib/format';
 
 interface Props {
   workoutExercise: WorkoutExercise;
@@ -178,6 +178,10 @@ export function ActiveExerciseCard({
                     color="#a8a29e"
                     style={{ marginRight: 4 }}
                   />
+                ) : s.completed_at ? (
+                  <Text variant="caption" className="mr-1 text-iron-500">
+                    {formatTimeOfDay(s.completed_at)}
+                  </Text>
                 ) : null}
                 <Pressable
                   onPress={() => onRemoveSet(s.id)}

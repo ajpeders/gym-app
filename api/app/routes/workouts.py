@@ -327,7 +327,11 @@ def add_set(
         rpe=payload.rpe,
         set_type=payload.set_type,
         completed=payload.completed,
-        completed_at=utcnow() if payload.completed else None,
+        completed_at=(
+            _resolve_started_at(payload.completed_at)
+            if payload.completed_at is not None
+            else (utcnow() if payload.completed else None)
+        ),
         notes=payload.notes,
     )
     db.add(entry)

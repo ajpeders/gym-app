@@ -216,6 +216,10 @@ class SetCreate(BaseModel):
     completed: bool = True
     set_number: Optional[int] = None
     notes: Optional[str] = None
+    # When the set was actually performed. The client sends this so a set
+    # logged offline keeps its real time instead of being stamped when it
+    # finally syncs. Omitted -> now.
+    completed_at: Optional[datetime] = None
 
 
 class SetUpdate(BaseModel):

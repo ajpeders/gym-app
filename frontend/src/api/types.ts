@@ -125,6 +125,8 @@ export interface WorkoutSet {
   order?: number;
   completed?: boolean;
   notes?: string | null;
+  /** When the set was performed. */
+  completed_at?: string | null;
   /** Client-only: logged locally, not yet pushed to the server. */
   pending?: boolean;
 }
@@ -163,6 +165,8 @@ export interface SetInput {
   rpe?: number | null;
   set_type?: SetType;
   notes?: string | null;
+  /** ISO time the set was actually performed (kept accurate across offline sync). */
+  completed_at?: string;
 }
 
 export interface Metric {

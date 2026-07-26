@@ -202,7 +202,12 @@ export function ActiveWorkoutProvider({ children }: { children: React.ReactNode 
     syncing.current = true;
     try {
       const send = async (e: QueuedSet) => {
-        await api.addSet(e.workoutId, e.weId, e.input);
+        // Stamp with when the set was actually logged, not when it synced —
+        // otherwise a whole offline session collapses onto one timestamp.
+        await api.addSet(e.workoutId, e.weId, {
+          ...e.input,
+          completed_at: e.input.completed_at ?? new Date(e.createdAt).toISOString(),
+        });
       };
       const { synced, remaining } = await flushQueue(send);
       setPendingCount(remaining);
