@@ -23,6 +23,25 @@ const DATE_PRESETS: { label: string; days: number }[] = [
   { label: 'A week ago', days: 7 },
 ];
 
+/**
+ * Capture time from EXIF. Cameras write "YYYY:MM:DD HH:MM:SS" (colons in the
+ * date part), which Date can't parse directly.
+ */
+function exifTakenAt(asset: ImagePicker.ImagePickerAsset): string | null {
+  const exif = asset.exif as Record<string, unknown> | undefined;
+  const raw =
+    (exif?.DateTimeOriginal as string | undefined) ??
+    (exif?.DateTimeDigitized as string | undefined) ??
+    (exif?.DateTime as string | undefined);
+  if (typeof raw !== 'string') return null;
+  const m = raw.match(/^(\d{4}):(\d{2}):(\d{2})[ T](\d{2}):(\d{2}):(\d{2})/);
+  if (!m) return null;
+  const [, y, mo, d, h, mi, sec] = m;
+  const dt = new Date(Number(y), Number(mo) - 1, Number(d), Number(h), Number(mi), Number(sec));
+  if (Number.isNaN(dt.getTime()) || dt.getTime() > Date.now() + 86400000) return null;
+  return dt.toISOString();
+}
+
 function isoForDaysBack(days: number): string {
   const d = new Date();
   d.setDate(d.getDate() - days);
@@ -59,6 +78,10 @@ export default function ProgressScreen() {
   const [pending, setPending] = useState<ImagePicker.ImagePickerAsset | null>(null);
   const [daysBack, setDaysBack] = useState(0);
   const [notes, setNotes] = useState('');
+  // Capture date read from the image's EXIF, when it has one.
+  const [exifDate, setExifDate] = useState<string | null>(null);
+  // Set when the user overrides the EXIF date with a preset.
+  const [overrideDate, setOverrideDate] = useState(false);
 
   // Full-screen viewer.
   const [viewing, setViewing] = useState<ProgressPhoto | null>(null);
@@ -92,10 +115,18 @@ export default function ProgressScreen() {
       return;
     }
     const result = fromCamera
-      ? await ImagePicker.launchCameraAsync({ quality: 0.7, allowsEditing: false })
-      : await ImagePicker.launchImageLibraryAsync({ quality: 0.7, mediaTypes: ['images'] });
+      ? await ImagePicker.launchCameraAsync({ quality: 0.7, allowsEditing: false, exif: true })
+      : await ImagePicker.launchImageLibraryAsync({
+          quality: 0.7,
+          mediaTypes: ['images'],
+          exif: true,
+        });
     if (result.canceled || !result.assets?.[0]) return;
-    setPending(result.assets[0]);
+    const asset = result.assets[0];
+    setPending(asset);
+    // Prefer the date the photo was actually taken — picking an old gym photo
+    // from the library should date it then, not today.
+    setExifDate(exifTakenAt(asset));
     setDaysBack(0);
     setNotes('');
   }
@@ -117,10 +148,12 @@ export default function ProgressScreen() {
         uri: pending.uri,
         mimeType: pending.mimeType,
         fileName: pending.fileName,
-        takenAt: isoForDaysBack(daysBack),
+        takenAt: !overrideDate && exifDate ? exifDate : isoForDaysBack(daysBack),
         notes: notes.trim() || undefined,
       });
       setPending(null);
+      setExifDate(null);
+      setOverrideDate(false);
       await fetch();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Upload failed');
@@ -196,13 +229,38 @@ export default function ProgressScreen() {
             <Text variant="label" className="mb-1.5 mt-4 text-iron-300">
               When was this taken?
             </Text>
+
+            {exifDate ? (
+              <Pressable
+                onPress={() => setOverrideDate(false)}
+                className={`mb-2 flex-row items-center rounded-lg border px-3 py-2.5 ${
+                  overrideDate ? 'border-iron-700 bg-iron-900' : 'border-brand bg-brand/15'
+                }`}>
+                <Ionicons
+                  name={overrideDate ? 'ellipse-outline' : 'checkmark-circle'}
+                  size={16}
+                  color={overrideDate ? '#78716c' : '#f97316'}
+                />
+                <Text
+                  variant="caption"
+                  className={`ml-2 flex-1 font-semibold ${
+                    overrideDate ? 'text-iron-300' : 'text-brand'
+                  }`}>
+                  From photo: {formatDate(exifDate)}
+                </Text>
+              </Pressable>
+            ) : null}
+
             <View className="flex-row flex-wrap gap-2">
               {DATE_PRESETS.map((preset) => {
-                const active = preset.days === daysBack;
+                const active = preset.days === daysBack && (!exifDate || overrideDate);
                 return (
                   <Pressable
                     key={preset.days}
-                    onPress={() => setDaysBack(preset.days)}
+                    onPress={() => {
+                      setDaysBack(preset.days);
+                      setOverrideDate(true);
+                    }}
                     className={`rounded-full border px-3.5 py-2 ${
                       active ? 'border-brand bg-brand/20' : 'border-iron-700 bg-iron-900'
                     }`}>
