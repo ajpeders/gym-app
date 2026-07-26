@@ -12,7 +12,6 @@ from sqlalchemy import (
     Integer,
     String,
     Text,
-    UniqueConstraint,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.types import JSON
@@ -36,10 +35,7 @@ class User(Base):
     settings: Mapped[Optional["Settings"]] = relationship(
         back_populates="user", uselist=False, cascade="all, delete-orphan"
     )
-    routines: Mapped[list["Routine"]] = relationship(
-        back_populates="owner", cascade="all, delete-orphan"
-    )
-    workouts: Mapped[list["Workout"]] = relationship(
+    sessions: Mapped[list["Session"]] = relationship(
         back_populates="owner", cascade="all, delete-orphan"
     )
     metrics: Mapped[list["BodyMetric"]] = relationship(
@@ -87,23 +83,6 @@ class AthleteProfile(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, onupdate=utcnow)
 
 
-class ScheduleDay(Base):
-    """Weekly training schedule — one routine (or rest) per weekday, per user."""
-
-    __tablename__ = "schedule_day"
-    __table_args__ = (UniqueConstraint("user_id", "weekday", name="uq_schedule_user_weekday"),)
-
-    id: Mapped[int] = mapped_column(primary_key=True)
-    user_id: Mapped[int] = mapped_column(
-        ForeignKey("user.id", ondelete="CASCADE"), index=True, nullable=False
-    )
-    weekday: Mapped[int] = mapped_column(Integer, nullable=False)  # 0=Mon .. 6=Sun
-    routine_id: Mapped[Optional[int]] = mapped_column(
-        ForeignKey("routine.id", ondelete="SET NULL"), nullable=True
-    )
-    is_rest: Mapped[bool] = mapped_column(Boolean, default=False)
-
-
 class CoachMessage(Base):
     """Per-user coach conversation history (the coach remembers past chats)."""
 
@@ -146,8 +125,8 @@ class Exercise(Base):
 
 
 class Split(Base):
-    """A weekly training plan that owns several day-routines, plus the weekly
-    schedule and plan-level progression rules."""
+    """A weekly training plan that owns several workouts, plus plan-level
+    progression rules."""
 
     __tablename__ = "split"
 
@@ -156,8 +135,6 @@ class Split(Base):
         ForeignKey("user.id", ondelete="CASCADE"), nullable=False
     )
     name: Mapped[str] = mapped_column(String, nullable=False)
-    # Weekly schedule: list of {"day": "Monday", "label": "Push"} entries.
-    schedule: Mapped[list[Any]] = mapped_column(JSON, default=list)
     # Plan-level progression rules: list of short strings.
     rules: Mapped[list[Any]] = mapped_column(JSON, default=list)
     notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
@@ -166,59 +143,10 @@ class Split(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, onupdate=utcnow)
 
     owner: Mapped["User"] = relationship()
-    routines: Mapped[list["Routine"]] = relationship(
+    workouts: Mapped[list["Workout"]] = relationship(
         back_populates="split",
-        order_by="Routine.day_order",
+        order_by="Workout.order",
     )
-
-
-class Routine(Base):
-    __tablename__ = "routine"
-
-    id: Mapped[int] = mapped_column(primary_key=True)
-    owner_id: Mapped[int] = mapped_column(
-        ForeignKey("user.id", ondelete="CASCADE"), nullable=False
-    )
-    name: Mapped[str] = mapped_column(String, nullable=False)
-    notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    # A routine (day) may belong to a split (weekly plan). Null = standalone.
-    split_id: Mapped[Optional[int]] = mapped_column(
-        ForeignKey("split.id", ondelete="SET NULL"), nullable=True
-    )
-    # Which weekday/slot this day maps to in the split, e.g. "Monday" or "Optional".
-    day_label: Mapped[Optional[str]] = mapped_column(String, nullable=True)
-    # Ordering of days within the split.
-    day_order: Mapped[int] = mapped_column(Integer, default=0)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
-    updated_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, onupdate=utcnow)
-
-    owner: Mapped["User"] = relationship(back_populates="routines")
-    split: Mapped[Optional["Split"]] = relationship(back_populates="routines")
-    exercises: Mapped[list["RoutineExercise"]] = relationship(
-        back_populates="routine",
-        cascade="all, delete-orphan",
-        order_by="RoutineExercise.order",
-    )
-
-
-class RoutineExercise(Base):
-    __tablename__ = "routine_exercise"
-
-    id: Mapped[int] = mapped_column(primary_key=True)
-    routine_id: Mapped[int] = mapped_column(
-        ForeignKey("routine.id", ondelete="CASCADE"), nullable=False
-    )
-    exercise_id: Mapped[int] = mapped_column(ForeignKey("exercise.id"), nullable=False)
-    order: Mapped[int] = mapped_column(Integer, default=0)
-    target_sets: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
-    target_reps: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)  # low end of a range
-    target_reps_max: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)  # high end; null = fixed reps
-    target_weight: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
-    rest_seconds: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
-    notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-
-    routine: Mapped["Routine"] = relationship(back_populates="exercises")
-    exercise: Mapped["Exercise"] = relationship()
 
 
 class Workout(Base):
@@ -228,15 +156,23 @@ class Workout(Base):
     owner_id: Mapped[int] = mapped_column(
         ForeignKey("user.id", ondelete="CASCADE"), nullable=False
     )
-    name: Mapped[Optional[str]] = mapped_column(String, nullable=True)
-    started_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
-    finished_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    name: Mapped[str] = mapped_column(String, nullable=False)
     notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    source_routine_id: Mapped[Optional[int]] = mapped_column(
-        ForeignKey("routine.id", ondelete="SET NULL"), nullable=True
+    # A workout (day) may belong to a split (weekly plan). Null = standalone.
+    split_id: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("split.id", ondelete="SET NULL"), nullable=True
     )
+    # Weekdays this workout is scheduled on: 0=Mon .. 6=Sun.
+    weekdays: Mapped[list[int]] = mapped_column(JSON, default=list)
+    # Floating workouts are not pinned to weekdays (do them whenever).
+    floating: Mapped[bool] = mapped_column(Boolean, default=False)
+    # Ordering of workouts within the split.
+    order: Mapped[int] = mapped_column(Integer, default=0)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, onupdate=utcnow)
 
-    owner: Mapped["User"] = relationship(back_populates="workouts")
+    owner: Mapped["User"] = relationship()
+    split: Mapped[Optional["Split"]] = relationship(back_populates="workouts")
     exercises: Mapped[list["WorkoutExercise"]] = relationship(
         back_populates="workout",
         cascade="all, delete-orphan",
@@ -253,19 +189,62 @@ class WorkoutExercise(Base):
     )
     exercise_id: Mapped[int] = mapped_column(ForeignKey("exercise.id"), nullable=False)
     order: Mapped[int] = mapped_column(Integer, default=0)
+    target_sets: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    target_reps: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)  # low end of a range
+    target_reps_max: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)  # high end; null = fixed reps
+    target_weight: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    rest_seconds: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    # Snapshot of the routine's targets taken when the workout was started from
+
+    workout: Mapped["Workout"] = relationship(back_populates="exercises")
+    exercise: Mapped["Exercise"] = relationship()
+
+
+class Session(Base):
+    __tablename__ = "session"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    owner_id: Mapped[int] = mapped_column(
+        ForeignKey("user.id", ondelete="CASCADE"), nullable=False
+    )
+    name: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    started_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+    finished_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    source_workout_id: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("workout.id", ondelete="SET NULL"), nullable=True
+    )
+
+    owner: Mapped["User"] = relationship(back_populates="sessions")
+    exercises: Mapped[list["SessionExercise"]] = relationship(
+        back_populates="session",
+        cascade="all, delete-orphan",
+        order_by="SessionExercise.order",
+    )
+
+
+class SessionExercise(Base):
+    __tablename__ = "session_exercise"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    session_id: Mapped[int] = mapped_column(
+        ForeignKey("session.id", ondelete="CASCADE"), nullable=False
+    )
+    exercise_id: Mapped[int] = mapped_column(ForeignKey("exercise.id"), nullable=False)
+    order: Mapped[int] = mapped_column(Integer, default=0)
+    notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    # Snapshot of the workout's targets taken when the session was started from
     # one, so the logging screen can show what you were aiming for — and history
-    # keeps that intent even if the routine changes later.
+    # keeps that intent even if the workout changes later.
     target_sets: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     target_reps: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     target_reps_max: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     target_weight: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
 
-    workout: Mapped["Workout"] = relationship(back_populates="exercises")
+    session: Mapped["Session"] = relationship(back_populates="exercises")
     exercise: Mapped["Exercise"] = relationship()
     sets: Mapped[list["SetEntry"]] = relationship(
-        back_populates="workout_exercise",
+        back_populates="session_exercise",
         cascade="all, delete-orphan",
         order_by="SetEntry.set_number",
     )
@@ -275,8 +254,8 @@ class SetEntry(Base):
     __tablename__ = "sets"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    workout_exercise_id: Mapped[int] = mapped_column(
-        ForeignKey("workout_exercise.id", ondelete="CASCADE"), nullable=False
+    session_exercise_id: Mapped[int] = mapped_column(
+        ForeignKey("session_exercise.id", ondelete="CASCADE"), nullable=False
     )
     set_number: Mapped[int] = mapped_column(Integer, default=1)
     reps: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
@@ -290,7 +269,7 @@ class SetEntry(Base):
     # Free-text note on an individual set ("left shoulder tight", "easy", …).
     notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
 
-    workout_exercise: Mapped["WorkoutExercise"] = relationship(back_populates="sets")
+    session_exercise: Mapped["SessionExercise"] = relationship(back_populates="sets")
 
 
 class BodyMetric(Base):

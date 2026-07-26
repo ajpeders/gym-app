@@ -33,23 +33,7 @@ SessionLocal = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False
 # Lightweight additive migrations for SQLite (no Alembic yet): columns added to
 # existing tables after first deploy. create_all() only creates missing *tables*,
 # so new columns on existing tables must be ALTERed in. Idempotent.
-_ADDED_COLUMNS: list[tuple[str, str, str]] = [
-    ("settings", "ollama_url", "VARCHAR"),
-    ("settings", "claude_api_key", "VARCHAR"),
-    ("settings", "ollama_model", "VARCHAR"),
-    ("settings", "claude_model", "VARCHAR"),
-    ("routine_exercise", "target_reps_max", "INTEGER"),
-    ("routine", "split_id", "INTEGER"),
-    ("routine", "day_label", "VARCHAR"),
-    ("routine", "day_order", "INTEGER"),
-    ("workout_exercise", "target_sets", "INTEGER"),
-    ("workout_exercise", "target_reps", "INTEGER"),
-    ("workout_exercise", "target_reps_max", "INTEGER"),
-    ("workout_exercise", "target_weight", "FLOAT"),
-    ("sets", "notes", "TEXT"),
-    ("sets", "duration_seconds", "INTEGER"),
-    ("exercise", "tracking_type", "VARCHAR"),
-]
+_ADDED_COLUMNS: list[tuple[str, str, str]] = []
 
 
 def _ensure_columns() -> None:
