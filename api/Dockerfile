@@ -10,9 +10,22 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y --no-install-recommends git \
     && rm -rf /var/lib/apt/lists/*
 
-# Install dependencies first for better layer caching
+# Install dependencies first for better layer caching.
+# `companion` lives in a PRIVATE Forgejo repo, so pip's git clone needs
+# credentials. They arrive as a BuildKit secret (never baked into an image
+# layer) and the credential file is deleted in the same RUN. If the secret is
+# absent the build still works for a public repo.
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN --mount=type=secret,id=forgejo_token \
+    if [ -s /run/secrets/forgejo_token ]; then \
+      git config --global credential.helper store && \
+      printf 'https://oauth2:%s@git.thelunadog.com\n' "$(cat /run/secrets/forgejo_token)" \
+        > /root/.git-credentials ; \
+    fi ; \
+    pip install --no-cache-dir -r requirements.txt ; \
+    status=$? ; \
+    rm -f /root/.git-credentials ; \
+    exit $status
 
 # Copy application source + tests
 COPY app ./app

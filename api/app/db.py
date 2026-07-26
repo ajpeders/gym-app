@@ -42,6 +42,11 @@ _ADDED_COLUMNS: list[tuple[str, str, str]] = [
     ("routine", "split_id", "INTEGER"),
     ("routine", "day_label", "VARCHAR"),
     ("routine", "day_order", "INTEGER"),
+    ("workout_exercise", "target_sets", "INTEGER"),
+    ("workout_exercise", "target_reps", "INTEGER"),
+    ("workout_exercise", "target_reps_max", "INTEGER"),
+    ("workout_exercise", "target_weight", "FLOAT"),
+    ("sets", "notes", "TEXT"),
 ]
 
 

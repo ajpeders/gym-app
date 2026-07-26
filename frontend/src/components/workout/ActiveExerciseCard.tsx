@@ -5,7 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import type { SetInput, Units, WorkoutExercise } from '@/api/types';
 import { Text } from '@/components/ui/Text';
 import { Card } from '@/components/ui/Card';
-import { titleCase } from '@/lib/format';
+import { formatRepRange, titleCase } from '@/lib/format';
 
 interface Props {
   workoutExercise: WorkoutExercise;
@@ -32,9 +32,28 @@ export function ActiveExerciseCard({
   const [reps, setReps] = useState('');
   const [weight, setWeight] = useState('');
   const [rpe, setRpe] = useState('');
+  const [note, setNote] = useState('');
   const [saving, setSaving] = useState(false);
 
   const name = workoutExercise.exercise?.name ?? 'Exercise';
+
+  // Target snapshot from the routine this workout started from, e.g. "3 x 8-12 @ 25kg".
+  const targetReps = formatRepRange(
+    workoutExercise.target_reps ?? null,
+    workoutExercise.target_reps_max ?? null,
+  );
+  const targetLabel = [
+    workoutExercise.target_sets != null && targetReps
+      ? `${workoutExercise.target_sets} x ${targetReps}`
+      : workoutExercise.target_sets != null
+        ? `${workoutExercise.target_sets} sets`
+        : targetReps
+          ? `${targetReps} reps`
+          : null,
+    workoutExercise.target_weight != null ? `@ ${workoutExercise.target_weight}${units}` : null,
+  ]
+    .filter(Boolean)
+    .join(' ');
 
   async function submit(input: SetInput) {
     setSaving(true);
@@ -43,6 +62,7 @@ export function ActiveExerciseCard({
       setReps('');
       setWeight('');
       setRpe('');
+      setNote('');
     } finally {
       setSaving(false);
     }
@@ -56,7 +76,8 @@ export function ActiveExerciseCard({
       reps: r,
       weight: w,
       rpe: rpe ? parseFloat(rpe) : null,
-      set_type: 'normal',
+      set_type: 'working',
+      notes: note.trim() || null,
     });
   }
 
@@ -66,7 +87,7 @@ export function ActiveExerciseCard({
       reps: last.reps,
       weight: last.weight,
       rpe: last.rpe ?? null,
-      set_type: last.set_type ?? 'normal',
+      set_type: last.set_type ?? 'working',
     });
   }
 
@@ -80,7 +101,11 @@ export function ActiveExerciseCard({
           <Text variant="subheading" numberOfLines={1}>
             {name}
           </Text>
-          {workoutExercise.exercise?.primary_muscles?.length ? (
+          {targetLabel ? (
+            <Text variant="caption" numberOfLines={1} className="mt-0.5 font-semibold text-brand">
+              Target: {targetLabel}
+            </Text>
+          ) : workoutExercise.exercise?.primary_muscles?.length ? (
             <Text variant="caption" numberOfLines={1} className="mt-0.5">
               {workoutExercise.exercise.primary_muscles.map(titleCase).join(', ')}
             </Text>
@@ -115,29 +140,34 @@ export function ActiveExerciseCard({
             <View className="w-8" />
           </View>
           {sets.map((s, i) => (
-            <View
-              key={s.id}
-              className="flex-row items-center rounded-lg bg-iron-850 px-1 py-2">
-              <Text variant="label" className="w-10 text-center">
-                {i + 1}
-              </Text>
-              <Text variant="body" className="flex-1">
-                {s.weight} {units}
-              </Text>
-              <Text variant="body" className="flex-1">
-                {s.reps}
-              </Text>
-              <Text variant="body" className="w-12">
-                {s.rpe ?? '-'}
-              </Text>
-              <Pressable
-                onPress={() => onRemoveSet(s.id)}
-                hitSlop={8}
-                accessibilityRole="button"
-                accessibilityLabel={`Remove set ${i + 1}`}
-                className="w-8 items-center active:opacity-60">
-                <Ionicons name="close" size={17} color="#ef4444" />
-              </Pressable>
+            <View key={s.id} className="rounded-lg bg-iron-850 px-1 py-2">
+              <View className="flex-row items-center">
+                <Text variant="label" className="w-10 text-center">
+                  {i + 1}
+                </Text>
+                <Text variant="body" className="flex-1">
+                  {s.weight} {units}
+                </Text>
+                <Text variant="body" className="flex-1">
+                  {s.reps}
+                </Text>
+                <Text variant="body" className="w-12">
+                  {s.rpe ?? '-'}
+                </Text>
+                <Pressable
+                  onPress={() => onRemoveSet(s.id)}
+                  hitSlop={8}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Remove set ${i + 1}`}
+                  className="w-8 items-center active:opacity-60">
+                  <Ionicons name="close" size={17} color="#ef4444" />
+                </Pressable>
+              </View>
+              {s.notes ? (
+                <Text variant="caption" className="mt-1 pl-10 text-iron-400" numberOfLines={2}>
+                  {s.notes}
+                </Text>
+              ) : null}
             </View>
           ))}
         </View>
@@ -198,6 +228,16 @@ export function ActiveExerciseCard({
           <Text className="font-bold text-iron-950">Log set</Text>
         </Pressable>
       </View>
+
+      {/* optional per-set note */}
+      <TextInput
+        value={note}
+        onChangeText={setNote}
+        placeholder="Note for this set (optional)"
+        placeholderTextColor="#78716c"
+        selectionColor="#f97316"
+        className="mt-2 min-h-[40px] rounded-lg border border-iron-700 bg-iron-950 px-3 py-2 text-sm text-iron-50"
+      />
 
       {/* quick-add buttons */}
       {quickButtons && last ? (

@@ -205,6 +205,7 @@ class SetOut(BaseModel):
     set_type: str
     completed: bool
     completed_at: Optional[datetime] = None
+    notes: Optional[str] = None
 
 
 class SetCreate(BaseModel):
@@ -214,6 +215,7 @@ class SetCreate(BaseModel):
     set_type: str = "working"
     completed: bool = True
     set_number: Optional[int] = None
+    notes: Optional[str] = None
 
 
 class SetUpdate(BaseModel):
@@ -223,6 +225,7 @@ class SetUpdate(BaseModel):
     set_type: Optional[str] = None
     completed: Optional[bool] = None
     set_number: Optional[int] = None
+    notes: Optional[str] = None
 
 
 class WorkoutExerciseOut(BaseModel):
@@ -233,6 +236,10 @@ class WorkoutExerciseOut(BaseModel):
     exercise_id: int
     order: int
     notes: Optional[str] = None
+    target_sets: Optional[int] = None
+    target_reps: Optional[int] = None
+    target_reps_max: Optional[int] = None
+    target_weight: Optional[float] = None
     exercise: Optional[ExerciseOut] = None
     sets: list[SetOut] = []
 

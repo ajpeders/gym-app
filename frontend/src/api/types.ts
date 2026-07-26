@@ -2,7 +2,7 @@
 
 export type Units = 'kg' | 'lb';
 export type AiProvider = 'ollama' | 'claude' | 'on-device';
-export type SetType = 'normal' | 'warmup' | 'drop' | 'failure';
+export type SetType = 'working' | 'warmup' | 'drop' | 'failure' | 'normal';
 
 export interface User {
   id: string;
@@ -123,6 +123,7 @@ export interface WorkoutSet {
   set_type: SetType;
   order?: number;
   completed?: boolean;
+  notes?: string | null;
 }
 
 export interface WorkoutExercise {
@@ -130,6 +131,12 @@ export interface WorkoutExercise {
   exercise_id: string;
   exercise?: Exercise;
   order: number;
+  notes?: string | null;
+  // Snapshot of the routine's targets when this workout was started from one.
+  target_sets?: number | null;
+  target_reps?: number | null;
+  target_reps_max?: number | null;
+  target_weight?: number | null;
   sets: WorkoutSet[];
 }
 
@@ -151,6 +158,7 @@ export interface SetInput {
   weight: number;
   rpe?: number | null;
   set_type?: SetType;
+  notes?: string | null;
 }
 
 export interface Metric {

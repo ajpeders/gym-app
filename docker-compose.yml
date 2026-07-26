@@ -3,6 +3,10 @@ services:
     container_name: gym-api
     build:
       context: ./api
+      # Credentials for pip-installing `companion` from its private Forgejo
+      # repo. BuildKit keeps this out of the image layers.
+      secrets:
+        - forgejo_token
     restart: unless-stopped
     environment:
       GYM_DATA_DIR: /data
@@ -60,3 +64,10 @@ networks:
   web:
     external: true
     name: web
+
+secrets:
+  # Forgejo deploy token used only at build time to fetch the private
+  # `companion` package. Set FORGEJO_DEPLOY_TOKEN_ALEX in the environment
+  # (services/forgejo/.env) before building.
+  forgejo_token:
+    environment: FORGEJO_DEPLOY_TOKEN_ALEX

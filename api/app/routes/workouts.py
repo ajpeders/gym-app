@@ -123,7 +123,15 @@ def start_workout(
             workout.name = routine.name
         for re in routine.exercises:
             workout.exercises.append(
-                WorkoutExercise(exercise_id=re.exercise_id, order=re.order, notes=re.notes)
+                WorkoutExercise(
+                    exercise_id=re.exercise_id,
+                    order=re.order,
+                    notes=re.notes,
+                    target_sets=re.target_sets,
+                    target_reps=re.target_reps,
+                    target_reps_max=re.target_reps_max,
+                    target_weight=re.target_weight,
+                )
             )
     db.add(workout)
     db.commit()
@@ -320,6 +328,7 @@ def add_set(
         set_type=payload.set_type,
         completed=payload.completed,
         completed_at=utcnow() if payload.completed else None,
+        notes=payload.notes,
     )
     db.add(entry)
     db.commit()

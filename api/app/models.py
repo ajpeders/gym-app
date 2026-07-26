@@ -250,6 +250,13 @@ class WorkoutExercise(Base):
     exercise_id: Mapped[int] = mapped_column(ForeignKey("exercise.id"), nullable=False)
     order: Mapped[int] = mapped_column(Integer, default=0)
     notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    # Snapshot of the routine's targets taken when the workout was started from
+    # one, so the logging screen can show what you were aiming for — and history
+    # keeps that intent even if the routine changes later.
+    target_sets: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    target_reps: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    target_reps_max: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    target_weight: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
 
     workout: Mapped["Workout"] = relationship(back_populates="exercises")
     exercise: Mapped["Exercise"] = relationship()
@@ -274,6 +281,8 @@ class SetEntry(Base):
     set_type: Mapped[str] = mapped_column(String, default="working")
     completed: Mapped[bool] = mapped_column(Boolean, default=True)
     completed_at: Mapped[Optional[datetime]] = mapped_column(DateTime, default=utcnow)
+    # Free-text note on an individual set ("left shoulder tight", "easy", …).
+    notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
 
     workout_exercise: Mapped["WorkoutExercise"] = relationship(back_populates="sets")
 
