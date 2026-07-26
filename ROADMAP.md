@@ -6,10 +6,11 @@
 
 Status: **Phase 0–2 shipped; Phase 3 (AI) largely done; Phase 4 (insights) started; prepping for launch** · Last updated: 2026-07-26
 
-> Reconciled against the codebase on 2026-07-26. Two deviations from the original
-> plan are now reality: **Alembic was dropped** for hand-rolled additive column
-> migrations (`api/app/db.py` `_ADDED_COLUMNS`), and a **Split** layer (a weekly
-> plan owning several day-`Routine`s) was added on top of the model sketch below.
+> Reconciled against the codebase on 2026-07-26. Deviations from the original plan
+> now in reality: **Alembic was dropped** for hand-rolled additive column
+> migrations (`api/app/db.py` `_ADDED_COLUMNS`); and the plan model settled as
+> **Split** (a week) → **Workout** (a plan-day, scheduled via `weekdays`+`floating`)
+> → exercises, with a logged bout called a **Session** (see Data model below).
 
 ---
 
@@ -107,14 +108,15 @@ gym-app/
 ## Data model (as built — see `api/app/models.py`)
 
 - **exercise** — name, category, primary/secondary muscles, equipment, instructions, images, is_custom, **tracking_type** (weight_reps / bodyweight / time)
-- **split** (weekly plan) → **routine** (a day, `day_label`/`day_order`) → **routine_exercise** (ordered, target sets / rep-range / weight / rest)
-- **workout** (a logged session) → **workout_exercise** (snapshots the routine targets) → **sets** (reps, weight, RPE, duration_seconds, type, completed_at, notes)
+- **split** (a week, Sun–Sat) → **workout** (a plan-day; `weekdays` list 0=Sun..6=Sat + `floating`) → **workout_exercise** (ordered, target sets / rep-range / weight / rest) — *the PLAN*
+- **session** (a logged bout; `source_workout_id`) → **session_exercise** (snapshots the plan workout's targets) → **sets** (reps, weight, RPE, duration_seconds, type, completed_at, notes) — *the LOG*
 - **body_metric** — bodyweight + measurements over time
 - **user** + **settings** (units kg/lb, per-user Ollama/Claude config, feature flags)
 - **coach_message** — per-user coach chat history for context
 - **athlete_profile** — persistent per-user memory the AI reads + writes (experience, goals, injuries, equipment, preferences, durable notes, transient session_note); the companion's backbone (the Tier-1 moat)
-- **schedule_day** — one routine (or rest) per weekday, per user
 - **progress_photo** — per-user photos with a backdatable `taken_at` (EXIF-derived)
+
+*Scheduling lives on the workout* (`weekdays` + `floating`) — the old `schedule_day` table and `routine.day_label` were removed in the split/workout redesign.
 
 *Not separate tables (diverged from the first cut):* live **session** state lives client-side (`state/active-workout.tsx`); **personal records** are derived on the fly in `/stats/summary`, not stored.
 
@@ -139,6 +141,7 @@ gym-app/
 - [x] Workout history + view/edit past workouts *(incl. one-shot `/workouts/log` for already-done sessions)*
 - [x] Routines/templates: build reusable plans, start a workout from one *(targets snapshotted onto the workout)*
 - [x] **User-defined routines**: create/edit/duplicate, import (paste text or pick a template); **Splits** group day-routines into a weekly plan
+- [x] **Split/workout redesign shipped** *(2026-07-26)* — Split = the week, Workout = one plan-day, Session = a logged bout. Weekday scheduling now lives on the workout (`weekdays` list + a `floating` "do anytime" flag), edited via the workout editor's WeekdayPicker; the split screen renders the week grid + an "Anytime" section.
 - [~] **Import anything** (moat #3): notes-app text → routines ✅ (`/api/ai/parse-routine`); **next: Hevy/Strong CSV, whiteboard photo (vision), PDF coach program**
 - [x] Units (kg/lb), basic settings screen
 - [x] **Bottom nav tabs restored** — Home / Workouts / Routines / Coach / Settings (Exercises reachable as a route, hidden from the bar)
@@ -204,9 +207,10 @@ Found while actually training with the app. Ordered by how much they hurt.
 - [ ] **Duplicate in-progress workouts** — starting a workout doesn't detect or
       resume an already-active one, so taps pile up sessions (3 were open during
       testing). Resume-or-prompt on start, and clean up the strays.
-- [ ] **Terminology cleanup** — settled meaning is routine = one day, split =
-      the week. A few display strings still call a day-routine a "split" (left
-      over from the rename that predated the Split model).
+- [x] **Terminology cleanup** — *resolved 2026-07-26.* Settled naming shipped
+      across backend + frontend: **Split** = the week, **Workout** = one plan-day
+      (with `weekdays`/`floating` scheduling), **Session** = a logged bout. The old
+      routine/schedule_day vocabulary is gone.
 - [ ] **Progression nudge** — the plan's own rule is "hit the top of the rep
       range for all sets → add weight next time". The app has the targets and
       the logged reps but says nothing. Flag it when you clear the range.

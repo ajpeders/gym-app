@@ -38,7 +38,8 @@ api/app/
   security.py    # bcrypt (passlib) + JWT (PyJWT); get_current_user dependency
   models.py      # ORM models (single module)
   schemas.py     # Pydantic request/response DTOs
-  routes/        # one APIRouter per resource
+  routes/        # one APIRouter per resource — /splits (+ /splits/today),
+                 #   /workouts, /sessions, /exercises, /metrics, /ai, ...
   ai/            # domain schemas, prompts, provider selection, companion wiring
   seed/          # exercise-catalog importers (wger + free-exercise-db)
   tests/         # pytest
@@ -56,28 +57,32 @@ memory) lives in `ai/service.py`, not the route handlers.
 ## Data model
 
 Owned by `User` (everything cascades on user delete). The core split is
-**plan vs. log**: routines describe intent, workouts record what happened.
+**plan vs. log**: a **Workout** describes intent (the plan-day template), a
+**Session** records what happened (a logged bout).
 
 ```
 User ─┬─ Settings (1:1)          units, per-user AI provider config, feature flags
       ├─ AthleteProfile (1:1)    persistent AI memory (the Tier-1 moat)
-      ├─ Split ── Routine ── RoutineExercise      the PLAN (targets)
-      ├─ Workout ── WorkoutExercise ── SetEntry   the LOG (actuals)
-      ├─ BodyMetric, ProgressPhoto, ScheduleDay
-      └─ CoachMessage                             coach chat history
+      ├─ Split ── Workout ── WorkoutExercise         the PLAN (targets)
+      ├─ Session ── SessionExercise ── SetEntry       the LOG (actuals)
+      ├─ BodyMetric, ProgressPhoto
+      └─ CoachMessage                                 coach chat history
 Exercise   global catalog (owner_id NULL) + per-user custom (owner_id set)
 ```
 
 Relationships that carry design intent:
 
-- **Split → Routine → RoutineExercise.** A `Split` is a weekly plan owning several
-  day-`Routine`s (`day_label`, `day_order`); a standalone routine has
-  `split_id = NULL`. `RoutineExercise` holds targets (sets, a rep *range* via
+- **Split → Workout → WorkoutExercise.** A `Split` is a weekly plan owning several
+  day-`Workout`s; a standalone workout has `split_id = NULL`. Each `Workout` carries
+  its own schedule: `weekdays` (a JSON list of 0=Sun..6=Sat) pins it to specific
+  days, or `floating = true` marks it as "do whenever it fits" (unpinned). This
+  replaced the old separate `ScheduleDay` table — scheduling now lives on the
+  workout itself. `WorkoutExercise` holds targets (sets, a rep *range* via
   `target_reps`/`target_reps_max`, weight, rest).
-- **Workout → WorkoutExercise → SetEntry.** Starting a workout from a routine
-  **snapshots** the routine's targets onto each `WorkoutExercise`, so history
-  keeps the intent even if the routine later changes. `SetEntry` records actuals
-  (reps, weight, RPE, `duration_seconds`, per-set notes, `completed_at`).
+- **Session → SessionExercise → SetEntry.** Starting a `Session` from a plan
+  `Workout` **snapshots** the workout's targets onto each `SessionExercise`, so
+  history keeps the intent even if the plan later changes. `SetEntry` records
+  actuals (reps, weight, RPE, `duration_seconds`, per-set notes, `completed_at`).
 - **Exercise.tracking_type** (`weight_reps` | `bodyweight` | `time`) decides how a
   set is measured — bodyweight moves make `weight` optional, timed moves log
   `duration_seconds` instead of reps×weight.
@@ -106,7 +111,7 @@ Two distinct coaching surfaces share one **provider seam** (the `companion`
 package, extracted from this app):
 
 1. **Structured parse endpoints** (`ai/service.py`, `routes/ai.py`) —
-   `parse-sets`, `parse-routine` (+stream), `edit-routine/stream`, `check-in`,
+   `parse-sets`, `parse-workout` (+stream), `edit-workout/stream`, `check-in`,
    `coach`. Each calls a provider's `complete_json` with a JSON schema, validates
    the output with Pydantic, then resolves free-text exercise names to catalog
    IDs via a bespoke **token-overlap matcher** (`_match`/`_stem`): stemming,
@@ -135,8 +140,8 @@ falling back. Keys are write-only — accepted by PATCH `/settings`, never retur
   the nightly homelab backup. Postgres is a later option, not a starting cost.
 - **BYO AI provider, no silent default** (above) — a privacy + cost stance: the
   homelab runs local Ollama at zero marginal cost; Claude is opt-in per user.
-- **Snapshot targets onto workouts** — history is immutable intent, decoupled from
-  mutable routines.
+- **Snapshot targets onto sessions** — a logged session copies the plan workout's
+  targets, so history is immutable intent, decoupled from a mutable plan.
 - **Offline-first set logging** — the client queues sets locally and auto-syncs
   (`frontend/src/lib/offline.ts`); the backend stays a plain REST API.
 - **companion over SSH** — the private dependency is fetched with an SSH deploy
@@ -146,8 +151,8 @@ falling back. Keys are write-only — accepted by PATCH `/settings`, never retur
 
 Expo (Expo Router) + React Native + TypeScript, NativeWind for styling, one
 codebase → iOS/Android and a static web bundle served by nginx (`gym-web`).
-`src/app/` is the router tree (tabs: Home / Workouts / Routines / Coach /
-Settings); `src/api/` wraps the REST client; `src/state/` holds auth, settings,
+`src/app/` is the router tree (tabs: Home / Workouts / Exercises / History /
+Coach / Settings); `src/api/` wraps the REST client; `src/state/` holds auth, settings,
 and live-workout context; `src/lib/` holds offline queue, export, formatting.
 
 ## Deploy
