@@ -247,14 +247,18 @@ export function ActiveWorkoutProvider({ children }: { children: React.ReactNode 
       if (!activeId) return;
       // A still-pending set only exists locally — drop it from the queue rather
       // than sending its local id to the server (which would 404).
-      if (setId.startsWith('local-')) {
+      // NB: server ids arrive as numbers despite the string type, so coerce
+      // before any string check.
+      if (String(setId).startsWith('local-')) {
         await dequeueSet(setId);
         setWorkout((prev) =>
           prev
             ? {
                 ...prev,
                 exercises: prev.exercises.map((we) =>
-                  we.id === weId ? { ...we, sets: we.sets.filter((s) => s.id !== setId) } : we,
+                  we.id === weId
+                    ? { ...we, sets: we.sets.filter((s) => String(s.id) !== String(setId)) }
+                    : we,
                 ),
               }
             : prev,

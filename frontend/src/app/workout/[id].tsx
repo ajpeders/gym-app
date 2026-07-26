@@ -10,7 +10,7 @@ import { Screen } from '@/components/ui/Screen';
 import { Text } from '@/components/ui/Text';
 import { Card } from '@/components/ui/Card';
 import { Loading, ErrorState } from '@/components/ui/Feedback';
-import { formatDateTime, formatDuration, titleCase } from '@/lib/format';
+import { formatDateTime, formatDuration, formatLoad, titleCase } from '@/lib/format';
 import { promptExport, workoutToJson, workoutToText } from '@/lib/export';
 
 function Stat({ label, value }: { label: string; value: string }) {
@@ -51,7 +51,7 @@ export default function WorkoutDetailScreen() {
   const totalSets = workout?.exercises.reduce((acc, e) => acc + e.sets.length, 0) ?? 0;
   const totalVolume =
     workout?.exercises.reduce(
-      (acc, e) => acc + e.sets.reduce((a, s) => a + s.reps * s.weight, 0),
+      (acc, e) => acc + e.sets.reduce((a, s) => a + s.reps * (s.weight ?? 0), 0),
       0,
     ) ?? 0;
 
@@ -130,7 +130,7 @@ export default function WorkoutDetailScreen() {
                           {i + 1}
                         </Text>
                         <Text variant="body" className="flex-1">
-                          {s.weight} {settings.units} × {s.reps}
+                          {formatLoad(s.weight, settings.units)} × {s.reps}
                         </Text>
                         {s.rpe ? <Text variant="muted">RPE {s.rpe}</Text> : null}
                       </View>

@@ -7,7 +7,7 @@ import type { SetInput, Units, WorkoutExercise } from '@/api/types';
 import { Text } from '@/components/ui/Text';
 import { Card } from '@/components/ui/Card';
 import { ExerciseThumb } from '@/components/ExerciseThumb';
-import { formatRepRange, titleCase } from '@/lib/format';
+import { formatLoad, formatRepRange, titleCase } from '@/lib/format';
 
 interface Props {
   workoutExercise: WorkoutExercise;
@@ -74,11 +74,12 @@ export function ActiveExerciseCard({
 
   async function addFromInputs() {
     const r = parseInt(reps, 10);
-    const w = parseFloat(weight);
-    if (Number.isNaN(r) || Number.isNaN(w)) return;
+    if (Number.isNaN(r)) return;
+    // Weight is optional — blank means bodyweight (chin-ups, planks, …).
+    const w = weight.trim() === '' ? null : parseFloat(weight);
     await submit({
       reps: r,
-      weight: w,
+      weight: w != null && Number.isNaN(w) ? null : w,
       rpe: rpe ? parseFloat(rpe) : null,
       set_type: 'working',
       notes: note.trim() || null,
@@ -162,7 +163,7 @@ export function ActiveExerciseCard({
                   {i + 1}
                 </Text>
                 <Text variant="body" className="flex-1">
-                  {s.weight} {units}
+                  {formatLoad(s.weight, units)}
                 </Text>
                 <Text variant="body" className="flex-1">
                   {s.reps}
@@ -211,7 +212,7 @@ export function ActiveExerciseCard({
             value={weight}
             onChangeText={setWeight}
             keyboardType="decimal-pad"
-            placeholder={last ? String(last.weight) : '0'}
+            placeholder={last?.weight != null ? String(last.weight) : 'BW'}
             placeholderTextColor="#78716c"
             selectionColor="#f97316"
             className={numInput}
@@ -272,8 +273,7 @@ export function ActiveExerciseCard({
             className="flex-1 flex-row items-center justify-center rounded-lg border border-brand/40 bg-brand/10 px-3 py-2 active:opacity-70">
             <Ionicons name="repeat" size={16} color="#f97316" />
             <Text className="ml-1.5 text-sm font-bold text-brand">
-              {last.weight}
-              {units} x {last.reps}
+              {formatLoad(last.weight, units)} x {last.reps}
             </Text>
           </Pressable>
         </View>

@@ -186,7 +186,7 @@ export function withPendingSetsSync(w: Workout, weId: string, input: SetInput): 
               {
                 id: `local-${Date.now()}-${Math.round(performance.now())}`,
                 reps: input.reps,
-                weight: input.weight,
+                weight: input.weight ?? null,
                 rpe: input.rpe ?? null,
                 set_type: input.set_type ?? 'working',
                 completed: true,
@@ -221,7 +221,7 @@ export function withPendingSets(w: Workout, pending: QueuedSet[]): Workout {
       const optimistic: WorkoutSet[] = extra.map((p) => ({
         id: p.localId,
         reps: p.input.reps,
-        weight: p.input.weight,
+        weight: p.input.weight ?? null,
         rpe: p.input.rpe ?? null,
         set_type: p.input.set_type ?? 'working',
         completed: true,

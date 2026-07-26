@@ -118,7 +118,8 @@ export interface RoutineInput {
 export interface WorkoutSet {
   id: string;
   reps: number;
-  weight: number;
+  /** null = bodyweight (no external load). */
+  weight: number | null;
   rpe: number | null;
   set_type: SetType;
   order?: number;
@@ -157,7 +158,8 @@ export interface Workout {
 
 export interface SetInput {
   reps: number;
-  weight: number;
+  /** Omit / null for bodyweight exercises. */
+  weight?: number | null;
   rpe?: number | null;
   set_type?: SetType;
   notes?: string | null;

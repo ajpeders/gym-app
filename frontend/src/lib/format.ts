@@ -82,3 +82,8 @@ export function parseRepRange(input: string): { min: number | null; max: number 
   const [a, b] = [nums[0], nums[1]].sort((x, y) => x - y);
   return { min: a, max: a === b ? null : b };
 }
+
+/** Load for a logged set: bodyweight moves have no external weight. */
+export function formatLoad(weight: number | null | undefined, units: string): string {
+  return weight == null ? 'BW' : `${weight} ${units}`;
+}
