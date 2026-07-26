@@ -4,7 +4,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any, Optional
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
 
 # ---------------------------------------------------------------------------
@@ -90,9 +90,9 @@ class ExerciseUpdate(BaseModel):
 
 
 # ---------------------------------------------------------------------------
-# Routine
+# Workout (plan day — scheduled template owning exercises)
 # ---------------------------------------------------------------------------
-class RoutineExerciseIn(BaseModel):
+class WorkoutExerciseIn(BaseModel):
     exercise_id: int
     order: int = 0
     target_sets: Optional[int] = None
@@ -103,7 +103,7 @@ class RoutineExerciseIn(BaseModel):
     notes: Optional[str] = None
 
 
-class RoutineExerciseOut(BaseModel):
+class WorkoutExerciseOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
@@ -118,25 +118,45 @@ class RoutineExerciseOut(BaseModel):
     exercise: Optional[ExerciseOut] = None
 
 
-class RoutineCreate(BaseModel):
+def _validate_weekdays(v: list[int]) -> list[int]:
+    if any(d < 0 or d > 6 for d in v):
+        raise ValueError("weekdays must be 0..6 (0=Sunday)")
+    if len(set(v)) != len(v):
+        raise ValueError("weekdays must not repeat")
+    return v
+
+
+class WorkoutCreate(BaseModel):
     name: str
     notes: Optional[str] = None
     split_id: Optional[int] = None
-    day_label: Optional[str] = None
-    day_order: int = 0
-    exercises: list[RoutineExerciseIn] = []
+    weekdays: list[int] = []
+    floating: bool = False
+    order: int = 0
+    exercises: list[WorkoutExerciseIn] = []
+
+    @field_validator("weekdays")
+    @classmethod
+    def _valid_weekdays(cls, v: list[int]) -> list[int]:
+        return _validate_weekdays(v)
 
 
-class RoutineUpdate(BaseModel):
+class WorkoutUpdate(BaseModel):
     name: Optional[str] = None
     notes: Optional[str] = None
     split_id: Optional[int] = None
-    day_label: Optional[str] = None
-    day_order: Optional[int] = None
-    exercises: Optional[list[RoutineExerciseIn]] = None
+    weekdays: Optional[list[int]] = None
+    floating: Optional[bool] = None
+    order: Optional[int] = None
+    exercises: Optional[list[WorkoutExerciseIn]] = None
+
+    @field_validator("weekdays")
+    @classmethod
+    def _valid_weekdays(cls, v: Optional[list[int]]) -> Optional[list[int]]:
+        return v if v is None else _validate_weekdays(v)
 
 
-class RoutineOut(BaseModel):
+class WorkoutOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
@@ -144,61 +164,61 @@ class RoutineOut(BaseModel):
     name: str
     notes: Optional[str] = None
     split_id: Optional[int] = None
-    day_label: Optional[str] = None
-    day_order: int = 0
+    weekdays: list[int] = []
+    floating: bool = False
+    order: int = 0
     created_at: datetime
     updated_at: datetime
-    exercises: list[RoutineExerciseOut] = []
+    exercises: list[WorkoutExerciseOut] = []
+
+
+class TodayWorkout(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    name: str
+    floating: bool
+    weekdays: list[int]
+    done_this_week: bool
 
 
 # ---------------------------------------------------------------------------
-# Split (weekly plan owning day-routines + schedule + rules)
+# Split (weekly plan owning workouts + rules)
 # ---------------------------------------------------------------------------
-class ScheduleEntry(BaseModel):
-    day: str
-    label: Optional[str] = None
-    # Optional link to the routine that fulfils this day (null for rest days).
-    routine_id: Optional[int] = None
-
-
 class SplitOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
     owner_id: int
     name: str
-    schedule: list[dict[str, Any]] = []
     rules: list[str] = []
     notes: Optional[str] = None
     is_active: bool = False
     created_at: datetime
     updated_at: datetime
-    routines: list[RoutineOut] = []
+    workouts: list[WorkoutOut] = []
 
 
 class SplitCreate(BaseModel):
     name: str
-    schedule: list[dict[str, Any]] = []
     rules: list[str] = []
     notes: Optional[str] = None
 
 
 class SplitUpdate(BaseModel):
     name: Optional[str] = None
-    schedule: Optional[list[dict[str, Any]]] = None
     rules: Optional[list[str]] = None
     notes: Optional[str] = None
     is_active: Optional[bool] = None
 
 
 # ---------------------------------------------------------------------------
-# Workout / sets
+# Session / sets (a logged bout)
 # ---------------------------------------------------------------------------
 class SetOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
-    workout_exercise_id: int
+    session_exercise_id: int
     set_number: int
     reps: Optional[int] = None
     weight: Optional[float] = None
@@ -236,11 +256,11 @@ class SetUpdate(BaseModel):
     notes: Optional[str] = None
 
 
-class WorkoutExerciseOut(BaseModel):
+class SessionExerciseOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
-    workout_id: int
+    session_id: int
     exercise_id: int
     order: int
     notes: Optional[str] = None
@@ -252,12 +272,12 @@ class WorkoutExerciseOut(BaseModel):
     sets: list[SetOut] = []
 
 
-class WorkoutExerciseCreate(BaseModel):
+class SessionExerciseCreate(BaseModel):
     exercise_id: int
     order: Optional[int] = None
 
 
-class WorkoutOut(BaseModel):
+class SessionOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
@@ -266,28 +286,30 @@ class WorkoutOut(BaseModel):
     started_at: datetime
     finished_at: Optional[datetime] = None
     notes: Optional[str] = None
-    source_routine_id: Optional[int] = None
-    exercises: list[WorkoutExerciseOut] = []
+    source_workout_id: Optional[int] = None
+    exercises: list[SessionExerciseOut] = []
 
 
-class WorkoutListOut(BaseModel):
-    items: list[WorkoutOut]
+class SessionListOut(BaseModel):
+    items: list[SessionOut]
     total: int
 
 
-class WorkoutStart(BaseModel):
-    routine_id: Optional[int] = None
+class SessionStart(BaseModel):
+    # FK into a plan Workout the session is started from. The route derives
+    # source_workout_id from this.
+    workout_id: Optional[int] = None
     name: Optional[str] = None
     # Backdate a session (logging a workout done on a previous day). Omit for now.
     started_at: Optional[datetime] = None
 
 
-class WorkoutCreate(BaseModel):
+class SessionCreate(BaseModel):
     name: Optional[str] = None
     started_at: Optional[datetime] = None
 
 
-class WorkoutUpdate(BaseModel):
+class SessionUpdate(BaseModel):
     name: Optional[str] = None
     notes: Optional[str] = None
 
@@ -305,7 +327,7 @@ class LoggedExerciseIn(BaseModel):
     sets: list[LoggedSetIn] = []
 
 
-class WorkoutLog(BaseModel):
+class SessionLog(BaseModel):
     name: Optional[str] = None
     started_at: Optional[datetime] = None
     notes: Optional[str] = None
