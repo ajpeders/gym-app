@@ -130,6 +130,7 @@ export function ExerciseBrowser({ onSelect, renderTrailing }: ExerciseBrowserPro
       </View>
 
       <ScrollView
+        keyboardShouldPersistTaps="handled"
         horizontal
         showsHorizontalScrollIndicator={false}
         className="mt-2 max-h-11"

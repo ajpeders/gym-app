@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Pressable, TextInput, View } from 'react-native';
+import { Keyboard, Pressable, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import type { SetInput, Units, WorkoutExercise } from '@/api/types';
@@ -56,6 +56,7 @@ export function ActiveExerciseCard({
     .join(' ');
 
   async function submit(input: SetInput) {
+    Keyboard.dismiss();
     setSaving(true);
     try {
       await onAddSet(input);

@@ -126,7 +126,14 @@ export default function ActiveWorkoutScreen() {
           ),
         }}
       />
-      <ScrollView className="flex-1" contentContainerClassName="px-4 pt-3 pb-40" showsVerticalScrollIndicator={false}>
+      {/* keyboardShouldPersistTaps="handled": without it the first tap while the
+          keyboard is open is swallowed just to dismiss it, so "Log set" needed
+          two presses. */}
+      <ScrollView
+        className="flex-1"
+        contentContainerClassName="px-4 pt-3 pb-40"
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}>
         {/* summary */}
         <View className="mb-3 flex-row flex-wrap gap-2">
           <Stat icon="time-outline" label="Duration" value={formatDuration(workout.started_at)} />

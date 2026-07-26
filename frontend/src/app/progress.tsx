@@ -147,7 +147,8 @@ export default function ProgressScreen() {
   return (
     <Screen scroll={false} padded={false}>
       <Stack.Screen options={{ headerShown: true, title: 'Progress photos' }} />
-      <ScrollView className="flex-1" contentContainerClassName="px-4 pt-3 pb-28">
+      <ScrollView
+        keyboardShouldPersistTaps="handled" className="flex-1" contentContainerClassName="px-4 pt-3 pb-28">
         <Button title="Add progress photo" icon="camera" size="lg" className="mb-4" onPress={addPhoto} />
         {error ? <Text className="mb-3 text-sm text-red-400">{error}</Text> : null}
 
