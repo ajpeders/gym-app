@@ -30,7 +30,7 @@ class ParsedExercise(BaseModel):
     notes: Optional[str] = None
 
 
-class ParsedWorkout(BaseModel):
+class ParsedSession(BaseModel):
     exercises: list[ParsedExercise] = Field(default_factory=list)
 
 
@@ -75,10 +75,10 @@ PARSE_SCHEMA: dict = {
 }
 
 
-# --- Routine/program import (multi-day plan from a notes app) ---
+# --- Workout/program import (multi-day plan from a notes app) ---
 
 
-class ParsedRoutineExercise(BaseModel):
+class ParsedWorkoutExercise(BaseModel):
     exercise: str
     target_sets: Optional[int] = None
     target_reps: Optional[int] = None
@@ -87,20 +87,20 @@ class ParsedRoutineExercise(BaseModel):
     notes: Optional[str] = None
 
 
-class ParsedRoutine(BaseModel):
+class ParsedWorkout(BaseModel):
     name: str
     notes: Optional[str] = None
     rest_day: bool = False
-    exercises: list[ParsedRoutineExercise] = Field(default_factory=list)
+    exercises: list[ParsedWorkoutExercise] = Field(default_factory=list)
 
 
 class ParsedProgram(BaseModel):
-    routines: list[ParsedRoutine] = Field(default_factory=list)
+    workouts: list[ParsedWorkout] = Field(default_factory=list)
 
 
 # One exercise's target fields — shared by the program-import schema and the
-# single-routine AI-edit schema so the rep-range shape can't drift between them.
-_ROUTINE_EXERCISE_ITEM: dict = {
+# single-workout AI-edit schema so the rep-range shape can't drift between them.
+_WORKOUT_EXERCISE_ITEM: dict = {
     "type": "object",
     "additionalProperties": False,
     "properties": {
@@ -126,7 +126,7 @@ PROGRAM_SCHEMA: dict = {
     "type": "object",
     "additionalProperties": False,
     "properties": {
-        "routines": {
+        "workouts": {
             "type": "array",
             "items": {
                 "type": "object",
@@ -137,35 +137,35 @@ PROGRAM_SCHEMA: dict = {
                     "rest_day": {"type": "boolean"},
                     "exercises": {
                         "type": "array",
-                        "items": _ROUTINE_EXERCISE_ITEM,
+                        "items": _WORKOUT_EXERCISE_ITEM,
                     },
                 },
                 "required": ["name", "notes", "rest_day", "exercises"],
             },
         }
     },
-    "required": ["routines"],
+    "required": ["workouts"],
 }
 
 
-# --- Single-routine conversational edit (AI proposes the updated routine) ---
+# --- Single-workout conversational edit (AI proposes the updated workout) ---
 
 
-class EditedRoutine(BaseModel):
+class EditedWorkout(BaseModel):
     reply: str = ""
     name: str
     notes: Optional[str] = None
-    exercises: list[ParsedRoutineExercise] = Field(default_factory=list)
+    exercises: list[ParsedWorkoutExercise] = Field(default_factory=list)
 
 
-EDIT_ROUTINE_SCHEMA: dict = {
+EDIT_WORKOUT_SCHEMA: dict = {
     "type": "object",
     "additionalProperties": False,
     "properties": {
         "reply": {"type": "string"},
         "name": {"type": "string"},
         "notes": {"anyOf": [{"type": "string"}, {"type": "null"}]},
-        "exercises": {"type": "array", "items": _ROUTINE_EXERCISE_ITEM},
+        "exercises": {"type": "array", "items": _WORKOUT_EXERCISE_ITEM},
     },
     "required": ["reply", "name", "notes", "exercises"],
 }

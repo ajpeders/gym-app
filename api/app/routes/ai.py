@@ -22,11 +22,11 @@ class ParseRequest(BaseModel):
     workout_id: int | None = None
 
 
-class RoutineRequest(BaseModel):
+class WorkoutRequest(BaseModel):
     text: str
 
 
-class EditRoutineExercise(BaseModel):
+class EditWorkoutExercise(BaseModel):
     exercise: str
     target_sets: int | None = None
     target_reps: int | None = None
@@ -35,13 +35,13 @@ class EditRoutineExercise(BaseModel):
     notes: str | None = None
 
 
-class EditRoutineRequest(BaseModel):
+class EditWorkoutRequest(BaseModel):
     instruction: str
-    # The routine as it currently stands on the client (exercises by name), so
+    # The workout as it currently stands on the client (exercises by name), so
     # follow-up edits build on the last proposal rather than the saved version.
     name: str = ""
     notes: str | None = None
-    exercises: list[EditRoutineExercise] = []
+    exercises: list[EditWorkoutExercise] = []
 
 
 class CheckinRequest(BaseModel):
@@ -94,9 +94,9 @@ async def parse_sets(
         raise HTTPException(status_code=502, detail=str(exc)) from exc
 
 
-@router.post("/parse-routine")
-async def parse_routine(
-    body: RoutineRequest,
+@router.post("/parse-workout")
+async def parse_workout(
+    body: WorkoutRequest,
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ) -> dict:
@@ -104,7 +104,7 @@ async def parse_routine(
     if not text:
         raise HTTPException(status_code=400, detail="text is required")
     try:
-        return await service.parse_routine(db, user, text)
+        return await service.parse_workout(db, user, text)
     except AIError as exc:
         raise HTTPException(status_code=502, detail=str(exc)) from exc
 
@@ -113,13 +113,13 @@ def _sse(event: str, data: dict) -> str:
     return f"event: {event}\ndata: {json.dumps(data)}\n\n"
 
 
-@router.post("/parse-routine/stream")
-async def parse_routine_stream(
-    body: RoutineRequest,
+@router.post("/parse-workout/stream")
+async def parse_workout_stream(
+    body: WorkoutRequest,
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ) -> StreamingResponse:
-    """Server-Sent Events variant of parse-routine: emits `progress` events as
+    """Server-Sent Events variant of parse-workout: emits `progress` events as
     the model generates (keeping slow generations alive on mobile), a final
     `result` event with the full payload, or an `error` event on failure."""
     text = (body.text or "").strip()
@@ -128,7 +128,7 @@ async def parse_routine_stream(
 
     async def event_stream():
         try:
-            async for ev in service.parse_routine_stream(db, user, text):
+            async for ev in service.parse_workout_stream(db, user, text):
                 if ev.get("type") == "progress":
                     yield _sse("progress", {"received": ev.get("received", 0)})
                 else:
@@ -150,16 +150,16 @@ async def parse_routine_stream(
     )
 
 
-@router.post("/edit-routine/stream")
-async def edit_routine_stream(
-    body: EditRoutineRequest,
+@router.post("/edit-workout/stream")
+async def edit_workout_stream(
+    body: EditWorkoutRequest,
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ) -> StreamingResponse:
-    """SSE conversational edit of one routine: `progress` events while the model
-    generates, a final `result` event with the proposed routine (exercises
+    """SSE conversational edit of one workout: `progress` events while the model
+    generates, a final `result` event with the proposed workout (exercises
     resolved to the catalog), or an `error` event. Persists nothing — the client
-    reviews and saves via PATCH /routines/{id}."""
+    reviews and saves via PATCH /workouts/{id}."""
     instruction = (body.instruction or "").strip()
     if not instruction:
         raise HTTPException(status_code=400, detail="instruction is required")
@@ -172,7 +172,7 @@ async def edit_routine_stream(
 
     async def event_stream():
         try:
-            async for ev in service.edit_routine_stream(db, user, working, instruction):
+            async for ev in service.edit_workout_stream(db, user, working, instruction):
                 if ev.get("type") == "progress":
                     yield _sse("progress", {"received": ev.get("received", 0)})
                 else:

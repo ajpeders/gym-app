@@ -24,14 +24,14 @@ from ..models import (
 from . import prompts
 from .base import (
     CHECKIN_SCHEMA,
-    EDIT_ROUTINE_SCHEMA,
+    EDIT_WORKOUT_SCHEMA,
     PARSE_SCHEMA,
     PROGRAM_SCHEMA,
     AIError,
     CheckinResult,
-    EditedRoutine,
+    EditedWorkout,
     ParsedProgram,
-    ParsedWorkout,
+    ParsedSession,
 )
 
 _WORD_RE = re.compile(r"[^a-z0-9 ]+")
@@ -295,7 +295,7 @@ async def parse_sets(db: Session, user: User, text: str, workout_id: int | None 
     latency_ms = int((time.monotonic() - t0) * 1000)
 
     try:
-        parsed = ParsedWorkout.model_validate(data)
+        parsed = ParsedSession.model_validate(data)
     except Exception as exc:  # noqa: BLE001
         raise AIError(f"Model output did not match the expected shape: {exc}") from exc
 
@@ -340,7 +340,7 @@ def _normalize_rep_range(
     return lo, hi
 
 
-def _build_routine_result(
+def _build_workout_result(
     db: Session,
     user_id: int,
     provider: Provider,
@@ -355,8 +355,8 @@ def _build_routine_result(
         raise AIError(f"Model output did not match the expected shape: {exc}") from exc
 
     catalog = _load_catalog(db, user_id)
-    routines = []
-    for r in program.routines:
+    workouts = []
+    for r in program.workouts:
         exercises = []
         for e in r.exercises:
             ex_id, match = _match(e.exercise, catalog)
@@ -373,7 +373,7 @@ def _build_routine_result(
                     "notes": e.notes,
                 }
             )
-        routines.append(
+        workouts.append(
             {
                 "name": r.name,
                 "notes": r.notes,
@@ -386,32 +386,32 @@ def _build_routine_result(
         "model": provider.model,
         "units": units,
         "latency_ms": latency_ms,
-        "routines": routines,
+        "workouts": workouts,
     }
 
 
-async def parse_routine(db: Session, user: User, text: str) -> dict:
-    """Parse a multi-day program (notes-app text) into structured routines."""
+async def parse_workout(db: Session, user: User, text: str) -> dict:
+    """Parse a multi-day program (notes-app text) into structured workouts."""
     provider, units = _resolve(db, user)
 
     t0 = time.monotonic()
     data = await provider.complete_json(
-        system=prompts.routine_system_prompt(units),
-        user=prompts.routine_user_prompt(text),
+        system=prompts.workout_system_prompt(units),
+        user=prompts.workout_user_prompt(text),
         schema=PROGRAM_SCHEMA,
     )
     latency_ms = int((time.monotonic() - t0) * 1000)
-    return _build_routine_result(db, user.id, provider, units, latency_ms, data)
+    return _build_workout_result(db, user.id, provider, units, latency_ms, data)
 
 
-async def parse_routine_stream(
+async def parse_workout_stream(
     db: Session, user: User, text: str
 ) -> AsyncIterator[dict]:
-    """Streaming variant of :func:`parse_routine`.
+    """Streaming variant of :func:`parse_workout`.
 
     Yields ``{"type": "progress", "received": N}`` while the model generates,
     then one ``{"type": "result", ...}`` carrying the same payload
-    :func:`parse_routine` returns. Providers without a ``stream_json`` method
+    :func:`parse_workout` returns. Providers without a ``stream_json`` method
     (e.g. Claude) fall back to a single blocking call with no progress events.
     """
     provider, units = _resolve(db, user)
@@ -421,8 +421,8 @@ async def parse_routine_stream(
     stream = getattr(provider, "stream_json", None)
     if stream is not None:
         async for ev in stream(
-            system=prompts.routine_system_prompt(units),
-            user=prompts.routine_user_prompt(text),
+            system=prompts.workout_system_prompt(units),
+            user=prompts.workout_user_prompt(text),
             schema=PROGRAM_SCHEMA,
         ):
             if ev.get("type") == "progress":
@@ -431,8 +431,8 @@ async def parse_routine_stream(
                 data = ev.get("data")
     else:
         data = await provider.complete_json(
-            system=prompts.routine_system_prompt(units),
-            user=prompts.routine_user_prompt(text),
+            system=prompts.workout_system_prompt(units),
+            user=prompts.workout_user_prompt(text),
             schema=PROGRAM_SCHEMA,
         )
 
@@ -440,46 +440,46 @@ async def parse_routine_stream(
         raise AIError("The AI returned no result.")
 
     latency_ms = int((time.monotonic() - t0) * 1000)
-    result = _build_routine_result(db, user.id, provider, units, latency_ms, data)
+    result = _build_workout_result(db, user.id, provider, units, latency_ms, data)
     yield {"type": "result", **result}
 
 
-async def edit_routine_stream(
+async def edit_workout_stream(
     db: Session, user: User, working: dict, instruction: str
 ) -> AsyncIterator[dict]:
-    """Conversationally edit ONE routine.
+    """Conversationally edit ONE workout.
 
-    ``working`` is the routine as it currently stands on the client (exercises by
+    ``working`` is the workout as it currently stands on the client (exercises by
     name, so the model can reason about them); ``instruction`` is the user's
     latest request. Yields ``progress`` events while the model generates, then a
-    single ``result`` event carrying the proposed routine with each exercise
+    single ``result`` event carrying the proposed workout with each exercise
     resolved against the catalog. Nothing is persisted here — the client reviews
-    the proposal and saves via the normal routine update path.
+    the proposal and saves via the normal workout update path.
     """
     provider, units = _resolve(db, user)
-    routine_json = json.dumps(working, ensure_ascii=False)
-    system = prompts.edit_routine_system_prompt(units)
-    user_prompt = prompts.edit_routine_user_prompt(routine_json, instruction)
+    workout_json = json.dumps(working, ensure_ascii=False)
+    system = prompts.edit_workout_system_prompt(units)
+    user_prompt = prompts.edit_workout_user_prompt(workout_json, instruction)
     t0 = time.monotonic()
 
     data: dict | None = None
     stream = getattr(provider, "stream_json", None)
     if stream is not None:
-        async for ev in stream(system=system, user=user_prompt, schema=EDIT_ROUTINE_SCHEMA):
+        async for ev in stream(system=system, user=user_prompt, schema=EDIT_WORKOUT_SCHEMA):
             if ev.get("type") == "progress":
                 yield ev
             elif ev.get("type") == "result":
                 data = ev.get("data")
     else:
         data = await provider.complete_json(
-            system=system, user=user_prompt, schema=EDIT_ROUTINE_SCHEMA
+            system=system, user=user_prompt, schema=EDIT_WORKOUT_SCHEMA
         )
 
     if data is None:
         raise AIError("The AI returned no result.")
 
     try:
-        edited = EditedRoutine.model_validate(data)
+        edited = EditedWorkout.model_validate(data)
     except Exception as exc:  # noqa: BLE001
         raise AIError(f"Model output did not match the expected shape: {exc}") from exc
 
@@ -678,8 +678,8 @@ async def coach(db: Session, user: User, message: str) -> dict:
 __all__ = [
     "available_providers",
     "parse_sets",
-    "parse_routine",
-    "edit_routine_stream",
+    "parse_workout",
+    "edit_workout_stream",
     "match_exercise",
     "get_or_create_profile",
     "profile_dict",

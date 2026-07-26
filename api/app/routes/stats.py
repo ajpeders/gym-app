@@ -6,15 +6,15 @@ from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends
 from sqlalchemy import select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session as SASession
 
 from ..db import get_db
 from ..models import (
     Exercise,
+    Session,
+    SessionExercise,
     SetEntry,
     User,
-    Workout,
-    WorkoutExercise,
 )
 from ..schemas import StatsSummary
 from ..security import get_current_user
@@ -29,14 +29,15 @@ def _week_key(dt: datetime) -> str:
 
 @router.get("/summary", response_model=StatsSummary)
 def summary(
-    db: Session = Depends(get_db), user: User = Depends(get_current_user)
+    db: SASession = Depends(get_db), user: User = Depends(get_current_user)
 ) -> StatsSummary:
     workouts = db.scalars(
-        select(Workout).where(Workout.owner_id == user.id)
+        select(Session).where(Session.owner_id == user.id)
     ).all()
     total_workouts = len(workouts)
 
     now = datetime.now(timezone.utc)
+    # rolling 7-day volume window — intentionally NOT the split's Sunday-based "done this week"
     week_ago = now - timedelta(days=7)
 
     def _aware(dt: datetime) -> datetime:
@@ -64,16 +65,16 @@ def summary(
     # Volume per week (sum of reps * weight across completed sets).
     rows = db.execute(
         select(
-            Workout.started_at,
+            Session.started_at,
             SetEntry.reps,
             SetEntry.weight,
             Exercise.name,
             SetEntry.completed_at,
         )
-        .join(WorkoutExercise, WorkoutExercise.workout_id == Workout.id)
-        .join(SetEntry, SetEntry.workout_exercise_id == WorkoutExercise.id)
-        .join(Exercise, Exercise.id == WorkoutExercise.exercise_id)
-        .where(Workout.owner_id == user.id, SetEntry.completed.is_(True))
+        .join(SessionExercise, SessionExercise.session_id == Session.id)
+        .join(SetEntry, SetEntry.session_exercise_id == SessionExercise.id)
+        .join(Exercise, Exercise.id == SessionExercise.exercise_id)
+        .where(Session.owner_id == user.id, SetEntry.completed.is_(True))
     ).all()
 
     volume_by_week: dict[str, float] = defaultdict(float)

@@ -23,10 +23,12 @@ from . import prompts, service
 EXPOSE = [
     "GET /api/workouts", "GET /api/workouts/*",
     "GET /api/exercises", "GET /api/exercises/*",
-    "GET /api/routines", "GET /api/routines/*",
+    "GET /api/sessions", "GET /api/sessions/*",
+    "GET /api/splits", "GET /api/splits/*",
     "GET /api/stats/*",
     "POST /api/workouts", "POST /api/workouts/*",
-    "PATCH /api/workouts/*",
+    "POST /api/sessions", "POST /api/sessions/*",
+    "PATCH /api/sessions/*",
     "POST /api/exercises",
 ]
 # Never expose auth/settings/profile/ai as tools.

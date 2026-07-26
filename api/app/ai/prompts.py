@@ -36,9 +36,9 @@ def system_prompt(units: str) -> str:
     return _RULES.format(units=units) + "\n\n" + _EXAMPLE
 
 
-_ROUTINE_RULES = (
+_WORKOUT_RULES = (
     "You convert a multi-day workout PROGRAM (pasted from a notes app) into structured "
-    "routines. Each training day becomes one routine; keep the day's heading as the routine name.\n"
+    "workouts. Each training day becomes one workout; keep the day's heading as the workout name.\n"
     "Rules:\n"
     "- Rest or walk days: set rest_day true and leave exercises empty.\n"
     "- For each exercise, capture the name and any target weight in {units}.\n"
@@ -58,18 +58,18 @@ _ROUTINE_RULES = (
 )
 
 
-def routine_system_prompt(units: str) -> str:
-    return _ROUTINE_RULES.format(units=units)
+def workout_system_prompt(units: str) -> str:
+    return _WORKOUT_RULES.format(units=units)
 
 
-def routine_user_prompt(text: str) -> str:
+def workout_user_prompt(text: str) -> str:
     return f"Program:\n{text}"
 
 
-_EDIT_ROUTINE_RULES = (
-    "You are editing ONE strength-training routine. You are given the CURRENT routine as JSON "
+_EDIT_WORKOUT_RULES = (
+    "You are editing ONE strength-training workout. You are given the CURRENT workout as JSON "
     "and a single instruction from the user. Apply the instruction and return the COMPLETE "
-    "updated routine (every exercise, not just the changed ones).\n"
+    "updated workout (every exercise, not just the changed ones).\n"
     "Rules:\n"
     "- Keep every exercise and every value the instruction does NOT mention exactly as-is.\n"
     "- Weights are in {units}. Output numeric values as stated; never convert units.\n"
@@ -86,12 +86,12 @@ _EDIT_ROUTINE_RULES = (
 )
 
 
-def edit_routine_system_prompt(units: str) -> str:
-    return _EDIT_ROUTINE_RULES.format(units=units)
+def edit_workout_system_prompt(units: str) -> str:
+    return _EDIT_WORKOUT_RULES.format(units=units)
 
 
-def edit_routine_user_prompt(routine_json: str, instruction: str) -> str:
-    return f"Current routine:\n{routine_json}\n\nInstruction:\n{instruction}"
+def edit_workout_user_prompt(workout_json: str, instruction: str) -> str:
+    return f"Current workout:\n{workout_json}\n\nInstruction:\n{instruction}"
 
 
 _CHECKIN_SYSTEM = (
