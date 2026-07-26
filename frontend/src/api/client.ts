@@ -16,23 +16,24 @@ import type {
   MetricInput,
   Paginated,
   ParseResult,
-  ParseRoutineResult,
+  ParseWorkoutResult,
   ProgressPhoto,
-  Routine,
-  RoutineEditProposal,
-  RoutineEditWorkingExercise,
-  RoutineInput,
+  Session,
+  SessionExercise,
+  SessionLogInput,
+  SessionSet,
   Split,
   SplitInput,
   Settings,
   SettingsUpdate,
   SetInput,
   StatsSummary,
+  TodayWorkout,
   User,
   Workout,
-  WorkoutExercise,
-  WorkoutLogInput,
-  WorkoutSet,
+  WorkoutEditProposal,
+  WorkoutEditWorkingExercise,
+  WorkoutInput,
 } from './types';
 
 export const API_URL =
@@ -169,10 +170,10 @@ function parseSseBlock(raw: string): { event: string; data: unknown } | null {
 // connection alive and can report real progress, instead of a single long
 // blocking request that a mobile client may drop. Falls back to reading the
 // whole body if the platform can't expose a streaming reader.
-async function parseRoutineStream(
+async function parseWorkoutStream(
   text: string,
   onProgress?: (info: ParseProgressInfo) => void,
-): Promise<ParseRoutineResult> {
+): Promise<ParseWorkoutResult> {
   const headers: Record<string, string> = {
     Accept: 'text/event-stream',
     'Content-Type': 'application/json',
@@ -186,7 +187,7 @@ async function parseRoutineStream(
   try {
     let res: Awaited<ReturnType<typeof expoFetch>>;
     try {
-      res = await expoFetch(`${API_BASE}/ai/parse-routine/stream`, {
+      res = await expoFetch(`${API_BASE}/ai/parse-workout/stream`, {
         method: 'POST',
         headers,
         body: JSON.stringify({ text }),
@@ -204,7 +205,7 @@ async function parseRoutineStream(
       throw new ApiError(res.status, `Request failed (${res.status})`, body);
     }
 
-    let result: ParseRoutineResult | null = null;
+    let result: ParseWorkoutResult | null = null;
     let errorDetail: string | null = null;
 
     const handleBlock = (raw: string) => {
@@ -213,7 +214,7 @@ async function parseRoutineStream(
       if (parsed.event === 'progress') {
         onProgress?.({ received: (parsed.data as ParseProgressInfo).received ?? 0 });
       } else if (parsed.event === 'result') {
-        result = parsed.data as ParseRoutineResult;
+        result = parsed.data as ParseWorkoutResult;
       } else if (parsed.event === 'error') {
         errorDetail = (parsed.data as { detail?: string }).detail ?? 'Failed to parse.';
       }
@@ -253,21 +254,21 @@ async function parseRoutineStream(
   }
 }
 
-export interface RoutineEditInput {
+export interface WorkoutEditInput {
   instruction: string;
   name: string;
   notes: string | null;
-  exercises: RoutineEditWorkingExercise[];
+  exercises: WorkoutEditWorkingExercise[];
 }
 
-// Conversationally edit ONE routine over SSE. Mirrors parseRoutineStream: the
-// model can take 10–30s on a local model, so streaming keeps a mobile
-// connection alive and reports progress. Returns the proposed routine; nothing
-// is saved until the caller PATCHes the routine.
-async function editRoutineStream(
-  input: RoutineEditInput,
+// Conversationally edit ONE plan workout over SSE. Mirrors parseWorkoutStream:
+// the model can take 10–30s on a local model, so streaming keeps a mobile
+// connection alive and reports progress. Returns the proposed workout; nothing
+// is saved until the caller PATCHes the workout.
+async function editWorkoutStream(
+  input: WorkoutEditInput,
   onProgress?: (info: ParseProgressInfo) => void,
-): Promise<RoutineEditProposal> {
+): Promise<WorkoutEditProposal> {
   const headers: Record<string, string> = {
     Accept: 'text/event-stream',
     'Content-Type': 'application/json',
@@ -281,7 +282,7 @@ async function editRoutineStream(
   try {
     let res: Awaited<ReturnType<typeof expoFetch>>;
     try {
-      res = await expoFetch(`${API_BASE}/ai/edit-routine/stream`, {
+      res = await expoFetch(`${API_BASE}/ai/edit-workout/stream`, {
         method: 'POST',
         headers,
         body: JSON.stringify(input),
@@ -299,7 +300,7 @@ async function editRoutineStream(
       throw new ApiError(res.status, `Request failed (${res.status})`, body);
     }
 
-    let result: RoutineEditProposal | null = null;
+    let result: WorkoutEditProposal | null = null;
     let errorDetail: string | null = null;
 
     const handleBlock = (raw: string) => {
@@ -308,7 +309,7 @@ async function editRoutineStream(
       if (parsed.event === 'progress') {
         onProgress?.({ received: (parsed.data as ParseProgressInfo).received ?? 0 });
       } else if (parsed.event === 'result') {
-        result = parsed.data as RoutineEditProposal;
+        result = parsed.data as WorkoutEditProposal;
       } else if (parsed.event === 'error') {
         errorDetail = (parsed.data as { detail?: string }).detail ?? 'Failed to edit.';
       }
@@ -501,8 +502,8 @@ async function companionChat(
 
 export const api = {
   request,
-  parseRoutineStream,
-  editRoutineStream,
+  parseWorkoutStream,
+  editWorkoutStream,
   companionChat,
 
   // ---- auth ----
@@ -526,52 +527,53 @@ export const api = {
   // ---- splits (weekly plans) ----
   splits: () => request<Split[]>('/splits'),
   split: (id: string) => request<Split>(`/splits/${id}`),
+  splitToday: () => request<TodayWorkout[]>('/splits/today'),
   createSplit: (input: SplitInput) =>
     request<Split>('/splits', { method: 'POST', body: input }),
   updateSplit: (id: string, input: SplitInput) =>
     request<Split>(`/splits/${id}`, { method: 'PATCH', body: input }),
   deleteSplit: (id: string) => request<void>(`/splits/${id}`, { method: 'DELETE' }),
 
-  // ---- routines ----
-  routines: () => request<Routine[]>('/routines'),
-  routine: (id: string) => request<Routine>(`/routines/${id}`),
-  createRoutine: (input: RoutineInput) =>
-    request<Routine>('/routines', { method: 'POST', body: input }),
-  updateRoutine: (id: string, input: Partial<RoutineInput>) =>
-    request<Routine>(`/routines/${id}`, { method: 'PATCH', body: input }),
-  deleteRoutine: (id: string) =>
-    request<void>(`/routines/${id}`, { method: 'DELETE' }),
-
-  // ---- workouts ----
-  workouts: (query?: { limit?: number; offset?: number }) =>
-    request<Paginated<Workout>>('/workouts', { query }),
+  // ---- workouts (plan days) ----
+  workouts: () => request<Workout[]>('/workouts'),
   workout: (id: string) => request<Workout>(`/workouts/${id}`),
-  startWorkout: (input: { routine_id?: string; name?: string; started_at?: string }) =>
-    request<Workout>('/workouts/start', { method: 'POST', body: input }),
-  logWorkout: (input: WorkoutLogInput) =>
-    request<Workout>('/workouts/log', { method: 'POST', body: input }),
-  updateWorkout: (id: string, input: Partial<Pick<Workout, 'name' | 'notes'>>) =>
+  createWorkout: (input: WorkoutInput) =>
+    request<Workout>('/workouts', { method: 'POST', body: input }),
+  updateWorkout: (id: string, input: Partial<WorkoutInput>) =>
     request<Workout>(`/workouts/${id}`, { method: 'PATCH', body: input }),
-  finishWorkout: (id: string) =>
-    request<Workout>(`/workouts/${id}/finish`, { method: 'POST' }),
   deleteWorkout: (id: string) =>
     request<void>(`/workouts/${id}`, { method: 'DELETE' }),
-  addWorkoutExercise: (id: string, input: { exercise_id: string; order?: number }) =>
-    request<WorkoutExercise>(`/workouts/${id}/exercises`, { method: 'POST', body: input }),
-  deleteWorkoutExercise: (id: string, weId: string) =>
-    request<void>(`/workouts/${id}/exercises/${weId}`, { method: 'DELETE' }),
+
+  // ---- sessions (logged bouts) ----
+  sessions: (query?: { limit?: number; offset?: number }) =>
+    request<Paginated<Session>>('/sessions', { query }),
+  session: (id: string) => request<Session>(`/sessions/${id}`),
+  startSession: (input: { workout_id?: string; name?: string; started_at?: string }) =>
+    request<Session>('/sessions/start', { method: 'POST', body: input }),
+  logSession: (input: SessionLogInput) =>
+    request<Session>('/sessions/log', { method: 'POST', body: input }),
+  updateSession: (id: string, input: Partial<Pick<Session, 'name' | 'notes'>>) =>
+    request<Session>(`/sessions/${id}`, { method: 'PATCH', body: input }),
+  finishSession: (id: string) =>
+    request<Session>(`/sessions/${id}/finish`, { method: 'POST' }),
+  deleteSession: (id: string) =>
+    request<void>(`/sessions/${id}`, { method: 'DELETE' }),
+  addSessionExercise: (id: string, input: { exercise_id: string; order?: number }) =>
+    request<SessionExercise>(`/sessions/${id}/exercises`, { method: 'POST', body: input }),
+  deleteSessionExercise: (id: string, weId: string) =>
+    request<void>(`/sessions/${id}/exercises/${weId}`, { method: 'DELETE' }),
   addSet: (id: string, weId: string, input: SetInput) =>
-    request<WorkoutSet>(`/workouts/${id}/exercises/${weId}/sets`, {
+    request<SessionSet>(`/sessions/${id}/exercises/${weId}/sets`, {
       method: 'POST',
       body: input,
     }),
   updateSet: (id: string, weId: string, setId: string, input: Partial<SetInput>) =>
-    request<WorkoutSet>(`/workouts/${id}/exercises/${weId}/sets/${setId}`, {
+    request<SessionSet>(`/sessions/${id}/exercises/${weId}/sets/${setId}`, {
       method: 'PATCH',
       body: input,
     }),
   deleteSet: (id: string, weId: string, setId: string) =>
-    request<void>(`/workouts/${id}/exercises/${weId}/sets/${setId}`, { method: 'DELETE' }),
+    request<void>(`/sessions/${id}/exercises/${weId}/sets/${setId}`, { method: 'DELETE' }),
 
   // ---- progress photos ----
   progressPhotos: () => request<ProgressPhoto[]>('/progress-photos'),
@@ -598,14 +600,16 @@ export const api = {
   aiProviders: () => request<AiProviders>('/ai/providers'),
   aiModels: () => request<AiModelsResult>('/ai/models'),
   aiTest: () => request<AiTestResult>('/ai/test', { method: 'POST' }),
+  // NB: the request field is `workout_id` but its value is the active SESSION's
+  // id (the backend field name is unchanged from the rename).
   parseSets: (input: { text: string; workout_id?: number }) =>
     request<ParseResult>('/ai/parse-sets', {
       method: 'POST',
       body: input,
       timeoutMs: 90_000,
     }),
-  parseRoutine: (text: string): Promise<ParseRoutineResult> =>
-    request<ParseRoutineResult>('/ai/parse-routine', {
+  parseWorkout: (text: string): Promise<ParseWorkoutResult> =>
+    request<ParseWorkoutResult>('/ai/parse-workout', {
       method: 'POST',
       body: { text },
       timeoutMs: 120_000,

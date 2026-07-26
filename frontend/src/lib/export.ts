@@ -1,10 +1,10 @@
 import { Alert, Share } from 'react-native';
 
-import type { Routine, Workout } from '@/api/types';
+import type { Session, Workout } from '@/api/types';
 import { formatDate, formatRepRange, titleCase } from '@/lib/format';
 
 // Exports come in two flavors, both delivered through the native Share sheet:
-//   - "text": clean human-readable, shareable to Notes/Messages/anyone. Routine
+//   - "text": clean human-readable, shareable to Notes/Messages/anyone. Workout
 //     text also round-trips back through the AI paste-import.
 //   - "json": structured + portable for backup / exact re-import.
 export type ExportFormat = 'text' | 'json';
@@ -29,10 +29,10 @@ function exerciseLine(
   return `${index}. ${titleCase(name)}${detail ? ` — ${detail}` : ''}`;
 }
 
-export function routineToText(routine: Routine, units: string): string {
-  const lines = [titleCase(routine.name), ''];
-  if (routine.notes) lines.push(routine.notes, '');
-  const ordered = routine.exercises.slice().sort((a, b) => a.order - b.order);
+export function workoutToText(workout: Workout, units: string): string {
+  const lines = [titleCase(workout.name), ''];
+  if (workout.notes) lines.push(workout.notes, '');
+  const ordered = workout.exercises.slice().sort((a, b) => a.order - b.order);
   ordered.forEach((e, i) => {
     lines.push(
       exerciseLine(
@@ -48,14 +48,14 @@ export function routineToText(routine: Routine, units: string): string {
   return lines.join('\n').trim();
 }
 
-export function routineToJson(routine: Routine, units: string): string {
+export function workoutToJson(workout: Workout, units: string): string {
   return JSON.stringify(
     {
-      type: 'routine',
-      name: routine.name,
-      notes: routine.notes,
+      type: 'workout',
+      name: workout.name,
+      notes: workout.notes,
       units,
-      exercises: routine.exercises
+      exercises: workout.exercises
         .slice()
         .sort((a, b) => a.order - b.order)
         .map((e) => ({
@@ -72,11 +72,11 @@ export function routineToJson(routine: Routine, units: string): string {
   );
 }
 
-export function workoutToText(workout: Workout, units: string): string {
-  const title = workout.name || 'Workout';
-  const lines = [`${titleCase(title)} — ${formatDate(workout.started_at)}`, ''];
-  if (workout.notes) lines.push(workout.notes, '');
-  const ordered = workout.exercises.slice().sort((a, b) => a.order - b.order);
+export function sessionToText(session: Session, units: string): string {
+  const title = session.name || 'Session';
+  const lines = [`${titleCase(title)} — ${formatDate(session.started_at)}`, ''];
+  if (session.notes) lines.push(session.notes, '');
+  const ordered = session.exercises.slice().sort((a, b) => a.order - b.order);
   ordered.forEach((we, i) => {
     lines.push(`${i + 1}. ${titleCase(we.exercise?.name ?? 'Exercise')}`);
     const done = we.sets.filter((s) => s.completed !== false);
@@ -89,16 +89,16 @@ export function workoutToText(workout: Workout, units: string): string {
   return lines.join('\n').trim();
 }
 
-export function workoutToJson(workout: Workout, units: string): string {
+export function sessionToJson(session: Session, units: string): string {
   return JSON.stringify(
     {
-      type: 'workout',
-      name: workout.name,
-      date: workout.started_at,
-      finished_at: workout.finished_at,
-      notes: workout.notes,
+      type: 'session',
+      name: session.name,
+      date: session.started_at,
+      finished_at: session.finished_at,
+      notes: session.notes,
       units,
-      exercises: workout.exercises
+      exercises: session.exercises
         .slice()
         .sort((a, b) => a.order - b.order)
         .map((we) => ({

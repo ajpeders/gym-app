@@ -49,7 +49,9 @@ export interface ExerciseQuery {
   offset?: number;
 }
 
-export interface RoutineExercise {
+// ---- Workout (plan day — a scheduled template owning exercises) ----
+
+export interface WorkoutExercise {
   id?: string;
   exercise_id: string;
   exercise?: Exercise;
@@ -62,46 +64,50 @@ export interface RoutineExercise {
   notes?: string | null;
 }
 
-export interface Routine {
+export interface Workout {
   id: string;
   name: string;
   notes: string | null;
   split_id?: number | null;
-  day_label?: string | null;
-  day_order?: number;
-  exercises: RoutineExercise[];
+  /** Weekdays this workout is scheduled on (0=Sun..6=Sat). */
+  weekdays: number[];
+  /** Not pinned to specific weekdays — done whenever it fits. */
+  floating: boolean;
+  order: number;
+  exercises: WorkoutExercise[];
   created_at?: string;
   updated_at?: string;
-}
-
-export interface ScheduleEntry {
-  day: string;
-  label?: string | null;
-  routine_id?: number | null;
 }
 
 export interface Split {
   id: number;
   owner_id: number;
   name: string;
-  schedule: ScheduleEntry[];
   rules: string[];
   notes: string | null;
   is_active: boolean;
   created_at: string;
   updated_at: string;
-  routines: Routine[];
+  workouts: Workout[];
 }
 
 export interface SplitInput {
   name?: string;
-  schedule?: ScheduleEntry[];
   rules?: string[];
   notes?: string | null;
   is_active?: boolean;
 }
 
-export interface RoutineExerciseInput {
+/** Summary of a plan workout scheduled for today (GET /splits/today). */
+export interface TodayWorkout {
+  id: string;
+  name: string;
+  floating: boolean;
+  weekdays: number[];
+  done_this_week: boolean;
+}
+
+export interface WorkoutExerciseInput {
   exercise_id: string;
   order: number;
   target_sets?: number | null;
@@ -111,13 +117,19 @@ export interface RoutineExerciseInput {
   rest_seconds?: number | null;
 }
 
-export interface RoutineInput {
+export interface WorkoutInput {
   name: string;
   notes?: string | null;
-  exercises: RoutineExerciseInput[];
+  weekdays?: number[];
+  floating?: boolean;
+  order?: number;
+  split_id?: number | null;
+  exercises: WorkoutExerciseInput[];
 }
 
-export interface WorkoutSet {
+// ---- Session (a logged bout) + its sets ----
+
+export interface SessionSet {
   id: string;
   /** null for timed movements. */
   reps: number | null;
@@ -136,31 +148,30 @@ export interface WorkoutSet {
   pending?: boolean;
 }
 
-export interface WorkoutExercise {
+export interface SessionExercise {
   id: string;
   exercise_id: string;
   exercise?: Exercise;
   order: number;
   notes?: string | null;
-  // Snapshot of the routine's targets when this workout was started from one.
+  // Snapshot of the plan workout's targets when this session was started from one.
   target_sets?: number | null;
   target_reps?: number | null;
   target_reps_max?: number | null;
   target_weight?: number | null;
-  sets: WorkoutSet[];
+  sets: SessionSet[];
 }
 
-export interface Workout {
+export interface Session {
   id: string;
   name: string | null;
-  routine_id: string | null;
-  /** The routine this workout was started from (or null for blank workouts). */
-  source_routine_id?: number | null;
-  status: 'in_progress' | 'completed';
+  /** The plan workout this session was started from (or null for blank ones). */
+  source_workout_id?: number | null;
   started_at: string;
+  /** null while in progress; set once the session is finished. */
   finished_at: string | null;
   notes: string | null;
-  exercises: WorkoutExercise[];
+  exercises: SessionExercise[];
 }
 
 export interface SetInput {
@@ -287,9 +298,9 @@ export interface ParseResult {
   items: ParsedItem[];
 }
 
-// ---- AI routine import (parse a pasted routine into structured routines) ----
+// ---- AI workout import (parse a pasted plan into structured workouts) ----
 
-export interface ParsedRoutineExercise {
+export interface ParsedWorkoutExercise {
   exercise_name: string;
   exercise_id: number | null;
   match: ParsedMatch;
@@ -300,22 +311,22 @@ export interface ParsedRoutineExercise {
   notes: string | null;
 }
 
-export interface ParsedRoutine {
+export interface ParsedWorkout {
   name: string;
   notes: string | null;
   rest_day: boolean;
-  exercises: ParsedRoutineExercise[];
+  exercises: ParsedWorkoutExercise[];
 }
 
-export interface ParseRoutineResult {
+export interface ParseWorkoutResult {
   provider: string;
   model: string;
   units: string;
   latency_ms: number;
-  routines: ParsedRoutine[];
+  workouts: ParsedWorkout[];
 }
 
-// ---- Log a completed workout (one-shot, no live session) ----
+// ---- Log a completed session (one-shot, no live session) ----
 
 export interface LoggedSetInput {
   reps?: number | null;
@@ -329,7 +340,7 @@ export interface LoggedExerciseInput {
   sets: LoggedSetInput[];
 }
 
-export interface WorkoutLogInput {
+export interface SessionLogInput {
   name?: string | null;
   started_at?: string;
   notes?: string | null;
@@ -346,11 +357,11 @@ export interface ProgressPhoto {
   created_at: string;
 }
 
-// ---- AI routine edit (conversationally edit one routine) ----
+// ---- AI workout edit (conversationally edit one plan workout) ----
 
-// The routine as the client currently has it, sent so follow-up edits build on
+// The workout as the client currently has it, sent so follow-up edits build on
 // the last proposal. Exercises are by name (the model reasons over names).
-export interface RoutineEditWorkingExercise {
+export interface WorkoutEditWorkingExercise {
   exercise: string;
   target_sets: number | null;
   target_reps: number | null;
@@ -359,7 +370,7 @@ export interface RoutineEditWorkingExercise {
   notes?: string | null;
 }
 
-export interface RoutineEditProposal {
+export interface WorkoutEditProposal {
   provider: string;
   model: string;
   units: string;
@@ -367,7 +378,7 @@ export interface RoutineEditProposal {
   reply: string;
   name: string;
   notes: string | null;
-  exercises: ParsedRoutineExercise[];
+  exercises: ParsedWorkoutExercise[];
 }
 
 // ---- Athlete profile + coach check-in ----

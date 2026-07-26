@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-import type { SetInput, Workout, WorkoutSet } from '@/api/types';
+import type { SetInput, Session, SessionSet } from '@/api/types';
 
 /**
  * Offline support for logging.
@@ -11,17 +11,17 @@ import type { SetInput, Workout, WorkoutSet } from '@/api/types';
  * with retries. A queued set survives app restarts, dead zones, and API
  * redeploys.
  *
- * The active workout is also cached so the screen still renders (with its
+ * The active session is also cached so the screen still renders (with its
  * exercises and previously logged sets) while offline.
  */
 
 const QUEUE_KEY = 'gymapp.offline.setQueue';
-const CACHE_KEY = 'gymapp.offline.workout';
+const CACHE_KEY = 'gymapp.offline.session';
 
 export interface QueuedSet {
   /** Local-only id; also used as the optimistic set's id until it syncs. */
   localId: string;
-  workoutId: string;
+  sessionId: string;
   weId: string;
   input: SetInput;
   createdAt: number;
@@ -59,13 +59,13 @@ function nextLocalId(): string {
 
 /** Persist a set immediately. Returns the queued entry for optimistic display. */
 export async function enqueueSet(
-  workoutId: string,
+  sessionId: string,
   weId: string,
   input: SetInput,
 ): Promise<QueuedSet> {
   const entry: QueuedSet = {
     localId: nextLocalId(),
-    workoutId,
+    sessionId,
     weId,
     input,
     createdAt: Date.now(),
@@ -76,9 +76,9 @@ export async function enqueueSet(
   return entry;
 }
 
-export async function pendingSets(workoutId?: string): Promise<QueuedSet[]> {
+export async function pendingSets(sessionId?: string): Promise<QueuedSet[]> {
   const q = await readQueue();
-  return workoutId ? q.filter((e) => e.workoutId === workoutId) : q;
+  return sessionId ? q.filter((e) => e.sessionId === sessionId) : q;
 }
 
 export async function pendingCount(): Promise<number> {
@@ -98,10 +98,10 @@ export async function dequeueSet(localId: string): Promise<boolean> {
   return true;
 }
 
-/** Drop queued sets belonging to a workout (e.g. it was discarded). */
-export async function dropWorkoutFromQueue(workoutId: string): Promise<void> {
+/** Drop queued sets belonging to a session (e.g. it was discarded). */
+export async function dropSessionFromQueue(sessionId: string): Promise<void> {
   const q = await readQueue();
-  await writeQueue(q.filter((e) => e.workoutId !== workoutId));
+  await writeQueue(q.filter((e) => e.sessionId !== sessionId));
 }
 
 export interface FlushResult {
@@ -152,9 +152,9 @@ export async function flushQueue(
   return { synced, remaining: remaining.length };
 }
 
-// --- active workout cache (so the screen renders offline) ---
+// --- active session cache (so the screen renders offline) ---
 
-export async function cacheWorkout(w: Workout): Promise<void> {
+export async function cacheSession(w: Session): Promise<void> {
   try {
     await AsyncStorage.setItem(CACHE_KEY, JSON.stringify(w));
   } catch {
@@ -162,19 +162,19 @@ export async function cacheWorkout(w: Workout): Promise<void> {
   }
 }
 
-export async function readCachedWorkout(id?: string): Promise<Workout | null> {
+export async function readCachedSession(id?: string): Promise<Session | null> {
   try {
     const raw = await AsyncStorage.getItem(CACHE_KEY);
     if (!raw) return null;
-    const w = JSON.parse(raw) as Workout;
+    const w = JSON.parse(raw) as Session;
     return !id || w.id === id ? w : null;
   } catch {
     return null;
   }
 }
 
-/** Append one just-logged set to a workout immediately (no await, no network). */
-export function withPendingSetsSync(w: Workout, weId: string, input: SetInput): Workout {
+/** Append one just-logged set to a session immediately (no await, no network). */
+export function withPendingSetsSync(w: Session, weId: string, input: SetInput): Session {
   return {
     ...w,
     exercises: w.exercises.map((we) =>
@@ -202,14 +202,14 @@ export function withPendingSetsSync(w: Workout, weId: string, input: SetInput): 
 }
 
 /**
- * Overlay still-unsynced sets onto a workout so the UI shows everything the
+ * Overlay still-unsynced sets onto a session so the UI shows everything the
  * user logged, whether or not the server has it yet.
  */
-export function withPendingSets(w: Workout, pending: QueuedSet[]): Workout {
+export function withPendingSets(w: Session, pending: QueuedSet[]): Session {
   if (pending.length === 0) return w;
   const byWe = new Map<string, QueuedSet[]>();
   for (const p of pending) {
-    if (p.workoutId !== w.id) continue;
+    if (p.sessionId !== w.id) continue;
     byWe.set(p.weId, [...(byWe.get(p.weId) ?? []), p]);
   }
   if (byWe.size === 0) return w;
@@ -219,7 +219,7 @@ export function withPendingSets(w: Workout, pending: QueuedSet[]): Workout {
     exercises: w.exercises.map((we) => {
       const extra = byWe.get(we.id);
       if (!extra?.length) return we;
-      const optimistic: WorkoutSet[] = extra.map((p) => ({
+      const optimistic: SessionSet[] = extra.map((p) => ({
         id: p.localId,
         reps: p.input.reps ?? null,
         duration_seconds: p.input.duration_seconds ?? null,
