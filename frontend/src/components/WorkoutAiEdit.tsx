@@ -14,23 +14,23 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
 import { api, ApiError } from '@/api/client';
-import type { RoutineEditProposal, RoutineEditWorkingExercise } from '@/api/types';
+import type { WorkoutEditProposal, WorkoutEditWorkingExercise } from '@/api/types';
 import { aiParseErrorMessage } from '@/api/errors';
 import { formatRepRange, titleCase } from '@/lib/format';
 import { Text } from '@/components/ui/Text';
 import { Button } from '@/components/ui/Button';
 
-export interface RoutineAiWorking {
+export interface WorkoutAiWorking {
   name: string;
   notes: string | null;
-  exercises: RoutineEditWorkingExercise[];
+  exercises: WorkoutEditWorkingExercise[];
 }
 
 interface Props {
   visible: boolean;
   units: string;
-  initialWorking: RoutineAiWorking;
-  onApply: (proposal: RoutineEditProposal) => void;
+  initialWorking: WorkoutAiWorking;
+  onApply: (proposal: WorkoutEditProposal) => void;
   onClose: () => void;
 }
 
@@ -43,7 +43,7 @@ const SUGGESTIONS = [
 ];
 
 /** Fold the proposal into the next turn's working state (exercises by name). */
-function proposalToWorking(p: RoutineEditProposal): RoutineAiWorking {
+function proposalToWorking(p: WorkoutEditProposal): WorkoutAiWorking {
   return {
     name: p.name,
     notes: p.notes,
@@ -58,10 +58,10 @@ function proposalToWorking(p: RoutineEditProposal): RoutineAiWorking {
   };
 }
 
-export function RoutineAiEdit({ visible, units, initialWorking, onApply, onClose }: Props) {
-  const [working, setWorking] = useState<RoutineAiWorking>(initialWorking);
+export function WorkoutAiEdit({ visible, units, initialWorking, onApply, onClose }: Props) {
+  const [working, setWorking] = useState<WorkoutAiWorking>(initialWorking);
   const [turns, setTurns] = useState<Turn[]>([]);
-  const [proposal, setProposal] = useState<RoutineEditProposal | null>(null);
+  const [proposal, setProposal] = useState<WorkoutEditProposal | null>(null);
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
   const [received, setReceived] = useState(0);
@@ -69,7 +69,7 @@ export function RoutineAiEdit({ visible, units, initialWorking, onApply, onClose
   const scrollRef = useRef<ScrollView | null>(null);
 
   // Reset the session each time the sheet opens so it always starts from the
-  // routine's current saved state.
+  // workout's current saved state.
   useEffect(() => {
     if (visible) {
       setWorking(initialWorking);
@@ -92,7 +92,7 @@ export function RoutineAiEdit({ visible, units, initialWorking, onApply, onClose
     setTurns((prev) => [...prev, { role: 'user', content: instruction }]);
     setSending(true);
     try {
-      const p = await api.editRoutineStream(
+      const p = await api.editWorkoutStream(
         {
           instruction,
           name: working.name,
@@ -103,7 +103,7 @@ export function RoutineAiEdit({ visible, units, initialWorking, onApply, onClose
       );
       setProposal(p);
       setWorking(proposalToWorking(p));
-      setTurns((prev) => [...prev, { role: 'assistant', content: p.reply || 'Updated the split.' }]);
+      setTurns((prev) => [...prev, { role: 'assistant', content: p.reply || 'Updated the workout.' }]);
       requestAnimationFrame(() => scrollRef.current?.scrollToEnd({ animated: true }));
     } catch (e) {
       const msg = e instanceof ApiError ? aiParseErrorMessage(e) : 'Something went wrong — try again.';
@@ -141,7 +141,7 @@ export function RoutineAiEdit({ visible, units, initialWorking, onApply, onClose
             {turns.length === 0 && !sending ? (
               <View className="py-4">
                 <Text variant="muted" className="mb-3">
-                  Tell the AI how to change this routine. It proposes an update; nothing is saved
+                  Tell the AI how to change this workout. It proposes an update; nothing is saved
                   until you tap Apply.
                 </Text>
                 {SUGGESTIONS.map((s) => (
@@ -232,7 +232,7 @@ export function RoutineAiEdit({ visible, units, initialWorking, onApply, onClose
 }
 
 const EDIT_STAGES = [
-  'Reading your split',
+  'Reading your workout',
   'Working out the change',
   'Matching exercises',
   'Finalizing',
@@ -289,7 +289,7 @@ function EditProgress({ received = 0 }: { received?: number }) {
   );
 }
 
-function ProposalCard({ proposal, units }: { proposal: RoutineEditProposal; units: string }) {
+function ProposalCard({ proposal, units }: { proposal: WorkoutEditProposal; units: string }) {
   return (
     <View className="mb-2 rounded-2xl border border-brand/40 bg-brand/5 p-3.5">
       <Text variant="subheading" className="mb-2 text-iron-50">

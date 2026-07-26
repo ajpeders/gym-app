@@ -7,8 +7,8 @@ type IoniconName = React.ComponentProps<typeof Ionicons>['name'];
 // [filled (active), outline (inactive)]
 const ICONS: Record<string, [IoniconName, IoniconName]> = {
   index: ['home', 'home-outline'],
-  workouts: ['barbell', 'barbell-outline'],
-  routines: ['calendar', 'calendar-outline'],
+  workouts: ['calendar', 'calendar-outline'],
+  history: ['time', 'time-outline'],
   coach: ['chatbubbles', 'chatbubbles-outline'],
 };
 
@@ -55,8 +55,8 @@ export default function TabsLayout() {
         options={{ title: 'Workouts', tabBarIcon: tabIcon('workouts') }}
       />
       <Tabs.Screen
-        name="routines"
-        options={{ title: 'Plans', tabBarIcon: tabIcon('routines') }}
+        name="history"
+        options={{ title: 'History', tabBarIcon: tabIcon('history') }}
       />
       <Tabs.Screen name="coach" options={{ title: 'Coach', tabBarIcon: tabIcon('coach') }} />
 

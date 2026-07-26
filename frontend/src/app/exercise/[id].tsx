@@ -133,7 +133,7 @@ export default function ExerciseDetailScreen() {
 
           {activeId ? (
             <Button
-              title="Add to active workout"
+              title="Add to active session"
               size="lg"
               loading={adding}
               onPress={onAddToWorkout}

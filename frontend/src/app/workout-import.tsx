@@ -16,9 +16,9 @@ import { api } from '@/api/client';
 import { aiParseErrorMessage } from '@/api/errors';
 import type {
   ParsedMatch,
-  ParsedRoutine,
-  ParseRoutineResult,
-  RoutineExerciseInput,
+  ParsedWorkout,
+  ParseWorkoutResult,
+  WorkoutExerciseInput,
 } from '@/api/types';
 import { formatRepRange } from '@/lib/format';
 import { Screen } from '@/components/ui/Screen';
@@ -29,7 +29,7 @@ import { FormError } from '@/components/ui/Feedback';
 
 type Phase = 'input' | 'parsing' | 'review' | 'saving' | 'done';
 
-const PLACEHOLDER = 'Paste your split here.';
+const PLACEHOLDER = 'Paste your workout plan here.';
 
 const MATCH_META: Record<ParsedMatch, { icon: string; label: string; className: string }> = {
   exact: { icon: '✓', label: 'matched', className: 'border-green-500/40 bg-green-500/10 text-green-300' },
@@ -70,13 +70,13 @@ function summarizeTargets(
   return parts.length ? parts.join('  ·  ') : null;
 }
 
-export default function RoutineImportScreen() {
+export default function WorkoutImportScreen() {
   const router = useRouter();
 
   const [text, setText] = useState('');
   const [phase, setPhase] = useState<Phase>('input');
   const [error, setError] = useState<string | null>(null);
-  const [result, setResult] = useState<ParseRoutineResult | null>(null);
+  const [result, setResult] = useState<ParseWorkoutResult | null>(null);
 
   const [includeDay, setIncludeDay] = useState<Record<number, boolean>>({});
   const [includeExercise, setIncludeExercise] = useState<Record<string, boolean>>({});
@@ -91,14 +91,14 @@ export default function RoutineImportScreen() {
 
   const units = result?.units ?? 'kg';
 
-  const saveableRoutines = useMemo(() => {
+  const saveableWorkouts = useMemo(() => {
     if (!result) return [];
-    return result.routines.filter((r, di) => {
+    return result.workouts.filter((r, di) => {
       if (!includeDay[di] || r.rest_day) return false;
       return r.exercises.some((_, ei) => includeExercise[exKey(di, ei)] !== false);
     });
   }, [result, includeDay, includeExercise]);
-  const saveableCount = saveableRoutines.length;
+  const saveableCount = saveableWorkouts.length;
 
   async function onParse() {
     const trimmed = text.trim();
@@ -107,11 +107,11 @@ export default function RoutineImportScreen() {
     setReceived(0);
     setPhase('parsing');
     try {
-      const res = await api.parseRoutineStream(trimmed, (p) => setReceived(p.received));
+      const res = await api.parseWorkoutStream(trimmed, (p) => setReceived(p.received));
       const days: Record<number, boolean> = {};
       const exs: Record<string, boolean> = {};
       const exp: Record<number, boolean> = {};
-      res.routines.forEach((r, di) => {
+      res.workouts.forEach((r, di) => {
         days[di] = !r.rest_day; // rest days default to excluded from saving
         exp[di] = true;
         r.exercises.forEach((_, ei) => {
@@ -131,7 +131,7 @@ export default function RoutineImportScreen() {
 
   async function onSave() {
     if (!result) return;
-    const toSave = result.routines
+    const toSave = result.workouts
       .map((r, di) => ({ r, di }))
       .filter(({ r, di }) => {
         if (!includeDay[di] || r.rest_day) return false;
@@ -150,7 +150,7 @@ export default function RoutineImportScreen() {
       // day or across days) creates ONE custom exercise and reuses its id.
       const createdCustom = new Map<string, string>();
       for (const { r, di } of toSave) {
-        const exercises: RoutineExerciseInput[] = [];
+        const exercises: WorkoutExerciseInput[] = [];
         let order = 0;
         for (let ei = 0; ei < r.exercises.length; ei++) {
           if (includeExercise[exKey(di, ei)] === false) continue;
@@ -180,9 +180,9 @@ export default function RoutineImportScreen() {
           order += 1;
         }
         // A day with everything unchecked yields no exercises — never create an
-        // empty routine.
+        // empty workout.
         if (exercises.length === 0) continue;
-        await api.createRoutine({
+        await api.createWorkout({
           name: r.name,
           notes: r.notes ?? undefined,
           exercises,
@@ -193,7 +193,7 @@ export default function RoutineImportScreen() {
       setSavedCount(done);
       setPhase('done');
     } catch {
-      setError('Saving failed — some splits may not have saved. Try again.');
+      setError('Saving failed — some workouts may not have saved. Try again.');
       setPhase('review');
     }
   }
@@ -222,7 +222,7 @@ export default function RoutineImportScreen() {
   if (phase === 'parsing') {
     return (
       <Screen scroll={false} padded={false}>
-        <Stack.Screen options={{ headerShown: true, title: 'Import split' }} />
+        <Stack.Screen options={{ headerShown: true, title: 'Import workouts' }} />
         <ParseProgress received={received} />
       </Screen>
     );
@@ -232,19 +232,19 @@ export default function RoutineImportScreen() {
   if (phase === 'done') {
     return (
       <Screen scroll={false} padded={false}>
-        <Stack.Screen options={{ headerShown: true, title: 'Import split' }} />
+        <Stack.Screen options={{ headerShown: true, title: 'Import workouts' }} />
         <View className="flex-1 items-center justify-center px-6">
           <View className="mb-4 h-16 w-16 items-center justify-center rounded-full border border-brand/40 bg-brand/10">
             <Ionicons name="checkmark" size={34} color="#f97316" />
           </View>
           <Text variant="heading" className="text-center">
-            Saved {savedCount} {savedCount === 1 ? 'split' : 'splits'}
+            Saved {savedCount} {savedCount === 1 ? 'workout' : 'workouts'}
           </Text>
           <Text variant="muted" className="mt-1.5 text-center">
-            Your routines are ready. Start a workout from any of them.
+            Your workouts are ready. Start a session from any of them.
           </Text>
           <View className="mt-6 w-full gap-2">
-            <Button title="View splits" size="lg" onPress={() => router.replace('/routines')} />
+            <Button title="View workouts" size="lg" onPress={() => router.replace('/workouts')} />
             <Button title="Import another" variant="secondary" onPress={() => reset(true)} />
           </View>
         </View>
@@ -260,7 +260,7 @@ export default function RoutineImportScreen() {
         <Stack.Screen options={{ headerShown: true, title: 'Review import' }} />
         <ScrollView className="flex-1" contentContainerClassName="px-4 pt-3 pb-40">
           <Text variant="muted" className="mb-3">
-            Found {result?.routines.length ?? 0} days. Toggle anything you don&apos;t want, then
+            Found {result?.workouts.length ?? 0} days. Toggle anything you don&apos;t want, then
             save.
           </Text>
 
@@ -270,10 +270,10 @@ export default function RoutineImportScreen() {
             </View>
           ) : null}
 
-          {result?.routines.map((r, di) => (
+          {result?.workouts.map((r, di) => (
             <DayCard
               key={di}
-              routine={r}
+              workout={r}
               dayIdx={di}
               units={units}
               included={!!includeDay[di]}
@@ -290,7 +290,7 @@ export default function RoutineImportScreen() {
         <View className="border-t border-iron-800 bg-iron-950 px-4 pb-8 pt-3">
           {saving ? (
             <Text variant="caption" className="mb-2 text-center">
-              Saving routine {saveCurrent} of {saveTotal}…
+              Saving workout {saveCurrent} of {saveTotal}…
             </Text>
           ) : null}
           <View className="flex-row gap-2">
@@ -308,7 +308,7 @@ export default function RoutineImportScreen() {
                   saving
                     ? 'Saving…'
                     : saveableCount > 0
-                      ? `Save ${saveableCount} ${saveableCount === 1 ? 'split' : 'splits'}`
+                      ? `Save ${saveableCount} ${saveableCount === 1 ? 'workout' : 'workouts'}`
                       : 'Nothing selected'
                 }
                 loading={saving}
@@ -325,7 +325,7 @@ export default function RoutineImportScreen() {
   // ---- input ----
   return (
     <Screen scroll={false} padded={false}>
-      <Stack.Screen options={{ headerShown: true, title: 'Import split' }} />
+      <Stack.Screen options={{ headerShown: true, title: 'Import workouts' }} />
       <KeyboardAvoidingView
         className="flex-1"
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -335,10 +335,10 @@ export default function RoutineImportScreen() {
           contentContainerClassName="px-4 pt-3 pb-6"
           keyboardShouldPersistTaps="handled">
           <Text variant="heading" className="mb-2">
-            Paste your routine here
+            Paste your plan here
           </Text>
           <Text variant="muted" className="mb-3">
-            Drop in your workout plan and the AI will turn it into routines.
+            Drop in your workout plan and the AI will turn it into workouts.
           </Text>
 
           <TextInput
@@ -371,7 +371,7 @@ const PARSE_STAGES = [
   'Reading your notes',
   'Finding the exercises',
   'Matching them to the catalog',
-  'Building your splits',
+  'Building your workouts',
   'Almost there',
 ];
 
@@ -424,7 +424,7 @@ function ParseProgress({ received = 0 }: { received?: number }) {
         <Text className="text-brand">…</Text>
       </Text>
       <Text variant="muted" className="mt-1.5 text-center">
-        The AI is turning your notes into routines.
+        The AI is turning your notes into workouts.
       </Text>
 
       <View className="mt-6 h-2 w-full overflow-hidden rounded-full bg-iron-800">
@@ -438,7 +438,7 @@ function ParseProgress({ received = 0 }: { received?: number }) {
 }
 
 interface DayCardProps {
-  routine: ParsedRoutine;
+  workout: ParsedWorkout;
   dayIdx: number;
   units: string;
   included: boolean;
@@ -451,7 +451,7 @@ interface DayCardProps {
 }
 
 function DayCard({
-  routine,
+  workout,
   dayIdx,
   units,
   included,
@@ -485,17 +485,17 @@ function DayCard({
           <View className="flex-1">
             <View className="flex-row items-center">
               <Text variant="subheading" numberOfLines={1} className="flex-shrink">
-                {routine.name}
+                {workout.name}
               </Text>
-              {routine.rest_day ? (
+              {workout.rest_day ? (
                 <View className="ml-2 rounded-md border border-iron-600 bg-iron-800 px-2 py-0.5">
                   <Text className="text-xs font-bold text-iron-300">REST</Text>
                 </View>
               ) : null}
             </View>
             <Text variant="caption" className="mt-0.5">
-              {routine.exercises.length}{' '}
-              {routine.exercises.length === 1 ? 'exercise' : 'exercises'}
+              {workout.exercises.length}{' '}
+              {workout.exercises.length === 1 ? 'exercise' : 'exercises'}
             </Text>
           </View>
           <Ionicons
@@ -508,16 +508,16 @@ function DayCard({
 
       {expanded ? (
         <View className="mt-3 gap-2">
-          {routine.notes ? (
+          {workout.notes ? (
             <Text variant="muted" className="italic">
-              {routine.notes}
+              {workout.notes}
             </Text>
           ) : null}
 
-          {routine.exercises.length === 0 ? (
+          {workout.exercises.length === 0 ? (
             <Text variant="muted">No exercises on this day.</Text>
           ) : (
-            routine.exercises.map((ex, ei) => {
+            workout.exercises.map((ex, ei) => {
               const exIncluded = includeExercise[exKey(dayIdx, ei)] !== false;
               const targets = summarizeTargets(
                 ex.target_sets,

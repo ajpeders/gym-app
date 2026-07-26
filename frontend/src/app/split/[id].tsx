@@ -4,24 +4,14 @@ import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-rou
 import { Ionicons } from '@expo/vector-icons';
 
 import { api } from '@/api/client';
-import type { Routine, Split } from '@/api/types';
+import type { Split, Workout } from '@/api/types';
 import { useActiveWorkout } from '@/state/active-workout';
 import { Screen } from '@/components/ui/Screen';
 import { Text } from '@/components/ui/Text';
 import { Card } from '@/components/ui/Card';
 import { Loading, ErrorState } from '@/components/ui/Feedback';
 
-const REST_RE = /rest|walk|off/i;
 const DOW = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-
-/** Find the day-routine that fulfils a schedule entry (by day label match). */
-function routineForDay(split: Split, day: string, label?: string | null): Routine | undefined {
-  return split.routines.find(
-    (r) =>
-      (r.day_label && r.day_label.toLowerCase() === day.toLowerCase()) ||
-      (label && r.name.toLowerCase().includes(label.toLowerCase())),
-  );
-}
 
 export default function SplitDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -50,7 +40,7 @@ export default function SplitDetailScreen() {
     }, [fetch]),
   );
 
-  const todayName = DOW[new Date().getDay()];
+  const today = new Date().getDay();
 
   if (loading || error || !split) {
     return (
@@ -61,7 +51,11 @@ export default function SplitDetailScreen() {
     );
   }
 
-  const orderedDays = [...split.routines].sort((a, b) => (a.day_order ?? 0) - (b.day_order ?? 0));
+  const ordered = [...split.workouts].sort((a, b) => a.order - b.order);
+  const floating = ordered.filter((w) => w.floating);
+  // Workouts scheduled on a given weekday (0=Sun..6=Sat).
+  const workoutsForDay = (day: number): Workout[] =>
+    ordered.filter((w) => !w.floating && w.weekdays.includes(day));
 
   return (
     <Screen scroll={false} padded={false}>
@@ -69,7 +63,7 @@ export default function SplitDetailScreen() {
       <ScrollView className="flex-1" contentContainerClassName="px-4 pt-3 pb-28">
         <Text variant="title">{split.name}</Text>
         <Text variant="muted" className="mt-0.5">
-          {orderedDays.length} training days · weekly plan
+          {ordered.length} {ordered.length === 1 ? 'workout' : 'workouts'} · weekly plan
         </Text>
 
         {/* Weekly schedule */}
@@ -77,24 +71,25 @@ export default function SplitDetailScreen() {
           Weekly schedule
         </Text>
         <Card className="mb-1 rounded-[20px] p-2">
-          {split.schedule.map((entry, i) => {
-            const isRest = REST_RE.test(entry.label ?? '') || !entry.label;
-            const routine = isRest ? undefined : routineForDay(split, entry.day, entry.label);
-            const isToday = entry.day.toLowerCase().includes(todayName.toLowerCase());
+          {DOW.map((dayName, day) => {
+            const dayWorkouts = workoutsForDay(day);
+            const isToday = day === today;
+            const isRest = dayWorkouts.length === 0;
+            const primary = dayWorkouts[0];
             return (
               <Pressable
-                key={`${entry.day}-${i}`}
-                disabled={!routine}
-                onPress={() => routine && router.push(`/routine/${routine.id}`)}
+                key={dayName}
+                disabled={!primary}
+                onPress={() => primary && router.push(`/workout/${primary.id}`)}
                 className={`flex-row items-center rounded-2xl px-3 py-3 ${
                   isToday ? 'bg-brand/10' : ''
-                } ${routine ? 'active:opacity-70' : ''}`}>
+                } ${primary ? 'active:opacity-70' : ''}`}>
                 <View className="w-32">
                   <Text
                     variant="subheading"
                     numberOfLines={1}
                     className={isToday ? 'text-brand' : undefined}>
-                    {entry.day}
+                    {dayName}
                   </Text>
                   {isToday ? (
                     <Text variant="caption" className="text-brand">
@@ -106,9 +101,11 @@ export default function SplitDetailScreen() {
                   variant="body"
                   numberOfLines={1}
                   className={`flex-1 ${isRest ? 'text-iron-500' : 'text-iron-100'}`}>
-                  {entry.label ?? 'Rest'}
+                  {isRest
+                    ? 'Rest'
+                    : dayWorkouts.map((w) => w.name).join(', ')}
                 </Text>
-                {routine ? (
+                {primary ? (
                   <Ionicons name="chevron-forward" size={16} color="#57534e" />
                 ) : (
                   <Ionicons name="bed-outline" size={15} color="#57534e" />
@@ -117,6 +114,28 @@ export default function SplitDetailScreen() {
             );
           })}
         </Card>
+
+        {/* Floating workouts (not pinned to a weekday) */}
+        {floating.length > 0 ? (
+          <>
+            <Text variant="heading" className="mb-2 mt-6">
+              Anytime
+            </Text>
+            <Card className="mb-1 rounded-[20px] p-2">
+              {floating.map((w) => (
+                <Pressable
+                  key={w.id}
+                  onPress={() => router.push(`/workout/${w.id}`)}
+                  className="flex-row items-center rounded-2xl px-3 py-3 active:opacity-70">
+                  <Text variant="body" numberOfLines={1} className="flex-1 text-iron-100">
+                    {w.name}
+                  </Text>
+                  <Ionicons name="chevron-forward" size={16} color="#57534e" />
+                </Pressable>
+              ))}
+            </Card>
+          </>
+        ) : null}
 
         {/* Progression rules */}
         {split.rules.length > 0 ? (
@@ -142,25 +161,25 @@ export default function SplitDetailScreen() {
           </>
         ) : null}
 
-        {/* Day cards */}
+        {/* Workout cards */}
         <Text variant="heading" className="mb-2 mt-6">
-          Days
+          Workouts
         </Text>
-        {orderedDays.map((r) => (
-          <Card key={r.id} className="mb-3 rounded-[20px] p-4" onPress={() => router.push(`/routine/${r.id}`)}>
+        {ordered.map((w) => (
+          <Card key={w.id} className="mb-3 rounded-[20px] p-4" onPress={() => router.push(`/workout/${w.id}`)}>
             <View className="flex-row items-center">
               <View className="flex-1">
                 <Text variant="subheading" numberOfLines={1}>
-                  {r.name}
+                  {w.name}
                 </Text>
                 <Text variant="caption" className="mt-0.5 text-iron-400">
-                  {r.exercises.length} exercises
+                  {w.exercises.length} exercises
                 </Text>
               </View>
               <Pressable
                 onPress={async () => {
-                  const w = await start({ routine_id: r.id, name: r.name });
-                  router.push(`/workout/active/${w.id}`);
+                  const s = await start({ workout_id: w.id, name: w.name });
+                  router.push(`/session/active/${s.id}`);
                 }}
                 className="mr-2 flex-row items-center rounded-lg bg-brand px-3 py-2 active:bg-brand-600">
                 <Ionicons name="play" size={13} color="#080706" />

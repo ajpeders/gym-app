@@ -10,9 +10,9 @@ import { Button } from '@/components/ui/Button';
 import { FormError } from '@/components/ui/Feedback';
 
 interface Props {
-  workoutId: string;
+  sessionId: string;
   units: Units;
-  /** Refresh the active workout once new sets have been applied. */
+  /** Refresh the active session once new sets have been applied. */
   onApplied: () => Promise<void>;
 }
 
@@ -31,7 +31,7 @@ const MATCH_BADGE: Record<ParsedItem['match'], { icon: string; label: string; cl
   none: { icon: '⚠', label: 'no match', cls: 'text-red-400' },
 };
 
-export function NaturalLanguageLog({ workoutId, units, onApplied }: Props) {
+export function NaturalLanguageLog({ sessionId, units, onApplied }: Props) {
   const [mode, setMode] = useState<Mode>('idle');
   const [text, setText] = useState('');
   const [parsing, setParsing] = useState(false);
@@ -57,7 +57,8 @@ export function NaturalLanguageLog({ workoutId, units, onApplied }: Props) {
     setParsing(true);
     setError(null);
     try {
-      const res = await api.parseSets({ text: trimmed, workout_id: Number(workoutId) });
+      // Body field stays `workout_id`, but its value is the active session id.
+      const res = await api.parseSets({ text: trimmed, workout_id: Number(sessionId) });
       setResult(res);
       setExcluded(new Set());
       setMode('confirm');
@@ -86,11 +87,11 @@ export function NaturalLanguageLog({ workoutId, units, onApplied }: Props) {
         const item = result.items[i];
         if (excluded.has(i)) continue;
         if (item.exercise_id == null) continue; // unmatched: skipped (see note in UI)
-        const we = await api.addWorkoutExercise(workoutId, {
+        const we = await api.addSessionExercise(sessionId, {
           exercise_id: String(item.exercise_id),
         });
         for (const s of item.sets) {
-          await api.addSet(workoutId, we.id, {
+          await api.addSet(sessionId, we.id, {
             reps: s.reps,
             weight: s.weight ?? 0,
             rpe: s.rpe,

@@ -77,7 +77,7 @@ export default function ActiveWorkoutScreen() {
     setFinishing(true);
     try {
       await finish();
-      router.replace('/(tabs)/workouts');
+      router.replace('/(tabs)/history');
     } finally {
       setFinishing(false);
     }
@@ -85,8 +85,8 @@ export default function ActiveWorkoutScreen() {
 
   function onDiscard() {
     confirm(
-      'Discard workout?',
-      'This permanently deletes this in-progress workout.',
+      'Discard session?',
+      'This permanently deletes this in-progress session.',
       async () => {
         await discard();
         router.replace('/(tabs)');
@@ -98,8 +98,8 @@ export default function ActiveWorkoutScreen() {
   if (!ready || !workout) {
     return (
       <SafeAreaView className="flex-1 bg-iron-950">
-        <Stack.Screen options={{ headerShown: true, title: 'Workout' }} />
-        <Loading label="Loading workout…" />
+        <Stack.Screen options={{ headerShown: true, title: 'Session' }} />
+        <Loading label="Loading session…" />
       </SafeAreaView>
     );
   }
@@ -115,13 +115,13 @@ export default function ActiveWorkoutScreen() {
       <Stack.Screen
         options={{
           headerShown: true,
-          title: workout.name ?? 'Workout',
+          title: workout.name ?? 'Session',
           headerRight: () => (
             <Pressable
               onPress={onDiscard}
               hitSlop={8}
               accessibilityRole="button"
-              accessibilityLabel="Discard workout"
+              accessibilityLabel="Discard session"
               className="mr-1 h-9 w-9 items-center justify-center rounded-lg bg-red-500/10">
               <Ionicons name="trash-outline" size={18} color="#ef4444" />
             </Pressable>
@@ -164,7 +164,7 @@ export default function ActiveWorkoutScreen() {
         ) : null}
 
         {/* natural-language set logging */}
-        <NaturalLanguageLog workoutId={workout.id} units={settings.units} onApplied={refresh} />
+        <NaturalLanguageLog sessionId={workout.id} units={settings.units} onApplied={refresh} />
 
         {/* in-set AI prompt stub */}
         {settings.feature_flags.in_set_prompts ? (
@@ -199,7 +199,7 @@ export default function ActiveWorkoutScreen() {
             .map((we) => (
               <ActiveExerciseCard
                 key={we.id}
-                workoutExercise={we}
+                sessionExercise={we}
                 units={settings.units}
                 quickButtons={settings.feature_flags.quick_buttons}
                 onAddSet={(input) => onLogSet(we.id, input)}
@@ -207,7 +207,7 @@ export default function ActiveWorkoutScreen() {
                 onRemoveExercise={() =>
                   confirm(
                     'Remove exercise?',
-                    'This removes the exercise and its sets from this workout.',
+                    'This removes the exercise and its sets from this session.',
                     () => void removeExercise(we.id),
                     true,
                   )
@@ -222,13 +222,13 @@ export default function ActiveWorkoutScreen() {
           size="lg"
           icon="add"
           className="mt-1"
-          onPress={() => router.push('/workout/add-exercise')}
+          onPress={() => router.push('/session/add-exercise')}
         />
       </ScrollView>
 
       {/* finish bar */}
       <View className="absolute bottom-0 left-0 right-0 border-t border-iron-800 bg-iron-950/95 px-4 pb-6 pt-3">
-        <Button title="Finish workout" size="lg" icon="checkmark" loading={finishing} onPress={onFinish} />
+        <Button title="Finish session" size="lg" icon="checkmark" loading={finishing} onPress={onFinish} />
       </View>
     </SafeAreaView>
   );

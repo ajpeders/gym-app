@@ -3,7 +3,7 @@ import { Keyboard, Pressable, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 
-import type { SetInput, Units, WorkoutExercise } from '@/api/types';
+import type { SessionExercise, SetInput, Units } from '@/api/types';
 import { Text } from '@/components/ui/Text';
 import { Card } from '@/components/ui/Card';
 import { ExerciseThumb } from '@/components/ExerciseThumb';
@@ -16,7 +16,7 @@ import {
 } from '@/lib/format';
 
 interface Props {
-  workoutExercise: WorkoutExercise;
+  sessionExercise: SessionExercise;
   units: Units;
   quickButtons: boolean;
   onAddSet: (input: SetInput) => Promise<void>;
@@ -28,7 +28,7 @@ const numInput =
   'min-h-[44px] w-16 rounded-lg border border-iron-700 bg-iron-950 px-2 py-2 text-center text-base text-iron-50';
 
 export function ActiveExerciseCard({
-  workoutExercise,
+  sessionExercise,
   units,
   quickButtons,
   onAddSet,
@@ -36,9 +36,9 @@ export function ActiveExerciseCard({
   onRemoveExercise,
 }: Props) {
   const router = useRouter();
-  const sets = workoutExercise.sets ?? [];
+  const sets = sessionExercise.sets ?? [];
   // How this movement is logged: load x reps, reps only, or a timed hold.
-  const kind = workoutExercise.exercise?.tracking_type ?? 'weight_reps';
+  const kind = sessionExercise.exercise?.tracking_type ?? 'weight_reps';
   const isTimed = kind === 'time';
   const isBodyweight = kind === 'bodyweight';
   const last = sets[sets.length - 1];
@@ -49,22 +49,22 @@ export function ActiveExerciseCard({
   const [duration, setDuration] = useState('');
   const [saving, setSaving] = useState(false);
 
-  const name = workoutExercise.exercise?.name ?? 'Exercise';
+  const name = sessionExercise.exercise?.name ?? 'Exercise';
 
-  // Target snapshot from the routine this workout started from, e.g. "3 x 8-12 @ 25kg".
+  // Target snapshot from the plan workout this session started from, e.g. "3 x 8-12 @ 25kg".
   const targetReps = formatRepRange(
-    workoutExercise.target_reps ?? null,
-    workoutExercise.target_reps_max ?? null,
+    sessionExercise.target_reps ?? null,
+    sessionExercise.target_reps_max ?? null,
   );
   const targetLabel = [
-    workoutExercise.target_sets != null && targetReps
-      ? `${workoutExercise.target_sets} x ${targetReps}`
-      : workoutExercise.target_sets != null
-        ? `${workoutExercise.target_sets} sets`
+    sessionExercise.target_sets != null && targetReps
+      ? `${sessionExercise.target_sets} x ${targetReps}`
+      : sessionExercise.target_sets != null
+        ? `${sessionExercise.target_sets} sets`
         : targetReps
           ? `${targetReps} reps`
           : null,
-    workoutExercise.target_weight != null ? `@ ${workoutExercise.target_weight}${units}` : null,
+    sessionExercise.target_weight != null ? `@ ${sessionExercise.target_weight}${units}` : null,
   ]
     .filter(Boolean)
     .join(' ');
@@ -129,11 +129,11 @@ export function ActiveExerciseCard({
     <Card className="mb-3">
       <View className="flex-row items-center justify-between">
         <Pressable
-          onPress={() => router.push(`/exercise/${workoutExercise.exercise_id}`)}
+          onPress={() => router.push(`/exercise/${sessionExercise.exercise_id}`)}
           accessibilityRole="button"
           accessibilityLabel={`How to do ${name}`}
           className="mr-3 flex-1 flex-row items-center active:opacity-70">
-          <ExerciseThumb images={workoutExercise.exercise?.images} size={40} radius={8} />
+          <ExerciseThumb images={sessionExercise.exercise?.images} size={40} radius={8} />
           <View className="ml-3 flex-1">
             <View className="flex-row items-center">
               <Text variant="subheading" numberOfLines={1} className="flex-shrink">
@@ -150,9 +150,9 @@ export function ActiveExerciseCard({
             <Text variant="caption" numberOfLines={1} className="mt-0.5 font-semibold text-brand">
               Target: {targetLabel}
             </Text>
-          ) : workoutExercise.exercise?.primary_muscles?.length ? (
+          ) : sessionExercise.exercise?.primary_muscles?.length ? (
             <Text variant="caption" numberOfLines={1} className="mt-0.5">
-              {workoutExercise.exercise.primary_muscles.map(titleCase).join(', ')}
+              {sessionExercise.exercise.primary_muscles.map(titleCase).join(', ')}
             </Text>
           ) : null}
           </View>

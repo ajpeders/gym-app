@@ -59,15 +59,15 @@ function RootNavigator() {
       <Stack.Screen name="(auth)" />
       <Stack.Screen name="(tabs)" />
       <Stack.Screen name="exercise/[id]" options={{ presentation: 'card' }} />
+      <Stack.Screen name="session/[id]" />
+      <Stack.Screen name="session/log" />
+      <Stack.Screen name="session/active/[id]" />
+      <Stack.Screen name="session/add-exercise" options={{ presentation: 'modal' }} />
       <Stack.Screen name="workout/[id]" />
-      <Stack.Screen name="workout/log" />
-      <Stack.Screen name="workout/active/[id]" />
-      <Stack.Screen name="workout/add-exercise" options={{ presentation: 'modal' }} />
-      <Stack.Screen name="routine/[id]" />
-      <Stack.Screen name="routine/new" />
+      <Stack.Screen name="workout/new" />
       <Stack.Screen name="split/[id]" />
       <Stack.Screen name="profile" />
-      <Stack.Screen name="routine-import" />
+      <Stack.Screen name="workout-import" />
       <Stack.Screen name="progress" />
     </Stack>
   );

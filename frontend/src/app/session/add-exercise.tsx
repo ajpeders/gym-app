@@ -28,7 +28,7 @@ export default function AddExerciseScreen() {
     <SafeAreaView edges={['top', 'left', 'right']} className="flex-1 bg-iron-950">
       <Stack.Screen options={{ headerShown: true, title: 'Add exercise' }} />
       <View className="px-4 pt-2 pb-1">
-        <Text variant="muted">Tap an exercise to add it to your workout</Text>
+        <Text variant="muted">Tap an exercise to add it to your session</Text>
       </View>
       <ExerciseBrowser
         onSelect={onSelect}

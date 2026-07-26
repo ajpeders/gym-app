@@ -3,16 +3,16 @@ import { AppState } from 'react-native';
 import NetInfo from '@react-native-community/netinfo';
 
 import { api } from '@/api/client';
-import type { SetInput, Workout } from '@/api/types';
+import type { SetInput, Session } from '@/api/types';
 import { deleteItem, getItem, setItem } from '@/lib/storage';
 import {
-  cacheWorkout,
+  cacheSession,
   dequeueSet,
-  dropWorkoutFromQueue,
+  dropSessionFromQueue,
   enqueueSet,
   flushQueue,
   pendingSets,
-  readCachedWorkout,
+  readCachedSession,
   withPendingSets,
   withPendingSetsSync,
   type QueuedSet,
@@ -22,10 +22,10 @@ import { useAuth } from './auth';
 const ACTIVE_KEY = 'gymapp.activeWorkoutId';
 
 interface ActiveWorkoutContextValue {
-  workout: Workout | null;
+  workout: Session | null;
   activeId: string | null;
   loading: boolean;
-  start: (input: { routine_id?: string; name?: string; started_at?: string }) => Promise<Workout>;
+  start: (input: { workout_id?: string; name?: string; started_at?: string }) => Promise<Session>;
   load: (id: string) => Promise<void>;
   refresh: () => Promise<void>;
   addExercise: (exerciseId: string) => Promise<void>;
@@ -45,7 +45,7 @@ const ActiveWorkoutContext = createContext<ActiveWorkoutContextValue | null>(nul
 
 export function ActiveWorkoutProvider({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
-  const [workout, setWorkout] = useState<Workout | null>(null);
+  const [workout, setWorkout] = useState<Session | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [pendingCount, setPendingCount] = useState(0);
@@ -64,8 +64,8 @@ export function ActiveWorkoutProvider({ children }: { children: React.ReactNode 
       if (!stored) return;
       setActiveId(stored);
       try {
-        const w = await api.workout(stored);
-        if (w.status === 'in_progress') {
+        const w = await api.session(stored);
+        if (w.finished_at == null) {
           await applyWorkout(w);
         } else {
           await deleteItem(ACTIVE_KEY);
@@ -79,7 +79,7 @@ export function ActiveWorkoutProvider({ children }: { children: React.ReactNode 
           setActiveId(null);
           return;
         }
-        const cached = await readCachedWorkout(stored);
+        const cached = await readCachedSession(stored);
         if (cached) setWorkout(await overlay(cached));
       }
     })();
@@ -87,7 +87,7 @@ export function ActiveWorkoutProvider({ children }: { children: React.ReactNode 
 
   // Merge unsynced sets on top of a server/cached workout so nothing the user
   // logged ever disappears from the screen.
-  const overlay = useCallback(async (w: Workout): Promise<Workout> => {
+  const overlay = useCallback(async (w: Session): Promise<Session> => {
     const pend = await pendingSets(w.id);
     setPendingCount(pend.length);
     return withPendingSets(w, pend);
@@ -95,8 +95,8 @@ export function ActiveWorkoutProvider({ children }: { children: React.ReactNode 
 
   // Store the authoritative server copy, then display it with pending overlaid.
   const applyWorkout = useCallback(
-    async (w: Workout) => {
-      await cacheWorkout(w);
+    async (w: Session) => {
+      await cacheSession(w);
       setWorkout(await overlay(w));
     },
     [overlay],
@@ -129,11 +129,11 @@ export function ActiveWorkoutProvider({ children }: { children: React.ReactNode 
     };
   }, [user, pendingCount]);
 
-  const setActive = useCallback(async (w: Workout | null) => {
-    if (w) await cacheWorkout(w);
+  const setActive = useCallback(async (w: Session | null) => {
+    if (w) await cacheSession(w);
     setWorkout(w);
     setActiveId(w?.id ?? null);
-    if (w && w.status === 'in_progress') {
+    if (w && w.finished_at == null) {
       await setItem(ACTIVE_KEY, w.id);
     } else {
       await deleteItem(ACTIVE_KEY);
@@ -141,8 +141,8 @@ export function ActiveWorkoutProvider({ children }: { children: React.ReactNode 
   }, []);
 
   const start = useCallback(
-    async (input: { routine_id?: string; name?: string; started_at?: string }) => {
-      const w = await api.startWorkout(input);
+    async (input: { workout_id?: string; name?: string; started_at?: string }) => {
+      const w = await api.startSession(input);
       await setActive(w);
       return w;
     },
@@ -154,12 +154,12 @@ export function ActiveWorkoutProvider({ children }: { children: React.ReactNode 
       setLoading(true);
       setActiveId(id);
       try {
-        const w = await api.workout(id);
+        const w = await api.session(id);
         await applyWorkout(w);
-        if (w.status === 'in_progress') await setItem(ACTIVE_KEY, id);
+        if (w.finished_at == null) await setItem(ACTIVE_KEY, id);
       } catch {
-        // Offline: render from cache so the workout is still usable.
-        const cached = await readCachedWorkout(id);
+        // Offline: render from cache so the session is still usable.
+        const cached = await readCachedSession(id);
         if (cached) setWorkout(await overlay(cached));
       } finally {
         setLoading(false);
@@ -171,10 +171,10 @@ export function ActiveWorkoutProvider({ children }: { children: React.ReactNode 
   const refresh = useCallback(async () => {
     if (!activeId) return;
     try {
-      await applyWorkout(await api.workout(activeId));
+      await applyWorkout(await api.session(activeId));
     } catch {
       // Stay on the cached + pending view rather than blanking the screen.
-      const cached = await readCachedWorkout(activeId);
+      const cached = await readCachedSession(activeId);
       if (cached) setWorkout(await overlay(cached));
     }
   }, [activeId, applyWorkout, overlay]);
@@ -182,7 +182,7 @@ export function ActiveWorkoutProvider({ children }: { children: React.ReactNode 
   const addExercise = useCallback(
     async (exerciseId: string) => {
       if (!activeId) return;
-      await api.addWorkoutExercise(activeId, { exercise_id: exerciseId });
+      await api.addSessionExercise(activeId, { exercise_id: exerciseId });
       await refresh();
     },
     [activeId, refresh],
@@ -191,7 +191,7 @@ export function ActiveWorkoutProvider({ children }: { children: React.ReactNode 
   const removeExercise = useCallback(
     async (weId: string) => {
       if (!activeId) return;
-      await api.deleteWorkoutExercise(activeId, weId);
+      await api.deleteSessionExercise(activeId, weId);
       await refresh();
     },
     [activeId, refresh],
@@ -204,7 +204,7 @@ export function ActiveWorkoutProvider({ children }: { children: React.ReactNode 
       const send = async (e: QueuedSet) => {
         // Stamp with when the set was actually logged, not when it synced —
         // otherwise a whole offline session collapses onto one timestamp.
-        await api.addSet(e.workoutId, e.weId, {
+        await api.addSet(e.sessionId, e.weId, {
           ...e.input,
           completed_at: e.input.completed_at ?? new Date(e.createdAt).toISOString(),
         });
@@ -214,7 +214,7 @@ export function ActiveWorkoutProvider({ children }: { children: React.ReactNode 
       // Only re-read the server when something actually landed.
       if (synced > 0 && activeId) {
         try {
-          await applyWorkout(await api.workout(activeId));
+          await applyWorkout(await api.session(activeId));
         } catch {
           /* still offline — keep showing what we have */
         }
@@ -280,15 +280,15 @@ export function ActiveWorkoutProvider({ children }: { children: React.ReactNode 
   const finish = useCallback(async () => {
     if (!activeId) return;
     await sync(); // push any queued sets before closing the session
-    await api.finishWorkout(activeId);
+    await api.finishSession(activeId);
     await setActive(null);
   }, [activeId, setActive, sync]);
 
   const discard = useCallback(async () => {
     if (!activeId) return;
     try {
-      await dropWorkoutFromQueue(activeId);
-      await api.deleteWorkout(activeId);
+      await dropSessionFromQueue(activeId);
+      await api.deleteSession(activeId);
     } finally {
       setPendingCount(0);
       await setActive(null);

@@ -1,33 +1,44 @@
 import { useCallback, useState } from 'react';
-import { Pressable, ScrollView, View } from 'react-native';
-import { Stack, useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { Alert, Platform, Pressable } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
 import { api } from '@/api/client';
-import type { Workout } from '@/api/types';
+import type { Workout, WorkoutInput } from '@/api/types';
 import { useSettings } from '@/state/settings';
-import { Screen } from '@/components/ui/Screen';
-import { Text } from '@/components/ui/Text';
-import { Card } from '@/components/ui/Card';
+import { WorkoutEditor, type DraftExercise } from '@/components/WorkoutEditor';
 import { Loading, ErrorState } from '@/components/ui/Feedback';
-import { formatDateTime, formatDuration, formatLoad, titleCase } from '@/lib/format';
 import { promptExport, workoutToJson, workoutToText } from '@/lib/export';
 
-function Stat({ label, value }: { label: string; value: string }) {
-  return (
-    <View className="items-center">
-      <Text variant="subheading">{value}</Text>
-      <Text variant="caption">{label}</Text>
-    </View>
-  );
+function toDraft(workout: Workout): DraftExercise[] {
+  return workout.exercises
+    .slice()
+    .sort((a, b) => a.order - b.order)
+    .map((e) => ({
+      exercise_id: e.exercise_id,
+      name: e.exercise?.name ?? 'Exercise',
+      image: e.exercise?.images?.[0] ?? null,
+      target_sets: e.target_sets != null ? String(e.target_sets) : '',
+      target_reps:
+        e.target_reps != null
+          ? e.target_reps_max != null && e.target_reps_max !== e.target_reps
+            ? `${e.target_reps}-${e.target_reps_max}`
+            : String(e.target_reps)
+          : '',
+      target_weight: e.target_weight != null ? String(e.target_weight) : '',
+      rest_seconds: e.rest_seconds != null ? String(e.rest_seconds) : '',
+    }));
 }
 
-export default function WorkoutDetailScreen() {
+export default function EditWorkoutScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const router = useRouter();
   const { settings } = useSettings();
   const [workout, setWorkout] = useState<Workout | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
 
   const fetch = useCallback(async () => {
     if (!id) return;
@@ -48,99 +59,58 @@ export default function WorkoutDetailScreen() {
     }, [fetch]),
   );
 
-  const totalSets = workout?.exercises.reduce((acc, e) => acc + e.sets.length, 0) ?? 0;
-  const totalVolume =
-    workout?.exercises.reduce(
-      (acc, e) => acc + e.sets.reduce((a, s) => a + (s.reps ?? 0) * (s.weight ?? 0), 0),
-      0,
-    ) ?? 0;
+  async function onSave(input: WorkoutInput) {
+    if (!id) return;
+    setSaving(true);
+    try {
+      await api.updateWorkout(id, input);
+      router.replace('/(tabs)/workouts');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  function onDelete() {
+    if (!id) return;
+    const doDelete = async () => {
+      await api.deleteWorkout(id);
+      router.replace('/(tabs)/workouts');
+    };
+    if (Platform.OS === 'web') {
+      if (typeof window !== 'undefined' && window.confirm('Delete this workout?')) void doDelete();
+      return;
+    }
+    Alert.alert('Delete workout?', 'This cannot be undone.', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Delete', style: 'destructive', onPress: () => void doDelete() },
+    ]);
+  }
+
+  if (loading || error || !workout) {
+    return (
+      <SafeAreaView className="flex-1 bg-iron-950">
+        <Stack.Screen options={{ headerShown: true, title: 'Workout' }} />
+        {loading ? <Loading /> : <ErrorState message={error ?? 'Not found'} onRetry={fetch} />}
+      </SafeAreaView>
+    );
+  }
 
   return (
-    <Screen scroll={false} padded={false}>
-      <Stack.Screen
-        options={{
-          headerShown: true,
-          title: workout?.name ?? 'Workout',
-          headerRight: () =>
-            workout ? (
-              <Pressable
-                onPress={() =>
-                  promptExport(
-                    workout.name || 'Workout',
-                    workoutToText(workout, settings.units),
-                    workoutToJson(workout, settings.units),
-                  )
-                }
-                hitSlop={12}
-                accessibilityRole="button"
-                accessibilityLabel="Export workout"
-                className="pl-3 active:opacity-60">
-                <Ionicons name="share-outline" size={22} color="#f97316" />
-              </Pressable>
-            ) : null,
-        }}
-      />
-      {loading ? (
-        <Loading />
-      ) : error || !workout ? (
-        <ErrorState message={error ?? 'Not found'} onRetry={fetch} />
-      ) : (
-        <ScrollView className="flex-1" contentContainerClassName="px-4 pt-3 pb-28">
-          <Text variant="title">{workout.name ?? 'Workout'}</Text>
-          <Text variant="muted" className="mt-0.5">
-            {formatDateTime(workout.started_at)}
-          </Text>
-
-          <View className="flex-row justify-between my-4">
-            <Stat label="Duration" value={formatDuration(workout.started_at, workout.finished_at)} />
-            <Stat label="Exercises" value={String(workout.exercises.length)} />
-            <Stat label="Sets" value={String(totalSets)} />
-            <Stat label="Volume" value={`${Math.round(totalVolume)} ${settings.units}`} />
-          </View>
-
-          {workout.notes ? (
-            <Card className="mb-3">
-              <Text variant="label" className="mb-1">
-                Notes
-              </Text>
-              <Text variant="body">{workout.notes}</Text>
-            </Card>
-          ) : null}
-
-          {workout.exercises
-            .slice()
-            .sort((a, b) => a.order - b.order)
-            .map((we) => (
-              <Card key={we.id} className="mb-3">
-                <Text variant="subheading">{we.exercise?.name ?? 'Exercise'}</Text>
-                {we.exercise?.primary_muscles?.length ? (
-                  <Text variant="muted" numberOfLines={1}>
-                    {we.exercise.primary_muscles.map(titleCase).join(', ')}
-                  </Text>
-                ) : null}
-                <View className="mt-2 gap-1">
-                  {we.sets.length === 0 ? (
-                    <Text variant="muted">No sets logged.</Text>
-                  ) : (
-                    we.sets.map((s, i) => (
-                      <View
-                        key={s.id}
-                        className="flex-row items-center rounded-md bg-iron-800 px-3 py-2">
-                        <Text variant="label" className="w-10">
-                          {i + 1}
-                        </Text>
-                        <Text variant="body" className="flex-1">
-                          {formatLoad(s.weight, settings.units)} × {s.reps}
-                        </Text>
-                        {s.rpe ? <Text variant="muted">RPE {s.rpe}</Text> : null}
-                      </View>
-                    ))
-                  )}
-                </View>
-              </Card>
-            ))}
-        </ScrollView>
-      )}
-    </Screen>
+    <WorkoutEditor
+      title="Edit workout"
+      initialName={workout.name}
+      initialNotes={workout.notes ?? ''}
+      initialExercises={toDraft(workout)}
+      saving={saving}
+      onSave={onSave}
+      onDelete={onDelete}
+      onExport={() =>
+        promptExport(
+          workout.name,
+          workoutToText(workout, settings.units),
+          workoutToJson(workout, settings.units),
+        )
+      }
+    />
   );
 }

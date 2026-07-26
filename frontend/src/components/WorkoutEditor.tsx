@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
-import type { Exercise, RoutineEditProposal, RoutineInput } from '@/api/types';
+import type { Exercise, WorkoutEditProposal, WorkoutInput } from '@/api/types';
 import { useSettings } from '@/state/settings';
 import { useAiStatus } from '@/hooks/use-ai-status';
 import { Text } from '@/components/ui/Text';
@@ -13,7 +13,7 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { ExerciseBrowser } from '@/components/ExerciseBrowser';
 import { ExerciseThumb } from '@/components/ExerciseThumb';
-import { RoutineAiEdit, type RoutineAiWorking } from '@/components/RoutineAiEdit';
+import { WorkoutAiEdit, type WorkoutAiWorking } from '@/components/WorkoutAiEdit';
 import { formatRepRange, parseRepRange, titleCase } from '@/lib/format';
 
 export interface DraftExercise {
@@ -26,22 +26,22 @@ export interface DraftExercise {
   rest_seconds: string;
 }
 
-interface RoutineEditorProps {
+interface WorkoutEditorProps {
   title: string;
   initialName?: string;
   initialNotes?: string;
   initialExercises?: DraftExercise[];
   saving?: boolean;
-  onSave: (input: RoutineInput) => Promise<void> | void;
+  onSave: (input: WorkoutInput) => Promise<void> | void;
   onDelete?: () => void;
-  /** When set, a share button appears in the header (export the saved routine). */
+  /** When set, a share button appears in the header (export the saved workout). */
   onExport?: () => void;
 }
 
 const smallInput =
   'rounded-md border border-iron-700 bg-iron-950 px-2 py-2 text-center text-base text-iron-50';
 
-export function RoutineEditor({
+export function WorkoutEditor({
   title,
   initialName = '',
   initialNotes = '',
@@ -50,7 +50,7 @@ export function RoutineEditor({
   onSave,
   onDelete,
   onExport,
-}: RoutineEditorProps) {
+}: WorkoutEditorProps) {
   const { settings } = useSettings();
   const { configured: aiConfigured } = useAiStatus();
   const [name, setName] = useState(initialName);
@@ -62,7 +62,7 @@ export function RoutineEditor({
 
   // The current draft, shaped for the AI editor (exercises by name, numeric
   // targets). Rebuilt on open so the AI always starts from what's on screen.
-  function aiWorking(): RoutineAiWorking {
+  function aiWorking(): WorkoutAiWorking {
     return {
       name: name.trim(),
       notes: notes.trim() || null,
@@ -84,7 +84,7 @@ export function RoutineEditor({
   // review surface, so nothing persists until the user taps Save. Exercises the
   // matcher couldn't resolve (no exercise_id) are dropped. Planned rest is kept
   // from the matching existing exercise, else left blank.
-  function applyProposal(p: RoutineEditProposal) {
+  function applyProposal(p: WorkoutEditProposal) {
     const prevRest = new Map(exercises.map((e) => [e.exercise_id, e.rest_seconds]));
     const drafts: DraftExercise[] = p.exercises
       .filter((e) => e.exercise_id != null)
@@ -142,14 +142,14 @@ export function RoutineEditor({
   async function save() {
     setError(null);
     if (!name.trim()) {
-      setError('Give your split a name.');
+      setError('Give your workout a name.');
       return;
     }
     if (exercises.length === 0) {
       setError('Add at least one exercise.');
       return;
     }
-    const input: RoutineInput = {
+    const input: WorkoutInput = {
       name: name.trim(),
       notes: notes.trim() || null,
       exercises: exercises.map((e, i) => {
@@ -180,7 +180,7 @@ export function RoutineEditor({
                   onPress={onExport}
                   hitSlop={12}
                   accessibilityRole="button"
-                  accessibilityLabel="Export split"
+                  accessibilityLabel="Export workout"
                   className="pl-3 active:opacity-60">
                   <Ionicons name="share-outline" size={22} color="#f97316" />
                 </Pressable>
@@ -270,10 +270,10 @@ export function RoutineEditor({
 
         {error ? <Text className="text-red-500 text-sm mt-3">{error}</Text> : null}
 
-        <Button title="Save split" size="lg" className="mt-4" loading={saving} onPress={save} />
+        <Button title="Save workout" size="lg" className="mt-4" loading={saving} onPress={save} />
 
         {onDelete ? (
-          <Button title="Delete split" variant="danger" className="mt-3" onPress={onDelete} />
+          <Button title="Delete workout" variant="danger" className="mt-3" onPress={onDelete} />
         ) : null}
       </ScrollView>
 
@@ -292,7 +292,7 @@ export function RoutineEditor({
         </SafeAreaView>
       </Modal>
 
-      <RoutineAiEdit
+      <WorkoutAiEdit
         visible={aiOpen}
         units={settings.units}
         initialWorking={aiWorking()}

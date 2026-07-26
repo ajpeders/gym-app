@@ -5,7 +5,7 @@ import { Stack, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
 import { api } from '@/api/client';
-import type { Exercise, WorkoutLogInput } from '@/api/types';
+import type { Exercise, SessionLogInput } from '@/api/types';
 import { useSettings } from '@/state/settings';
 import { Text } from '@/components/ui/Text';
 import { Card } from '@/components/ui/Card';
@@ -45,7 +45,7 @@ function isoForDaysBack(days: number): string {
 const smallInput =
   'rounded-md border border-iron-700 bg-iron-950 px-2 py-2 text-center text-base text-iron-50';
 
-export default function LogWorkoutScreen() {
+export default function LogSessionScreen() {
   const router = useRouter();
   const { settings } = useSettings();
   const [name, setName] = useState('');
@@ -106,7 +106,7 @@ export default function LogWorkoutScreen() {
       setError('Add at least one exercise.');
       return;
     }
-    const payload: WorkoutLogInput = {
+    const payload: SessionLogInput = {
       name: name.trim() || null,
       started_at: isoForDaysBack(daysBack),
       notes: notes.trim() || null,
@@ -128,10 +128,10 @@ export default function LogWorkoutScreen() {
     }
     setSaving(true);
     try {
-      const w = await api.logWorkout(payload);
-      router.replace(`/workout/${w.id}`);
+      const w = await api.logSession(payload);
+      router.replace(`/session/${w.id}`);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to save workout');
+      setError(e instanceof Error ? e.message : 'Failed to save session');
     } finally {
       setSaving(false);
     }
@@ -139,13 +139,13 @@ export default function LogWorkoutScreen() {
 
   return (
     <SafeAreaView edges={['left', 'right', 'bottom']} className="flex-1 bg-iron-950">
-      <Stack.Screen options={{ headerShown: true, title: 'Log a workout' }} />
+      <Stack.Screen options={{ headerShown: true, title: 'Log a session' }} />
       <ScrollView
         className="flex-1"
         contentContainerClassName="px-4 pt-3 pb-28"
         keyboardShouldPersistTaps="handled">
         <Text variant="muted" className="mb-3">
-          Record a workout you already did — enter the sets, no live timer.
+          Record a session you already did — enter the sets, no live timer.
         </Text>
 
         <Input label="Name" value={name} onChangeText={setName} placeholder="e.g. Leg day" />
@@ -259,7 +259,7 @@ export default function LogWorkoutScreen() {
 
         {error ? <Text className="mt-3 text-sm text-red-500">{error}</Text> : null}
 
-        <Button title="Save workout" size="lg" className="mt-4" loading={saving} onPress={save} />
+        <Button title="Save session" size="lg" className="mt-4" loading={saving} onPress={save} />
       </ScrollView>
 
       <Modal visible={picking} animationType="slide" onRequestClose={() => setPicking(false)}>
