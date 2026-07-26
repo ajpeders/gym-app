@@ -21,7 +21,6 @@ import { Text } from '@/components/ui/Text';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { ExerciseThumb } from '@/components/ExerciseThumb';
-import { HomeProfileCard } from '@/components/HomeProfileCard';
 import { formatRepRange } from '@/lib/format';
 
 type IoniconName = React.ComponentProps<typeof Ionicons>['name'];
@@ -278,16 +277,6 @@ export default function HomeScreen() {
     }, [fetchData]),
   );
 
-  async function onStart() {
-    setStarting(true);
-    try {
-      const w = await start({ name: 'Workout' });
-      router.push(`/workout/active/${w.id}`);
-    } finally {
-      setStarting(false);
-    }
-  }
-
   async function onStartRoutine(routine: Routine) {
     setStarting(true);
     try {
@@ -401,10 +390,10 @@ export default function HomeScreen() {
   const selectedExercises = selectedRoutine
     ? [...selectedRoutine.exercises].sort((a, b) => a.order - b.order)
     : [];
-  const previewExercises = selectedExercises.slice(0, 8);
+  const previewExercises = selectedExercises.slice(0, 4);
   const hiddenExercises = Math.max(0, selectedExercises.length - previewExercises.length);
   const activeExercises = active ? [...active.exercises].sort((a, b) => a.order - b.order) : [];
-  const activePreviewExercises = activeExercises.slice(0, 8);
+  const activePreviewExercises = activeExercises.slice(0, 4);
   const hiddenActiveExercises = Math.max(0, activeExercises.length - activePreviewExercises.length);
   const loggedSetCount = activeExercises.reduce(
     (total, ex) => total + ex.sets.filter((set) => set.completed !== false).length,
@@ -414,7 +403,7 @@ export default function HomeScreen() {
     ? 'Workout in progress'
     : selectedRoutine
       ? 'Plan ready to start'
-      : 'Set up your first split';
+      : 'Set up your first plan';
 
   return (
     <Screen scroll={false} padded={false}>
@@ -530,18 +519,18 @@ export default function HomeScreen() {
             <View className="mb-4 h-12 w-12 items-center justify-center rounded-2xl border border-brand/30 bg-brand/10">
               <Ionicons name="clipboard-outline" size={24} color="#f97316" />
             </View>
-            <Text variant="heading">No split yet</Text>
+            <Text variant="heading">No training plan yet</Text>
             <Text variant="muted" className="mt-1">
-              Build your first plan or import one from notes.
+              Import your program from notes or create a workout day manually.
             </Text>
             <View className="mt-4 gap-3">
               <Button
-                title="Import split"
+                title="Import a plan"
                 icon="document-text-outline"
                 onPress={() => router.push('/routine-import')}
               />
               <Button
-                title="Create split"
+                title="Create a workout day"
                 variant="secondary"
                 icon="add"
                 onPress={() => router.push('/routine/new')}
@@ -646,7 +635,7 @@ export default function HomeScreen() {
                   />
                 ))
               ) : (
-                <Text variant="muted">This split has no exercises yet.</Text>
+                <Text variant="muted">This workout day has no exercises yet.</Text>
               )}
               {hiddenExercises > 0 ? (
                 <Text variant="caption" className="pt-2 text-center">
@@ -656,7 +645,7 @@ export default function HomeScreen() {
             </View>
 
             <Button
-              title="Start split"
+              title="Start workout"
               size="lg"
               icon="play"
               className="mt-4"
@@ -665,16 +654,7 @@ export default function HomeScreen() {
             />
             <View className="mt-3 flex-row gap-2">
               <Button
-                title="Blank"
-                variant="secondary"
-                size="sm"
-                icon="add"
-                className="flex-1"
-                disabled={starting}
-                onPress={onStart}
-              />
-              <Button
-                title="Edit"
+                title="Edit day"
                 variant="secondary"
                 size="sm"
                 icon="create-outline"
@@ -683,7 +663,7 @@ export default function HomeScreen() {
                 onPress={() => router.push(`/routine/${selectedRoutine.id}`)}
               />
               <Button
-                title="AI"
+                title="Adjust with AI"
                 variant="secondary"
                 size="sm"
                 icon="sparkles"
@@ -700,38 +680,22 @@ export default function HomeScreen() {
           </Card>
         ) : null}
 
-        <HomeProfileCard />
-
         <SectionHeader
-          title="More tools"
-          subtitle="Useful extras that stay out of the way until you need them."
+          title="Tools"
+          subtitle="Reference movements or check your visual progress."
         />
         <View className="flex-row gap-3">
           <QuickLink
             icon="fitness-outline"
-            title="Exercises"
-            subtitle="Browse the movement library."
+            title="Exercise library"
+            subtitle="Form notes, muscles, and equipment."
             onPress={() => router.push('/exercises')}
           />
           <QuickLink
-            icon="document-text-outline"
-            title="Import"
-            subtitle="Turn notes into a structured plan."
-            onPress={() => router.push('/routine-import')}
-          />
-        </View>
-        <View className="mt-3 flex-row gap-3">
-          <QuickLink
             icon="camera-outline"
-            title="Progress"
+            title="Progress photos"
             subtitle="Compare photos over time."
             onPress={() => router.push('/progress')}
-          />
-          <QuickLink
-            icon="person-outline"
-            title="Profile"
-            subtitle="Update goals and limitations."
-            onPress={() => router.push('/profile')}
           />
         </View>
       </ScrollView>

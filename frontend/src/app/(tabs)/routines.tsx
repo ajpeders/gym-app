@@ -57,29 +57,33 @@ export default function SplitsScreen() {
         }>
         <ScreenHeader
           eyebrow="Plans"
-          title="Splits"
-          subtitle="Your weekly plans — a split holds each training day."
-          action={
-            <View className="ml-3 flex-row gap-2">
-              <Button
-                title="Import"
-                variant="secondary"
-                size="sm"
-                icon="document-text-outline"
-                onPress={() => router.push('/routine-import')}
-              />
-              <Button title="Day" size="sm" icon="add" onPress={() => router.push('/routine/new')} />
-            </View>
-          }
+          title="Training plans"
+          subtitle="Organize your week into workout days, or import an existing program."
         />
+
+        <View className="mb-5 flex-row gap-2">
+          <Button
+            title="Import plan"
+            variant="secondary"
+            icon="document-text-outline"
+            className="flex-1"
+            onPress={() => router.push('/routine-import')}
+          />
+          <Button
+            title="New day"
+            icon="add"
+            className="flex-1"
+            onPress={() => router.push('/routine/new')}
+          />
+        </View>
 
         {loading ? (
           <Loading />
         ) : splits.length === 0 && standalone.length === 0 ? (
           <EmptyState
             icon="PLAN"
-            title="No splits yet"
-            subtitle="Import your weekly plan or create a day to get started."
+            title="No training plans yet"
+            subtitle="Import a program or create your first workout day above."
           />
         ) : (
           <>
@@ -126,7 +130,10 @@ export default function SplitsScreen() {
 
             {standalone.length > 0 ? (
               <>
-                <SectionHeader title="Standalone days" subtitle="Day-routines not tied to a split." />
+                <SectionHeader
+                  title="Other workout days"
+                  subtitle="Workouts that are not assigned to a weekly plan."
+                />
                 <View className="gap-2">
                   {standalone.map((r) => (
                     <Card
