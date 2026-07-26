@@ -75,7 +75,7 @@ export default function SessionDetailScreen() {
                 accessibilityRole="button"
                 accessibilityLabel="Export session"
                 className="pl-3 active:opacity-60">
-                <Ionicons name="share-outline" size={22} color="#f97316" />
+                <Ionicons name="share-outline" size={22} color="#818cf8" />
               </Pressable>
             ) : null,
         }}

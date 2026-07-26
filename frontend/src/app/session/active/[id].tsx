@@ -170,7 +170,7 @@ export default function ActiveWorkoutScreen() {
         {settings.feature_flags.in_set_prompts ? (
           <Card className="mb-3 border-brand bg-iron-900">
             <View className="flex-row items-center">
-              <Ionicons name="sparkles" size={18} color="#f97316" />
+              <Ionicons name="sparkles" size={18} color="#818cf8" />
               <Text variant="label" className="ml-2 text-brand">
                 AI coaching on
               </Text>
@@ -179,7 +179,7 @@ export default function ActiveWorkoutScreen() {
         ) : (
           <Card className="mb-3">
             <View className="flex-row items-center">
-              <Ionicons name="sparkles-outline" size={18} color="#78716c" />
+              <Ionicons name="sparkles-outline" size={18} color="#64748b" />
               <Text variant="label" className="ml-2 text-iron-400">
                 AI coaching off
               </Text>
@@ -246,7 +246,7 @@ function Stat({
   return (
     <View className="w-[48%] rounded-lg border border-iron-800 bg-iron-900/90 px-3 py-2.5">
       <View className="flex-row items-center">
-        <Ionicons name={icon} size={14} color="#f97316" />
+        <Ionicons name={icon} size={14} color="#818cf8" />
         <Text variant="caption" className="ml-1.5 text-iron-400">
           {label}
         </Text>

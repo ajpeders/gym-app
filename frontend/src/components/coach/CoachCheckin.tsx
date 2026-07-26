@@ -69,7 +69,7 @@ export function CoachCheckin({ onUpdated, className }: Props) {
           value={text}
           onChangeText={setText}
           placeholder={PLACEHOLDER}
-          placeholderTextColor="#78716c"
+          placeholderTextColor="#64748b"
           multiline
           editable={!busy}
           className="min-h-[64px] rounded-lg border border-iron-700 bg-iron-950 px-3 py-2.5 text-base text-iron-50"

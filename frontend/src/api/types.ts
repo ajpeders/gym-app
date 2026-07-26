@@ -115,6 +115,7 @@ export interface WorkoutExerciseInput {
   target_reps_max?: number | null;
   target_weight?: number | null;
   rest_seconds?: number | null;
+  notes?: string | null;
 }
 
 export interface WorkoutInput {

@@ -118,7 +118,7 @@ export function WorkoutAiEdit({ visible, units, initialWorking, onApply, onClose
       <SafeAreaView edges={['top', 'left', 'right']} className="flex-1 bg-iron-950">
         <View className="flex-row items-center justify-between border-b border-iron-800 px-4 py-3">
           <View className="flex-row items-center">
-            <Ionicons name="sparkles" size={18} color="#f97316" />
+            <Ionicons name="sparkles" size={18} color="#818cf8" />
             <Text variant="heading" className="ml-2">
               Edit with AI
             </Text>
@@ -208,8 +208,8 @@ export function WorkoutAiEdit({ visible, units, initialWorking, onApply, onClose
                 value={input}
                 onChangeText={setInput}
                 placeholder="e.g. add a 4th set to bench"
-                placeholderTextColor="#78716c"
-                selectionColor="#f97316"
+                placeholderTextColor="#64748b"
+                selectionColor="#818cf8"
                 multiline
                 editable={!sending}
                 className="max-h-32 min-h-[44px] flex-1 rounded-lg border border-iron-700 bg-iron-900 px-4 py-2.5 text-base text-iron-50"
@@ -221,7 +221,7 @@ export function WorkoutAiEdit({ visible, units, initialWorking, onApply, onClose
                 className={`ml-2 h-11 w-11 items-center justify-center rounded-lg ${
                   input.trim() && !sending ? 'bg-brand active:bg-brand-600' : 'bg-iron-800 opacity-50'
                 }`}>
-                <Ionicons name="arrow-up" size={20} color="#080706" />
+                <Ionicons name="arrow-up" size={20} color="#070b12" />
               </Pressable>
             </View>
           </View>
@@ -275,7 +275,7 @@ function EditProgress({ received = 0 }: { received?: number }) {
     <View className="mb-3 flex-row justify-start">
       <View className="w-[88%] rounded-2xl rounded-bl-md border border-iron-800 bg-iron-900/95 px-3.5 py-3">
         <View className="mb-2 flex-row items-center">
-          <Ionicons name="sparkles" size={15} color="#f97316" />
+          <Ionicons name="sparkles" size={15} color="#818cf8" />
           <Text variant="body" className="ml-2 text-iron-100">
             {EDIT_STAGES[stage]}
             <Text className="text-brand">…</Text>

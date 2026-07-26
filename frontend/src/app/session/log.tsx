@@ -220,7 +220,7 @@ export default function LogSessionScreen() {
                       onChangeText={(v) => updateSet(exIdx, setIdx, { reps: v })}
                       keyboardType="number-pad"
                       placeholder="-"
-                      placeholderTextColor="#78716c"
+                      placeholderTextColor="#64748b"
                       className={smallInput}
                     />
                   </View>
@@ -230,12 +230,12 @@ export default function LogSessionScreen() {
                       onChangeText={(v) => updateSet(exIdx, setIdx, { weight: v })}
                       keyboardType="decimal-pad"
                       placeholder="-"
-                      placeholderTextColor="#78716c"
+                      placeholderTextColor="#64748b"
                       className={smallInput}
                     />
                   </View>
                   <Pressable onPress={() => removeSet(exIdx, setIdx)} hitSlop={6} className="w-8 items-center">
-                    <Ionicons name="close-circle" size={20} color="#78716c" />
+                    <Ionicons name="close-circle" size={20} color="#64748b" />
                   </Pressable>
                 </View>
               ))}
@@ -243,7 +243,7 @@ export default function LogSessionScreen() {
               <Pressable
                 onPress={() => addSet(exIdx)}
                 className="mt-3 flex-row items-center justify-center rounded-md border border-iron-700 py-2 active:opacity-70">
-                <Ionicons name="add" size={16} color="#f97316" />
+                <Ionicons name="add" size={16} color="#818cf8" />
                 <Text className="ml-1 font-semibold text-brand">Add set</Text>
               </Pressable>
             </Card>

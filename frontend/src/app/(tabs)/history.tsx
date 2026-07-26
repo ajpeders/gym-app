@@ -23,9 +23,9 @@ function StatBadge({
   tone?: 'brand' | 'mint' | 'steel';
 }) {
   const colors = {
-    brand: { box: 'border-brand/30 bg-brand/10', text: 'text-brand', icon: '#f97316' },
-    mint: { box: 'border-mint/30 bg-mint/10', text: 'text-mint', icon: '#34d399' },
-    steel: { box: 'border-steel/30 bg-steel/10', text: 'text-steel', icon: '#38bdf8' },
+    brand: { box: 'border-brand/30 bg-brand/10', text: 'text-brand', icon: '#818cf8' },
+    mint: { box: 'border-mint/30 bg-mint/10', text: 'text-mint', icon: '#2dd4bf' },
+    steel: { box: 'border-steel/30 bg-steel/10', text: 'text-steel', icon: '#22d3ee' },
   }[tone];
 
   return (
@@ -116,7 +116,7 @@ export default function HistoryScreen() {
           <Card elevated className="mb-4 rounded-[24px] border-brand bg-brand/10 p-5">
             <View className="mb-4 flex-row items-center">
               <View className="mr-3 h-12 w-12 items-center justify-center rounded-2xl bg-brand">
-                <Ionicons name="radio-button-on" size={14} color="#080706" />
+                <Ionicons name="radio-button-on" size={14} color="#070b12" />
               </View>
               <View className="flex-1">
                 <Text variant="heading">Active session</Text>
@@ -171,7 +171,7 @@ export default function HistoryScreen() {
                     onPress={() => startFromWorkout(r)}
                     className="w-48 rounded-[22px] border-iron-700 bg-iron-900 p-5">
                     <View className="mb-3 h-11 w-11 items-center justify-center rounded-2xl border border-brand/30 bg-brand/10">
-                      <Ionicons name="clipboard-outline" size={20} color="#f97316" />
+                      <Ionicons name="clipboard-outline" size={20} color="#818cf8" />
                     </View>
                     <Text variant="subheading" numberOfLines={1}>
                       {r.name}
@@ -206,7 +206,7 @@ export default function HistoryScreen() {
               <Card key={w.id} onPress={() => router.push(`/session/${w.id}`)}>
                 <View className="flex-row items-center justify-between">
                   <View className="mr-3 h-11 w-11 items-center justify-center rounded-lg border border-iron-700 bg-iron-850">
-                    <Ionicons name="checkmark" size={20} color="#34d399" />
+                    <Ionicons name="checkmark" size={20} color="#2dd4bf" />
                   </View>
                   <View className="flex-1">
                     <Text variant="subheading" numberOfLines={1}>
@@ -216,7 +216,7 @@ export default function HistoryScreen() {
                       {relativeTime(w.finished_at ?? w.started_at)}
                     </Text>
                   </View>
-                  <Ionicons name="chevron-forward" size={18} color="#57534e" />
+                  <Ionicons name="chevron-forward" size={18} color="#475569" />
                 </View>
                 <View className="mt-3 flex-row flex-wrap gap-2">
                   <StatBadge icon="fitness-outline" label={`${w.exercises.length} exercises`} />

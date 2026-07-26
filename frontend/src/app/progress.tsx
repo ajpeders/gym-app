@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Alert, Dimensions, Modal, Pressable, ScrollView, TextInput, View } from 'react-native';
 import { Image } from 'expo-image';
-import { Stack, useFocusEffect } from 'expo-router';
+import { Stack, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 
@@ -49,6 +49,11 @@ function isoForDaysBack(days: number): string {
   return d.toISOString();
 }
 
+function isoForDate(date: string): string {
+  const [year, month, day] = date.split('-').map(Number);
+  return new Date(year, month - 1, day, 12, 0, 0, 0).toISOString();
+}
+
 /** A progress photo whose auth'd image source is resolved lazily. */
 function ProgressImage({ id, size, radius = 8 }: { id: number; size: number; radius?: number }) {
   const [source, setSource] = useState<{ uri: string; headers: Record<string, string> } | null>(null);
@@ -69,6 +74,8 @@ function ProgressImage({ id, size, radius = 8 }: { id: number; size: number; rad
 }
 
 export default function ProgressScreen() {
+  const { date } = useLocalSearchParams<{ date?: string }>();
+  const selectedDate = typeof date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(date) ? date : null;
   const [photos, setPhotos] = useState<ProgressPhoto[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
@@ -129,6 +136,7 @@ export default function ProgressScreen() {
     setExifDate(exifTakenAt(asset));
     setDaysBack(0);
     setNotes('');
+    setOverrideDate(Boolean(selectedDate));
   }
 
   function addPhoto() {
@@ -148,7 +156,12 @@ export default function ProgressScreen() {
         uri: pending.uri,
         mimeType: pending.mimeType,
         fileName: pending.fileName,
-        takenAt: !overrideDate && exifDate ? exifDate : isoForDaysBack(daysBack),
+        takenAt:
+          !overrideDate && exifDate
+            ? exifDate
+            : selectedDate
+              ? isoForDate(selectedDate)
+              : isoForDaysBack(daysBack),
         notes: notes.trim() || undefined,
       });
       setPending(null);
@@ -177,25 +190,50 @@ export default function ProgressScreen() {
     ]);
   }
 
+  const visiblePhotos = selectedDate
+    ? photos.filter((photo) => photo.taken_at.slice(0, 10) === selectedDate)
+    : photos;
+  const selectedDateLabel = selectedDate ? formatDate(isoForDate(selectedDate)) : null;
+
   return (
     <Screen scroll={false} padded={false}>
       <Stack.Screen options={{ headerShown: true, title: 'Progress photos' }} />
       <ScrollView
         keyboardShouldPersistTaps="handled" className="flex-1" contentContainerClassName="px-4 pt-3 pb-28">
-        <Button title="Add progress photo" icon="camera" size="lg" className="mb-4" onPress={addPhoto} />
+        {selectedDateLabel ? (
+          <View className="mb-4 rounded-2xl border border-brand/25 bg-brand/10 p-4">
+            <Text variant="caption" className="font-bold uppercase tracking-wider text-brand">
+              Progress for
+            </Text>
+            <Text variant="heading" className="mt-1">
+              {selectedDateLabel}
+            </Text>
+          </View>
+        ) : null}
+        <Button
+          title={selectedDateLabel ? `Add photo for ${selectedDateLabel}` : 'Add progress photo'}
+          icon="camera"
+          size="lg"
+          className="mb-4"
+          onPress={addPhoto}
+        />
         {error ? <Text className="mb-3 text-sm text-red-400">{error}</Text> : null}
 
         {loading ? (
           <Loading />
-        ) : photos.length === 0 ? (
+        ) : visiblePhotos.length === 0 ? (
           <EmptyState
             icon="IMG"
-            title="No photos yet"
-            subtitle="Add a photo to start tracking how you look over time."
+            title={selectedDateLabel ? 'No photos for this day' : 'No photos yet'}
+            subtitle={
+              selectedDateLabel
+                ? 'Add one now, or go back to choose another day.'
+                : 'Add a photo to start tracking how you look over time.'
+            }
           />
         ) : (
           <View className="flex-row flex-wrap" style={{ gap: GAP }}>
-            {photos.map((p) => (
+            {visiblePhotos.map((p) => (
               <Pressable key={p.id} onPress={() => setViewing(p)}>
                 <ProgressImage id={p.id} size={cell} />
                 <Text variant="caption" className="mt-1" numberOfLines={1}>
@@ -214,7 +252,7 @@ export default function ProgressScreen() {
             <View className="mb-3 flex-row items-center justify-between">
               <Text variant="heading">New progress photo</Text>
               <Pressable onPress={() => setPending(null)} hitSlop={8}>
-                <Ionicons name="close" size={22} color="#a8a29e" />
+                <Ionicons name="close" size={22} color="#94a3b8" />
               </Pressable>
             </View>
 
@@ -239,7 +277,7 @@ export default function ProgressScreen() {
                 <Ionicons
                   name={overrideDate ? 'ellipse-outline' : 'checkmark-circle'}
                   size={16}
-                  color={overrideDate ? '#78716c' : '#f97316'}
+                  color={overrideDate ? '#64748b' : '#818cf8'}
                 />
                 <Text
                   variant="caption"
@@ -251,8 +289,15 @@ export default function ProgressScreen() {
               </Pressable>
             ) : null}
 
-            <View className="flex-row flex-wrap gap-2">
-              {DATE_PRESETS.map((preset) => {
+            {selectedDateLabel ? (
+              <View className="rounded-lg border border-brand bg-brand/15 px-3 py-2.5">
+                <Text variant="caption" className="font-bold text-brand">
+                  Calendar date: {selectedDateLabel}
+                </Text>
+              </View>
+            ) : (
+              <View className="flex-row flex-wrap gap-2">
+                {DATE_PRESETS.map((preset) => {
                 const active = preset.days === daysBack && (!exifDate || overrideDate);
                 return (
                   <Pressable
@@ -269,14 +314,15 @@ export default function ProgressScreen() {
                     </Text>
                   </Pressable>
                 );
-              })}
-            </View>
+                })}
+              </View>
+            )}
 
             <TextInput
               value={notes}
               onChangeText={setNotes}
               placeholder="Notes (optional) — e.g. week 4, morning"
-              placeholderTextColor="#78716c"
+              placeholderTextColor="#64748b"
               className="mt-4 rounded-lg border border-iron-700 bg-iron-900 px-4 py-3 text-base text-iron-50"
             />
 

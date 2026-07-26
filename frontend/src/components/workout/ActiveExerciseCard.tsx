@@ -142,7 +142,7 @@ export function ActiveExerciseCard({
               <Ionicons
                 name="information-circle-outline"
                 size={15}
-                color="#f97316"
+                color="#818cf8"
                 style={{ marginLeft: 5 }}
               />
             </View>
@@ -220,7 +220,7 @@ export function ActiveExerciseCard({
                   <Ionicons
                     name="cloud-upload-outline"
                     size={14}
-                    color="#a8a29e"
+                    color="#94a3b8"
                     style={{ marginRight: 4 }}
                   />
                 ) : s.completed_at ? (
@@ -263,8 +263,8 @@ export function ActiveExerciseCard({
               onChangeText={setDuration}
               keyboardType="number-pad"
               placeholder={last?.duration_seconds != null ? String(last.duration_seconds) : '30'}
-              placeholderTextColor="#78716c"
-              selectionColor="#f97316"
+              placeholderTextColor="#64748b"
+              selectionColor="#818cf8"
               className={numInput}
             />
           </View>
@@ -279,8 +279,8 @@ export function ActiveExerciseCard({
                 onChangeText={setWeight}
                 keyboardType="decimal-pad"
                 placeholder={last?.weight != null ? String(last.weight) : 'BW'}
-                placeholderTextColor="#78716c"
-                selectionColor="#f97316"
+                placeholderTextColor="#64748b"
+                selectionColor="#818cf8"
                 className={numInput}
               />
             </View>
@@ -293,8 +293,8 @@ export function ActiveExerciseCard({
                 onChangeText={setReps}
                 keyboardType="number-pad"
                 placeholder={last?.reps != null ? String(last.reps) : '0'}
-                placeholderTextColor="#78716c"
-                selectionColor="#f97316"
+                placeholderTextColor="#64748b"
+                selectionColor="#818cf8"
                 className={numInput}
               />
             </View>
@@ -309,8 +309,8 @@ export function ActiveExerciseCard({
             onChangeText={setRpe}
             keyboardType="decimal-pad"
             placeholder="-"
-            placeholderTextColor="#78716c"
-            selectionColor="#f97316"
+            placeholderTextColor="#64748b"
+            selectionColor="#818cf8"
             className={numInput}
           />
         </View>
@@ -327,8 +327,8 @@ export function ActiveExerciseCard({
         value={note}
         onChangeText={setNote}
         placeholder="Note for this set (optional)"
-        placeholderTextColor="#78716c"
-        selectionColor="#f97316"
+        placeholderTextColor="#64748b"
+        selectionColor="#818cf8"
         className="mt-2 min-h-[40px] rounded-lg border border-iron-700 bg-iron-950 px-3 py-2 text-sm text-iron-50"
       />
 
@@ -339,7 +339,7 @@ export function ActiveExerciseCard({
             disabled={saving}
             onPress={repeatLast}
             className="flex-1 flex-row items-center justify-center rounded-lg border border-brand/40 bg-brand/10 px-3 py-2 active:opacity-70">
-            <Ionicons name="repeat" size={16} color="#f97316" />
+            <Ionicons name="repeat" size={16} color="#818cf8" />
             <Text className="ml-1.5 text-sm font-bold text-brand">
               {isTimed
                 ? formatDurationSeconds(last.duration_seconds)

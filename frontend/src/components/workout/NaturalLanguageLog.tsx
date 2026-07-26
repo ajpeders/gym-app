@@ -146,7 +146,7 @@ export function NaturalLanguageLog({ sessionId, units, onApplied }: Props) {
             value={text}
             onChangeText={setText}
             placeholder={PLACEHOLDER}
-            placeholderTextColor="#78716c"
+            placeholderTextColor="#64748b"
             multiline
             editable={!parsing}
             className="min-h-[72px] rounded-lg border border-iron-700 bg-iron-950 px-3 py-2.5 text-base text-iron-50"

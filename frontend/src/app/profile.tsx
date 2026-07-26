@@ -50,7 +50,7 @@ function ProfileField({
         onEndEditing={commit}
         onBlur={commit}
         placeholder={placeholder}
-        placeholderTextColor="#78716c"
+        placeholderTextColor="#64748b"
         multiline
         className="min-h-[64px] rounded-lg border border-iron-700 bg-iron-900 px-4 py-3 text-base text-iron-50"
         style={{ textAlignVertical: 'top' }}
@@ -257,7 +257,7 @@ export default function ProfileScreen() {
             onSubmitEditing={addInjury}
             returnKeyType="done"
             placeholder="add injury (e.g. left shoulder)"
-            placeholderTextColor="#78716c"
+            placeholderTextColor="#64748b"
             className="flex-1 rounded-lg border border-iron-700 bg-iron-900 px-4 py-3 text-base text-iron-50"
           />
           <Pressable

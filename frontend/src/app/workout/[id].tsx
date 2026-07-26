@@ -28,6 +28,7 @@ function toDraft(workout: Workout): DraftExercise[] {
           : '',
       target_weight: e.target_weight != null ? String(e.target_weight) : '',
       rest_seconds: e.rest_seconds != null ? String(e.rest_seconds) : '',
+      notes: e.notes ?? '',
     }));
 }
 

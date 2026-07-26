@@ -116,16 +116,16 @@ export default function SplitDetailScreen() {
                 </Text>
                 {isDone ? (
                   <View className="mr-2 flex-row items-center rounded-full bg-brand/15 px-2 py-1">
-                    <Ionicons name="checkmark-circle" size={13} color="#f97316" />
+                    <Ionicons name="checkmark-circle" size={13} color="#818cf8" />
                     <Text variant="caption" className="ml-1 font-bold text-brand">
                       Done
                     </Text>
                   </View>
                 ) : null}
                 {primary ? (
-                  <Ionicons name="chevron-forward" size={16} color="#57534e" />
+                  <Ionicons name="chevron-forward" size={16} color="#475569" />
                 ) : (
-                  <Ionicons name="bed-outline" size={15} color="#57534e" />
+                  <Ionicons name="bed-outline" size={15} color="#475569" />
                 )}
               </Pressable>
             );
@@ -147,7 +147,7 @@ export default function SplitDetailScreen() {
                   <Text variant="body" numberOfLines={1} className="flex-1 text-iron-100">
                     {w.name}
                   </Text>
-                  <Ionicons name="chevron-forward" size={16} color="#57534e" />
+                  <Ionicons name="chevron-forward" size={16} color="#475569" />
                 </Pressable>
               ))}
             </Card>
@@ -166,7 +166,7 @@ export default function SplitDetailScreen() {
                   <Ionicons
                     name="checkmark-circle"
                     size={16}
-                    color="#f97316"
+                    color="#818cf8"
                     style={{ marginTop: 2 }}
                   />
                   <Text variant="body" className="ml-2 flex-1 text-iron-200">
@@ -199,12 +199,12 @@ export default function SplitDetailScreen() {
                   router.push(`/session/active/${s.id}`);
                 }}
                 className="mr-2 flex-row items-center rounded-lg bg-brand px-3 py-2 active:bg-brand-600">
-                <Ionicons name="play" size={13} color="#080706" />
+                <Ionicons name="play" size={13} color="#070b12" />
                 <Text variant="caption" className="ml-1 font-bold text-iron-950">
                   Start
                 </Text>
               </Pressable>
-              <Ionicons name="chevron-forward" size={18} color="#57534e" />
+              <Ionicons name="chevron-forward" size={18} color="#475569" />
             </View>
           </Card>
         ))}

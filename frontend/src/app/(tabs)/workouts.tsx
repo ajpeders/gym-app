@@ -1,31 +1,57 @@
 import { useCallback, useState } from 'react';
-import { RefreshControl, ScrollView, View } from 'react-native';
+import { Pressable, RefreshControl, ScrollView, View } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
 import { api } from '@/api/client';
-import type { Split, Workout } from '@/api/types';
+import type { ProgressPhoto, Split, Workout } from '@/api/types';
 import { Screen, ScreenHeader, SectionHeader } from '@/components/ui/Screen';
 import { Text } from '@/components/ui/Text';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Loading, EmptyState } from '@/components/ui/Feedback';
 
+const WEEK_DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+function weekDates() {
+  const today = new Date();
+  const sunday = new Date(today);
+  sunday.setDate(today.getDate() - today.getDay());
+  sunday.setHours(12, 0, 0, 0);
+  return WEEK_DAYS.map((day, index) => {
+    const date = new Date(sunday);
+    date.setDate(sunday.getDate() + index);
+    return { day, date, weekday: index };
+  });
+}
+
+function dateKey(date: Date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(
+    date.getDate(),
+  ).padStart(2, '0')}`;
+}
+
 export default function WorkoutsScreen() {
   const router = useRouter();
   const [splits, setSplits] = useState<Split[]>([]);
   const [workouts, setWorkouts] = useState<Workout[]>([]);
+  const [progressPhotos, setProgressPhotos] = useState<ProgressPhoto[]>([]);
+  const [selectedPlanId, setSelectedPlanId] = useState<number | null>(null);
+  const [showPlanPicker, setShowPlanPicker] = useState(false);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
   const fetchData = useCallback(async () => {
     try {
-      const [s, r] = await Promise.all([
+      const [s, r, photos] = await Promise.all([
         api.splits().catch(() => [] as Split[]),
         api.workouts().catch(() => [] as Workout[]),
+        api.progressPhotos().catch(() => [] as ProgressPhoto[]),
       ]);
       setSplits(s);
       setWorkouts(r);
+      setProgressPhotos(photos);
+      setSelectedPlanId((current) => current ?? s.find((split) => split.is_active)?.id ?? s[0]?.id ?? null);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -40,6 +66,12 @@ export default function WorkoutsScreen() {
 
   // Workouts not part of any split — standalone days.
   const standalone = workouts.filter((r) => r.split_id == null);
+  const activePlan =
+    splits.find((split) => split.id === selectedPlanId) ??
+    splits.find((split) => split.is_active) ??
+    splits[0];
+  const dates = weekDates();
+  const today = new Date();
 
   return (
     <Screen scroll={false} padded={false}>
@@ -87,6 +119,171 @@ export default function WorkoutsScreen() {
           />
         ) : (
           <>
+            {activePlan ? (
+              <View className="mb-6">
+                <SectionHeader
+                  title="This week"
+                  subtitle="Choose a split, then tap a day for workouts or progress photos."
+                />
+                <Card className="rounded-[22px] p-3">
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel="Choose training split"
+                    onPress={() => setShowPlanPicker((open) => !open)}
+                    className="mb-3 flex-row items-center rounded-2xl border border-iron-800 bg-iron-900 px-3 py-3 active:bg-iron-850">
+                    <View className="flex-1">
+                      <Text variant="caption" className="font-bold uppercase tracking-wider text-iron-400">
+                        Viewing split
+                      </Text>
+                      <Text variant="subheading" className="mt-0.5" numberOfLines={1}>
+                        {activePlan.name}
+                      </Text>
+                    </View>
+                    <Text variant="caption" className="mr-1 font-bold text-brand">
+                      Change
+                    </Text>
+                    <Ionicons
+                      name={showPlanPicker ? 'chevron-up' : 'chevron-down'}
+                      size={16}
+                      color="#818cf8"
+                    />
+                  </Pressable>
+
+                  {showPlanPicker ? (
+                    <View className="mb-3 gap-2 rounded-2xl bg-iron-950 p-2">
+                      {splits.map((split) => {
+                        const selected = split.id === activePlan.id;
+                        return (
+                          <Pressable
+                            key={split.id}
+                            onPress={() => {
+                              setSelectedPlanId(split.id);
+                              setShowPlanPicker(false);
+                            }}
+                            className={`flex-row items-center rounded-xl px-3 py-3 ${
+                              selected ? 'bg-brand/15' : 'active:bg-iron-850'
+                            }`}>
+                            <View className="flex-1">
+                              <Text
+                                variant="body"
+                                className={selected ? 'font-bold text-brand' : 'font-bold text-iron-100'}>
+                                {split.name}
+                              </Text>
+                              <Text variant="caption" className="mt-0.5 text-iron-400">
+                                {split.workouts.length} workouts
+                              </Text>
+                            </View>
+                            {selected ? (
+                              <Ionicons name="checkmark-circle" size={19} color="#818cf8" />
+                            ) : (
+                              <Ionicons name="chevron-forward" size={16} color="#475569" />
+                            )}
+                          </Pressable>
+                        );
+                      })}
+                    </View>
+                  ) : null}
+
+                  <View className="mb-3 flex-row items-center justify-between px-1">
+                    <Text variant="subheading">
+                      {dates[0].date.toLocaleDateString(undefined, {
+                        month: 'long',
+                        year: 'numeric',
+                      })}
+                    </Text>
+                    <View className="flex-row items-center gap-3">
+                      <View className="flex-row items-center">
+                        <View className="mr-1.5 h-2 w-2 rounded-full bg-brand" />
+                        <Text variant="caption" className="text-iron-400">
+                          Train
+                        </Text>
+                      </View>
+                      <View className="flex-row items-center">
+                        <View className="mr-1.5 h-2 w-2 rounded-full bg-iron-700" />
+                        <Text variant="caption" className="text-iron-400">
+                          Rest
+                        </Text>
+                      </View>
+                    </View>
+                  </View>
+
+                  <View className="flex-row gap-1">
+                    {dates.map(({ day, date, weekday }) => {
+                      const dayWorkouts = activePlan.workouts.filter(
+                        (workout) => !workout.floating && workout.weekdays.includes(weekday),
+                      );
+                      const primary = dayWorkouts[0];
+                      const isRest = dayWorkouts.length === 0;
+                      const isToday =
+                        date.getDate() === today.getDate() &&
+                        date.getMonth() === today.getMonth() &&
+                        date.getFullYear() === today.getFullYear();
+                      const isPastOrToday = date.getTime() <= today.getTime();
+                      const key = dateKey(date);
+                      const hasPhoto = progressPhotos.some((photo) => photo.taken_at.slice(0, 10) === key);
+
+                      return (
+                        <Pressable
+                          key={day}
+                          accessibilityRole={isPastOrToday || primary ? 'button' : undefined}
+                          accessibilityLabel={`${day}, ${isRest ? 'Rest' : dayWorkouts.map((w) => w.name).join(', ')}${
+                            hasPhoto ? ', has progress photos' : ''
+                          }`}
+                          disabled={!isPastOrToday && !primary}
+                          onPress={() => {
+                            if (isPastOrToday) {
+                              router.push({ pathname: '/progress', params: { date: key } });
+                            } else if (primary) {
+                              router.push(`/workout/${primary.id}`);
+                            }
+                          }}
+                          className={`min-w-0 flex-1 items-center rounded-2xl px-0.5 py-2.5 ${
+                            isToday ? 'border border-brand/50 bg-brand/10' : 'border border-transparent'
+                          } ${primary || isPastOrToday ? 'active:bg-brand/15' : ''}`}>
+                          <Text
+                            variant="caption"
+                            className={`font-bold ${isToday ? 'text-brand' : 'text-iron-400'}`}>
+                            {day.slice(0, 1)}
+                          </Text>
+                          <Text
+                            variant="subheading"
+                            className={`mt-1 ${isToday ? 'text-brand' : 'text-iron-100'}`}>
+                            {date.getDate()}
+                          </Text>
+                          {hasPhoto ? (
+                            <Ionicons name="camera" size={11} color="#2dd4bf" style={{ marginTop: 6 }} />
+                          ) : (
+                            <View className={`mt-2 h-2 w-2 rounded-full ${isRest ? 'bg-iron-700' : 'bg-brand'}`} />
+                          )}
+                        </Pressable>
+                      );
+                    })}
+                  </View>
+
+                  <View className="mt-3 border-t border-iron-800 px-1 pt-3">
+                    {activePlan.workouts
+                      .filter((workout) => !workout.floating)
+                      .sort((a, b) => a.order - b.order)
+                      .map((workout) => (
+                        <Pressable
+                          key={workout.id}
+                          onPress={() => router.push(`/workout/${workout.id}`)}
+                          className="mb-1 flex-row items-center rounded-xl px-2 py-2 active:bg-brand/10 last:mb-0">
+                          <Text variant="caption" className="w-16 font-bold text-iron-400">
+                            {workout.weekdays.map((day) => WEEK_DAYS[day]?.slice(0, 3)).join('/')}
+                          </Text>
+                          <Text variant="body" numberOfLines={1} className="flex-1 text-iron-200">
+                            {workout.name}
+                          </Text>
+                          <Ionicons name="chevron-forward" size={16} color="#475569" />
+                        </Pressable>
+                      ))}
+                  </View>
+                </Card>
+              </View>
+            ) : null}
+
+            <SectionHeader title="All plans" subtitle="Open a plan to edit its weekly schedule." />
             {splits.map((s) => {
               const trainingDays = s.workouts.length;
               return (
@@ -96,7 +293,7 @@ export default function WorkoutsScreen() {
                   className="mb-3 rounded-[22px] p-5">
                   <View className="flex-row items-center">
                     <View className="mr-3 h-12 w-12 items-center justify-center rounded-2xl border border-brand/30 bg-brand/10">
-                      <Ionicons name="calendar" size={22} color="#f97316" />
+                      <Ionicons name="calendar" size={22} color="#818cf8" />
                     </View>
                     <View className="flex-1">
                       <Text variant="subheading" numberOfLines={1}>
@@ -106,7 +303,7 @@ export default function WorkoutsScreen() {
                         {trainingDays} training days · weekly plan
                       </Text>
                     </View>
-                    <Ionicons name="chevron-forward" size={18} color="#57534e" />
+                    <Ionicons name="chevron-forward" size={18} color="#475569" />
                   </View>
                   <View className="mt-3 flex-row flex-wrap gap-2">
                     {s.is_active ? (
@@ -149,7 +346,7 @@ export default function WorkoutsScreen() {
                             {r.exercises.length} exercises
                           </Text>
                         </View>
-                        <Ionicons name="chevron-forward" size={18} color="#57534e" />
+                        <Ionicons name="chevron-forward" size={18} color="#475569" />
                       </View>
                     </Card>
                   ))}

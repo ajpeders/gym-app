@@ -235,7 +235,7 @@ export default function WorkoutImportScreen() {
         <Stack.Screen options={{ headerShown: true, title: 'Import workouts' }} />
         <View className="flex-1 items-center justify-center px-6">
           <View className="mb-4 h-16 w-16 items-center justify-center rounded-full border border-brand/40 bg-brand/10">
-            <Ionicons name="checkmark" size={34} color="#f97316" />
+            <Ionicons name="checkmark" size={34} color="#818cf8" />
           </View>
           <Text variant="heading" className="text-center">
             Saved {savedCount} {savedCount === 1 ? 'workout' : 'workouts'}
@@ -345,7 +345,7 @@ export default function WorkoutImportScreen() {
             value={text}
             onChangeText={setText}
             placeholder={PLACEHOLDER}
-            placeholderTextColor="#78716c"
+            placeholderTextColor="#64748b"
             multiline
             scrollEnabled
             className="h-56 rounded-lg border border-iron-700 bg-iron-900 px-4 py-3 text-base text-iron-50"
@@ -417,7 +417,7 @@ function ParseProgress({ received = 0 }: { received?: number }) {
   return (
     <View className="flex-1 items-center justify-center px-8">
       <View className="mb-5 h-16 w-16 items-center justify-center rounded-2xl border border-brand/40 bg-brand/10">
-        <Ionicons name="sparkles" size={28} color="#f97316" />
+        <Ionicons name="sparkles" size={28} color="#818cf8" />
       </View>
       <Text variant="heading" className="text-center">
         {PARSE_STAGES[stage]}
@@ -475,7 +475,7 @@ function DayCard({
           <Ionicons
             name={included ? 'checkmark-circle' : 'ellipse-outline'}
             size={26}
-            color={included ? '#f97316' : '#78716c'}
+            color={included ? '#818cf8' : '#64748b'}
           />
         </Pressable>
 
@@ -501,7 +501,7 @@ function DayCard({
           <Ionicons
             name={expanded ? 'chevron-up' : 'chevron-down'}
             size={20}
-            color="#78716c"
+            color="#64748b"
           />
         </Pressable>
       </View>
@@ -542,7 +542,7 @@ function DayCard({
                     <Ionicons
                       name={exIncluded ? 'checkbox' : 'square-outline'}
                       size={20}
-                      color={exIncluded ? '#f97316' : '#78716c'}
+                      color={exIncluded ? '#818cf8' : '#64748b'}
                     />
                   </Pressable>
                   <View className="flex-1">

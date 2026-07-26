@@ -25,6 +25,7 @@ export interface DraftExercise {
   target_reps: string;
   target_weight: string;
   rest_seconds: string;
+  notes: string;
 }
 
 interface WorkoutEditorProps {
@@ -81,7 +82,7 @@ export function WorkoutEditor({
           target_reps: reps.min,
           target_reps_max: reps.max,
           target_weight: e.target_weight ? parseFloat(e.target_weight) : null,
-          notes: null,
+          notes: e.notes.trim() || null,
         };
       }),
     };
@@ -92,7 +93,7 @@ export function WorkoutEditor({
   // matcher couldn't resolve (no exercise_id) are dropped. Planned rest is kept
   // from the matching existing exercise, else left blank.
   function applyProposal(p: WorkoutEditProposal) {
-    const prevRest = new Map(exercises.map((e) => [e.exercise_id, e.rest_seconds]));
+    const previous = new Map(exercises.map((e) => [e.exercise_id, e]));
     const drafts: DraftExercise[] = p.exercises
       .filter((e) => e.exercise_id != null)
       .map((e) => {
@@ -103,7 +104,8 @@ export function WorkoutEditor({
           target_sets: e.target_sets != null ? String(e.target_sets) : '',
           target_reps: formatRepRange(e.target_reps, e.target_reps_max) ?? '',
           target_weight: e.target_weight != null ? String(e.target_weight) : '',
-          rest_seconds: prevRest.get(id) ?? '',
+          rest_seconds: previous.get(id)?.rest_seconds ?? '',
+          notes: e.notes ?? previous.get(id)?.notes ?? '',
         };
       });
     if (p.name.trim()) setName(p.name.trim());
@@ -123,6 +125,7 @@ export function WorkoutEditor({
         target_reps: '8',
         target_weight: '',
         rest_seconds: '',
+        notes: '',
       },
     ]);
     setPicking(false);
@@ -171,6 +174,7 @@ export function WorkoutEditor({
           target_reps_max: reps.max,
           target_weight: e.target_weight ? parseFloat(e.target_weight) : null,
           rest_seconds: e.rest_seconds ? parseInt(e.rest_seconds, 10) : null,
+          notes: e.notes.trim() || null,
         };
       }),
     };
@@ -191,7 +195,7 @@ export function WorkoutEditor({
                   accessibilityRole="button"
                   accessibilityLabel="Export workout"
                   className="pl-3 active:opacity-60">
-                  <Ionicons name="share-outline" size={22} color="#f97316" />
+                  <Ionicons name="share-outline" size={22} color="#818cf8" />
                 </Pressable>
               )
             : undefined,
@@ -213,7 +217,7 @@ export function WorkoutEditor({
           <Pressable
             onPress={() => setAiOpen(true)}
             className="mt-4 flex-row items-center justify-center rounded-lg border border-brand/40 bg-brand/10 py-2.5 active:opacity-80">
-            <Ionicons name="sparkles" size={16} color="#f97316" />
+            <Ionicons name="sparkles" size={16} color="#818cf8" />
             <Text className="ml-2 font-semibold text-brand">Edit with AI</Text>
           </Pressable>
         ) : null}
@@ -234,15 +238,29 @@ export function WorkoutEditor({
                 <Text variant="subheading" numberOfLines={1} className="ml-2 flex-1">
                   {idx + 1}. {titleCase(e.name)}
                 </Text>
-                <View className="flex-row items-center gap-3">
-                  <Pressable onPress={() => move(idx, -1)} hitSlop={6}>
-                    <Text className="text-lg text-iron-400">UP</Text>
+                <View className="flex-row items-center gap-1">
+                  <Pressable
+                    onPress={() => move(idx, -1)}
+                    disabled={idx === 0}
+                    accessibilityLabel={`Move ${e.name} earlier`}
+                    hitSlop={6}
+                    className="h-9 w-9 items-center justify-center rounded-lg border border-iron-700 bg-iron-900 disabled:opacity-25">
+                    <Ionicons name="arrow-up" size={17} color="#94a3b8" />
                   </Pressable>
-                  <Pressable onPress={() => move(idx, 1)} hitSlop={6}>
-                    <Text className="text-lg text-iron-400">DN</Text>
+                  <Pressable
+                    onPress={() => move(idx, 1)}
+                    disabled={idx === exercises.length - 1}
+                    accessibilityLabel={`Move ${e.name} later`}
+                    hitSlop={6}
+                    className="h-9 w-9 items-center justify-center rounded-lg border border-iron-700 bg-iron-900 disabled:opacity-25">
+                    <Ionicons name="arrow-down" size={17} color="#94a3b8" />
                   </Pressable>
-                  <Pressable onPress={() => remove(idx)} hitSlop={6}>
-                    <Text className="text-sm font-bold text-red-500">Remove</Text>
+                  <Pressable
+                    onPress={() => remove(idx)}
+                    accessibilityLabel={`Remove ${e.name}`}
+                    hitSlop={6}
+                    className="h-9 w-9 items-center justify-center rounded-lg">
+                    <Ionicons name="trash-outline" size={17} color="#f87171" />
                   </Pressable>
                 </View>
               </View>
@@ -265,7 +283,24 @@ export function WorkoutEditor({
                   onChangeText={(v) => update(idx, { target_weight: v })}
                   decimal
                 />
+                <Field
+                  label="Rest (sec)"
+                  value={e.rest_seconds}
+                  onChangeText={(v) => update(idx, { rest_seconds: v })}
+                />
               </View>
+
+              <Text variant="caption" className="mb-1 mt-3 text-iron-400">
+                Exercise notes
+              </Text>
+              <TextInput
+                value={e.notes}
+                onChangeText={(value) => update(idx, { notes: value })}
+                placeholder="Cues, setup, tempo, substitutions..."
+                placeholderTextColor="#64748b"
+                multiline
+                className="min-h-[64px] rounded-lg border border-iron-700 bg-iron-950 px-3 py-2.5 text-base text-iron-50"
+              />
             </Card>
           ))
         )}
@@ -292,7 +327,7 @@ export function WorkoutEditor({
             className={`h-6 w-6 items-center justify-center rounded-md border ${
               floating ? 'border-brand bg-brand' : 'border-iron-600 bg-iron-950'
             }`}>
-            {floating ? <Ionicons name="checkmark" size={16} color="#080706" /> : null}
+            {floating ? <Ionicons name="checkmark" size={16} color="#070b12" /> : null}
           </View>
         </Pressable>
 
@@ -369,7 +404,7 @@ function Field({
         onChangeText={onChangeText}
         keyboardType={keyboardType}
         placeholder={range ? '8-12' : '-'}
-        placeholderTextColor="#78716c"
+        placeholderTextColor="#64748b"
         className={smallInput}
       />
     </View>

@@ -67,7 +67,7 @@ export function HomeProfileCard() {
         accessibilityRole="button"
         className="mb-3 flex-row items-center active:opacity-70">
         <View className="mr-3 h-10 w-10 items-center justify-center rounded-2xl border border-brand/25 bg-brand/10">
-          <Ionicons name="medkit-outline" size={19} color="#f97316" />
+          <Ionicons name="medkit-outline" size={19} color="#818cf8" />
         </View>
         <View className="flex-1">
           <Text variant="heading">Injuries & limitations</Text>
@@ -75,7 +75,7 @@ export function HomeProfileCard() {
             The coach works around these. Tap for goals, equipment & more.
           </Text>
         </View>
-        <Ionicons name="chevron-forward" size={18} color="#57534e" />
+        <Ionicons name="chevron-forward" size={18} color="#475569" />
       </Pressable>
 
       {profile.injuries.length === 0 ? (
@@ -108,7 +108,7 @@ export function HomeProfileCard() {
           onSubmitEditing={addInjury}
           returnKeyType="done"
           placeholder="e.g. left shoulder — tweaky overhead"
-          placeholderTextColor="#78716c"
+          placeholderTextColor="#64748b"
           className="mr-2 flex-1 rounded-lg border border-iron-700 bg-iron-900 px-3.5 py-2.5 text-base text-iron-50"
         />
         <Pressable
@@ -118,7 +118,7 @@ export function HomeProfileCard() {
           className={`h-11 w-11 items-center justify-center rounded-lg ${
             newInjury.trim() ? 'bg-brand active:bg-brand-600' : 'bg-iron-800 opacity-50'
           }`}>
-          <Ionicons name="add" size={22} color="#080706" />
+          <Ionicons name="add" size={22} color="#070b12" />
         </Pressable>
       </View>
     </Card>

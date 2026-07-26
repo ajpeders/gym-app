@@ -70,7 +70,7 @@ function PlanExerciseLine({
           {detail}
         </Text>
       </View>
-      {onPress ? <Ionicons name="chevron-forward" size={16} color="#57534e" /> : null}
+      {onPress ? <Ionicons name="chevron-forward" size={16} color="#475569" /> : null}
     </Pressable>
   );
 }
@@ -114,7 +114,7 @@ function SessionExerciseLine({
           {detail}
         </Text>
       </View>
-      {onPress ? <Ionicons name="chevron-forward" size={16} color="#57534e" /> : null}
+      {onPress ? <Ionicons name="chevron-forward" size={16} color="#475569" /> : null}
     </Pressable>
   );
 }
@@ -137,12 +137,12 @@ function QuickLink({
       className="min-h-[104px] flex-1 rounded-[18px] border border-iron-800 bg-iron-900/85 p-4 active:opacity-75">
       <View className="flex-row items-start">
         <View className="h-10 w-10 items-center justify-center rounded-xl border border-brand/25 bg-brand/10">
-          <Ionicons name={icon} size={18} color="#f97316" />
+          <Ionicons name={icon} size={18} color="#818cf8" />
         </View>
         <Ionicons
           name="arrow-up-outline"
           size={15}
-          color="#78716c"
+          color="#64748b"
           style={{ marginLeft: 'auto', transform: [{ rotate: '45deg' }] }}
         />
       </View>
@@ -159,9 +159,9 @@ function QuickLink({
 type MetricTone = 'brand' | 'mint' | 'steel';
 
 const metricTone: Record<MetricTone, { box: string; text: string; icon: string }> = {
-  brand: { box: 'border-brand/30 bg-brand/10', text: 'text-brand', icon: '#f97316' },
-  mint: { box: 'border-mint/30 bg-mint/10', text: 'text-mint', icon: '#34d399' },
-  steel: { box: 'border-steel/30 bg-steel/10', text: 'text-steel', icon: '#38bdf8' },
+  brand: { box: 'border-brand/30 bg-brand/10', text: 'text-brand', icon: '#818cf8' },
+  mint: { box: 'border-mint/30 bg-mint/10', text: 'text-mint', icon: '#2dd4bf' },
+  steel: { box: 'border-steel/30 bg-steel/10', text: 'text-steel', icon: '#22d3ee' },
 };
 
 function MetricPill({
@@ -291,6 +291,7 @@ export default function HomeScreen() {
           target_reps_max: ex.target_reps_max,
           target_weight: ex.target_weight,
           rest_seconds: previous?.rest_seconds ?? null,
+          notes: ex.notes ?? previous?.notes ?? null,
         });
       }
 
@@ -336,11 +337,7 @@ export default function HomeScreen() {
   const selectedExercises = selectedWorkout
     ? [...selectedWorkout.exercises].sort((a, b) => a.order - b.order)
     : [];
-  const previewExercises = selectedExercises.slice(0, 4);
-  const hiddenExercises = Math.max(0, selectedExercises.length - previewExercises.length);
   const activeExercises = active ? [...active.exercises].sort((a, b) => a.order - b.order) : [];
-  const activePreviewExercises = activeExercises.slice(0, 4);
-  const hiddenActiveExercises = Math.max(0, activeExercises.length - activePreviewExercises.length);
   const loggedSetCount = activeExercises.reduce(
     (total, ex) => total + ex.sets.filter((set) => set.completed !== false).length,
     0,
@@ -373,7 +370,7 @@ export default function HomeScreen() {
             <View className="flex-row items-center gap-2">
               {doneThisWeek ? (
                 <View className="flex-row items-center rounded-full border border-mint/30 bg-mint/10 px-2.5 py-1">
-                  <Ionicons name="checkmark-circle" size={14} color="#34d399" />
+                  <Ionicons name="checkmark-circle" size={14} color="#2dd4bf" />
                   <Text variant="caption" className="ml-1 font-bold text-mint">
                     Done
                   </Text>
@@ -385,7 +382,7 @@ export default function HomeScreen() {
                 accessibilityLabel="Open settings"
                 hitSlop={8}
                 className="h-10 w-10 items-center justify-center rounded-full border border-iron-700 bg-iron-900 active:bg-iron-800">
-                <Ionicons name="settings-outline" size={19} color="#a8a29e" />
+                <Ionicons name="settings-outline" size={19} color="#94a3b8" />
               </Pressable>
             </View>
           }
@@ -395,7 +392,7 @@ export default function HomeScreen() {
           <Card elevated className="border-brand bg-brand/10 p-5">
             <View className="flex-row items-center">
               <View className="mr-3 h-12 w-12 items-center justify-center rounded-2xl bg-brand">
-                <Ionicons name="barbell" size={23} color="#080706" />
+                <Ionicons name="barbell" size={23} color="#070b12" />
               </View>
               <View className="flex-1">
                 <View className="mb-1 self-start rounded-full bg-brand px-2 py-0.5">
@@ -429,8 +426,8 @@ export default function HomeScreen() {
             </View>
 
             <View className="mt-3">
-              {activePreviewExercises.length > 0 ? (
-                activePreviewExercises.map((ex) => (
+              {activeExercises.length > 0 ? (
+                activeExercises.map((ex) => (
                   <SessionExerciseLine
                     key={ex.id}
                     ex={ex}
@@ -445,11 +442,6 @@ export default function HomeScreen() {
               ) : (
                 <Text variant="muted">No exercises added yet.</Text>
               )}
-              {hiddenActiveExercises > 0 ? (
-                <Text variant="caption" className="pt-2 text-center text-iron-300">
-                  +{hiddenActiveExercises} more
-                </Text>
-              ) : null}
             </View>
 
             <Button
@@ -463,7 +455,7 @@ export default function HomeScreen() {
         ) : workouts.length === 0 ? (
           <Card elevated className="p-5">
             <View className="mb-4 h-12 w-12 items-center justify-center rounded-2xl border border-brand/30 bg-brand/10">
-              <Ionicons name="clipboard-outline" size={24} color="#f97316" />
+              <Ionicons name="clipboard-outline" size={24} color="#818cf8" />
             </View>
             <Text variant="heading">No training plan yet</Text>
             <Text variant="muted" className="mt-1">
@@ -491,7 +483,7 @@ export default function HomeScreen() {
                 accessibilityRole="button"
                 className="flex-row items-center active:opacity-70">
                 <View className="mr-3 h-12 w-12 items-center justify-center rounded-2xl border border-brand/30 bg-brand/10">
-                  <Ionicons name="calendar-outline" size={23} color="#f97316" />
+                  <Ionicons name="calendar-outline" size={23} color="#818cf8" />
                 </View>
                 <View className="flex-1">
                   <Text variant="heading" numberOfLines={1}>
@@ -504,13 +496,13 @@ export default function HomeScreen() {
                 <Ionicons
                   name={pickerOpen ? 'chevron-up' : 'chevron-down'}
                   size={22}
-                  color="#f97316"
+                  color="#818cf8"
                 />
               </Pressable>
             ) : (
               <View className="flex-row items-center">
                 <View className="mr-3 h-12 w-12 items-center justify-center rounded-2xl border border-brand/30 bg-brand/10">
-                  <Ionicons name="calendar-outline" size={23} color="#f97316" />
+                  <Ionicons name="calendar-outline" size={23} color="#818cf8" />
                 </View>
                 <View className="flex-1">
                   <Text variant="heading" numberOfLines={1}>
@@ -559,7 +551,7 @@ export default function HomeScreen() {
                           <Text variant="caption">today</Text>
                         </View>
                       ) : null}
-                      {isSel ? <Ionicons name="checkmark" size={18} color="#f97316" /> : null}
+                      {isSel ? <Ionicons name="checkmark" size={18} color="#818cf8" /> : null}
                     </Pressable>
                   );
                 })}
@@ -568,7 +560,7 @@ export default function HomeScreen() {
 
             <View className="mt-3">
               {selectedExercises.length > 0 ? (
-                previewExercises.map((ex, i) => (
+                selectedExercises.map((ex, i) => (
                   <PlanExerciseLine
                     key={ex.id ?? i}
                     ex={ex}
@@ -583,11 +575,6 @@ export default function HomeScreen() {
               ) : (
                 <Text variant="muted">This workout has no exercises yet.</Text>
               )}
-              {hiddenExercises > 0 ? (
-                <Text variant="caption" className="pt-2 text-center">
-                  +{hiddenExercises} more
-                </Text>
-              ) : null}
             </View>
 
             <Button
@@ -664,7 +651,7 @@ export default function HomeScreen() {
                   accessibilityRole="button"
                   accessibilityLabel="Close AI editor"
                   className="h-9 w-9 items-center justify-center rounded-lg bg-iron-900 active:opacity-70">
-                  <Ionicons name="close" size={20} color="#a8a29e" />
+                  <Ionicons name="close" size={20} color="#94a3b8" />
                 </Pressable>
               </View>
 
@@ -678,7 +665,7 @@ export default function HomeScreen() {
                 multiline
                 editable={!aiSaving}
                 placeholder="Example: make this lower volume and swap barbell bench for dumbbells"
-                placeholderTextColor="#78716c"
+                placeholderTextColor="#64748b"
                 className="min-h-[120px] rounded-lg border border-iron-700 bg-iron-900 px-4 py-3 text-base text-iron-50"
                 style={{ textAlignVertical: 'top' }}
               />
@@ -689,7 +676,7 @@ export default function HomeScreen() {
 
               {aiReply ? (
                 <View className="mt-4 flex-row rounded-lg border border-brand/40 bg-brand/10 p-3">
-                  <Ionicons name="sparkles" size={16} color="#f97316" />
+                  <Ionicons name="sparkles" size={16} color="#818cf8" />
                   <View className="ml-2 flex-1">
                     <Text variant="caption" className="font-bold text-brand">
                       Coach
