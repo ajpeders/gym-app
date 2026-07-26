@@ -10,7 +10,6 @@ const ICONS: Record<string, [IoniconName, IoniconName]> = {
   workouts: ['barbell', 'barbell-outline'],
   routines: ['calendar', 'calendar-outline'],
   coach: ['chatbubbles', 'chatbubbles-outline'],
-  settings: ['settings', 'settings-outline'],
 };
 
 function tabIcon(name: keyof typeof ICONS) {
@@ -18,9 +17,6 @@ function tabIcon(name: keyof typeof ICONS) {
     const [active, inactive] = ICONS[name];
     return (
       <View className="h-8 w-12 items-center justify-center">
-        {focused ? (
-          <View className="absolute -top-2.5 h-0.5 w-6 rounded-full bg-brand" />
-        ) : null}
         <Ionicons name={focused ? active : inactive} size={size ?? 22} color={color} />
       </View>
     );
@@ -51,14 +47,14 @@ export default function TabsLayout() {
           borderTopColor: '#292524',
           borderWidth: 0,
           borderTopWidth: 1,
-          height: Platform.OS === 'ios' ? 82 : 70,
-          paddingBottom: Platform.OS === 'ios' ? 18 : 9,
-          paddingTop: 10,
+          height: Platform.OS === 'ios' ? 78 : 66,
+          paddingBottom: Platform.OS === 'ios' ? 16 : 8,
+          paddingTop: 8,
         },
         tabBarItemStyle: {
           marginHorizontal: 2,
         },
-        tabBarLabelStyle: { fontSize: 10, fontWeight: '700', marginTop: 3 },
+        tabBarLabelStyle: { fontSize: 11, fontWeight: '700', marginTop: 2 },
       }}>
       <Tabs.Screen name="index" options={{ title: 'Home', tabBarIcon: tabIcon('index') }} />
       <Tabs.Screen
@@ -67,11 +63,11 @@ export default function TabsLayout() {
       />
       <Tabs.Screen
         name="routines"
-        options={{ title: 'Splits', tabBarIcon: tabIcon('routines') }}
+        options={{ title: 'Plans', tabBarIcon: tabIcon('routines') }}
       />
       <Tabs.Screen name="coach" options={{ title: 'Coach', tabBarIcon: tabIcon('coach') }} />
-      <Tabs.Screen name="settings" options={{ title: 'Settings', tabBarIcon: tabIcon('settings') }} />
 
+      <Tabs.Screen name="settings" options={{ href: null }} />
       <Tabs.Screen name="exercises" options={{ href: null }} />
     </Tabs>
   );

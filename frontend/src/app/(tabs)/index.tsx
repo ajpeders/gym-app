@@ -435,14 +435,24 @@ export default function HomeScreen() {
           title="Today"
           subtitle={summaryLabel}
           action={
-            todays ? (
-              <View className="flex-row items-center rounded-full border border-mint/30 bg-mint/10 px-2.5 py-1">
-                <Ionicons name="checkmark-circle" size={14} color="#34d399" />
-                <Text variant="caption" className="ml-1 font-bold text-mint">
-                  Logged
-                </Text>
-              </View>
-            ) : null
+            <View className="flex-row items-center gap-2">
+              {todays ? (
+                <View className="flex-row items-center rounded-full border border-mint/30 bg-mint/10 px-2.5 py-1">
+                  <Ionicons name="checkmark-circle" size={14} color="#34d399" />
+                  <Text variant="caption" className="ml-1 font-bold text-mint">
+                    Logged
+                  </Text>
+                </View>
+              ) : null}
+              <Pressable
+                onPress={() => router.push('/settings')}
+                accessibilityRole="button"
+                accessibilityLabel="Open settings"
+                hitSlop={8}
+                className="h-10 w-10 items-center justify-center rounded-full border border-iron-700 bg-iron-900 active:bg-iron-800">
+                <Ionicons name="settings-outline" size={19} color="#a8a29e" />
+              </Pressable>
+            </View>
           }
         />
 
