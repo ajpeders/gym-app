@@ -3,10 +3,10 @@ services:
     container_name: gym-api
     build:
       context: ./api
-      # Credentials for pip-installing `companion` from its private Forgejo
+      # SSH deploy key for pip-installing `companion` from its private Forgejo
       # repo. BuildKit keeps this out of the image layers.
       secrets:
-        - forgejo_token
+        - companion_deploy_key
     restart: unless-stopped
     environment:
       GYM_DATA_DIR: /data
@@ -66,8 +66,9 @@ networks:
     name: web
 
 secrets:
-  # Forgejo deploy token used only at build time to fetch the private
-  # `companion` package. Set FORGEJO_DEPLOY_TOKEN_ALEX in the environment
-  # (services/forgejo/.env) before building.
-  forgejo_token:
-    environment: FORGEJO_DEPLOY_TOKEN_ALEX
+  # SSH deploy key (private half) used only at build time to fetch the private
+  # `companion` package over SSH. Set COMPANION_DEPLOY_KEY in the environment
+  # (services/gym-app/.env) to the key's contents before building; register the
+  # public half on the companion repo as a read-only deploy key.
+  companion_deploy_key:
+    environment: COMPANION_DEPLOY_KEY

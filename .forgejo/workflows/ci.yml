@@ -18,18 +18,18 @@ jobs:
       - name: install deps
         working-directory: api
         env:
-          # `companion` lives in a PRIVATE Forgejo repo, so pip's git clone needs
-          # credentials. Define FORGEJO_TOKEN in this repo's Actions secrets
-          # (Settings → Actions → Secrets). Best-effort: if the secret is absent
-          # the install still tries an unauthenticated clone.
-          FORGEJO_TOKEN: ${{ secrets.FORGEJO_TOKEN }}
+          # `companion` lives in a PRIVATE Forgejo repo, cloned over SSH. Put the
+          # PRIVATE half of a read-only deploy key in the COMPANION_DEPLOY_KEY
+          # Actions secret (repo Settings → Actions → Secrets); register its
+          # PUBLIC half on the companion repo as a deploy key.
+          COMPANION_DEPLOY_KEY: ${{ secrets.COMPANION_DEPLOY_KEY }}
         run: |
-          if [ -n "$FORGEJO_TOKEN" ]; then
-            git config --global credential.helper store
-            printf 'https://oauth2:%s@git.thelunadog.com\n' "$FORGEJO_TOKEN" > "$HOME/.git-credentials"
-          fi
+          mkdir -p "$HOME/.ssh" && chmod 700 "$HOME/.ssh"
+          printf '%s\n' "$COMPANION_DEPLOY_KEY" > "$HOME/.ssh/id_ed25519"
+          chmod 600 "$HOME/.ssh/id_ed25519"
+          ssh-keyscan git.thelunadog.com >> "$HOME/.ssh/known_hosts" 2>/dev/null
           python3 -m pip install --no-cache-dir -r requirements.txt
-          rm -f "$HOME/.git-credentials"
+          rm -f "$HOME/.ssh/id_ed25519"
       - name: pytest
         working-directory: api
         run: python3 -m pytest -q

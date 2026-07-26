@@ -6,25 +6,26 @@ ENV PYTHONUNBUFFERED=1 \
 
 WORKDIR /app
 
-# git is needed to pip-install the `companion` package from its git repo.
-RUN apt-get update && apt-get install -y --no-install-recommends git \
+# git + ssh are needed to pip-install the `companion` package over SSH.
+RUN apt-get update && apt-get install -y --no-install-recommends git openssh-client \
     && rm -rf /var/lib/apt/lists/*
 
 # Install dependencies first for better layer caching.
-# `companion` lives in a PRIVATE Forgejo repo, so pip's git clone needs
-# credentials. They arrive as a BuildKit secret (never baked into an image
-# layer) and the credential file is deleted in the same RUN. If the secret is
-# absent the build still works for a public repo.
+# `companion` lives in a PRIVATE Forgejo repo cloned over SSH. The deploy key's
+# private half arrives as a BuildKit secret (never baked into an image layer)
+# and the whole ~/.ssh is removed in the same RUN. If the secret is absent the
+# build still works for a public repo.
 COPY requirements.txt .
-RUN --mount=type=secret,id=forgejo_token \
-    if [ -s /run/secrets/forgejo_token ]; then \
-      git config --global credential.helper store && \
-      printf 'https://oauth2:%s@git.thelunadog.com\n' "$(cat /run/secrets/forgejo_token)" \
-        > /root/.git-credentials ; \
+RUN --mount=type=secret,id=companion_deploy_key \
+    mkdir -p /root/.ssh && chmod 700 /root/.ssh && \
+    if [ -s /run/secrets/companion_deploy_key ]; then \
+      cp /run/secrets/companion_deploy_key /root/.ssh/id_ed25519 && \
+      chmod 600 /root/.ssh/id_ed25519 ; \
     fi ; \
+    ssh-keyscan git.thelunadog.com >> /root/.ssh/known_hosts 2>/dev/null ; \
     pip install --no-cache-dir -r requirements.txt ; \
     status=$? ; \
-    rm -f /root/.git-credentials ; \
+    rm -rf /root/.ssh ; \
     exit $status
 
 # Copy application source + tests
