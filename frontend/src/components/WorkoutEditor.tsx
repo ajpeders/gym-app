@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { ExerciseBrowser } from '@/components/ExerciseBrowser';
 import { ExerciseThumb } from '@/components/ExerciseThumb';
+import { WeekdayPicker } from '@/components/WeekdayPicker';
 import { WorkoutAiEdit, type WorkoutAiWorking } from '@/components/WorkoutAiEdit';
 import { formatRepRange, parseRepRange, titleCase } from '@/lib/format';
 
@@ -31,6 +32,8 @@ interface WorkoutEditorProps {
   initialName?: string;
   initialNotes?: string;
   initialExercises?: DraftExercise[];
+  initialWeekdays?: number[];
+  initialFloating?: boolean;
   saving?: boolean;
   onSave: (input: WorkoutInput) => Promise<void> | void;
   onDelete?: () => void;
@@ -46,6 +49,8 @@ export function WorkoutEditor({
   initialName = '',
   initialNotes = '',
   initialExercises = [],
+  initialWeekdays = [],
+  initialFloating = false,
   saving = false,
   onSave,
   onDelete,
@@ -56,6 +61,8 @@ export function WorkoutEditor({
   const [name, setName] = useState(initialName);
   const [notes, setNotes] = useState(initialNotes);
   const [exercises, setExercises] = useState<DraftExercise[]>(initialExercises);
+  const [weekdays, setWeekdays] = useState<number[]>(initialWeekdays);
+  const [floating, setFloating] = useState(initialFloating);
   const [picking, setPicking] = useState(false);
   const [aiOpen, setAiOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -152,6 +159,8 @@ export function WorkoutEditor({
     const input: WorkoutInput = {
       name: name.trim(),
       notes: notes.trim() || null,
+      weekdays: floating ? [] : weekdays,
+      floating,
       exercises: exercises.map((e, i) => {
         const reps = parseRepRange(e.target_reps);
         return {
@@ -267,6 +276,38 @@ export function WorkoutEditor({
           onPress={() => setPicking(true)}
           className="mt-1"
         />
+
+        <Text variant="heading" className="mt-6 mb-2">
+          Schedule
+        </Text>
+        <Pressable
+          onPress={() => setFloating((f) => !f)}
+          accessibilityRole="switch"
+          accessibilityState={{ checked: floating }}
+          className="flex-row items-center justify-between rounded-lg border border-iron-700 bg-iron-900/90 px-3.5 py-3 active:opacity-80">
+          <Text variant="label" className="flex-1 pr-3">
+            Do once — floating (e.g. Fri or Sat)
+          </Text>
+          <View
+            className={`h-6 w-6 items-center justify-center rounded-md border ${
+              floating ? 'border-brand bg-brand' : 'border-iron-600 bg-iron-950'
+            }`}>
+            {floating ? <Ionicons name="checkmark" size={16} color="#080706" /> : null}
+          </View>
+        </Pressable>
+
+        {floating ? (
+          <Text variant="caption" className="mt-2">
+            Floating workouts aren&apos;t pinned to a weekday — do them whenever they fit.
+          </Text>
+        ) : (
+          <View className="mt-3">
+            <Text variant="caption" className="mb-2">
+              Repeat on these days
+            </Text>
+            <WeekdayPicker value={weekdays} onChange={setWeekdays} />
+          </View>
+        )}
 
         {error ? <Text className="text-red-500 text-sm mt-3">{error}</Text> : null}
 

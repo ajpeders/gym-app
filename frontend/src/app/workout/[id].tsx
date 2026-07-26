@@ -101,6 +101,8 @@ export default function EditWorkoutScreen() {
       initialName={workout.name}
       initialNotes={workout.notes ?? ''}
       initialExercises={toDraft(workout)}
+      initialWeekdays={workout.weekdays}
+      initialFloating={workout.floating}
       saving={saving}
       onSave={onSave}
       onDelete={onDelete}
