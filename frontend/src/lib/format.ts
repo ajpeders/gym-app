@@ -95,3 +95,12 @@ export function formatTimeOfDay(iso: string | null | undefined): string {
   if (Number.isNaN(d.getTime())) return '';
   return d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
 }
+
+/** A held set's duration, e.g. 45 -> "45s", 90 -> "1:30". */
+export function formatDurationSeconds(secs: number | null | undefined): string {
+  if (secs == null) return '-';
+  if (secs < 60) return `${secs}s`;
+  const m = Math.floor(secs / 60);
+  const s = secs % 60;
+  return s === 0 ? `${m}:00` : `${m}:${String(s).padStart(2, '0')}`;
+}

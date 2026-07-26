@@ -51,7 +51,7 @@ export default function WorkoutDetailScreen() {
   const totalSets = workout?.exercises.reduce((acc, e) => acc + e.sets.length, 0) ?? 0;
   const totalVolume =
     workout?.exercises.reduce(
-      (acc, e) => acc + e.sets.reduce((a, s) => a + s.reps * (s.weight ?? 0), 0),
+      (acc, e) => acc + e.sets.reduce((a, s) => a + (s.reps ?? 0) * (s.weight ?? 0), 0),
       0,
     ) ?? 0;
 

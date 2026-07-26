@@ -135,6 +135,11 @@ class Exercise(Base):
     instructions: Mapped[list[str]] = mapped_column(JSON, default=list)
     images: Mapped[list[str]] = mapped_column(JSON, default=list)
     is_custom: Mapped[bool] = mapped_column(Boolean, default=False)
+    # How a set of this movement is measured:
+    #   weight_reps – external load x reps (default)
+    #   bodyweight  – reps only, no load field (chin-ups, push-ups)
+    #   time        – a held/timed effort (plank, dead hang)
+    tracking_type: Mapped[str] = mapped_column(String, default="weight_reps")
     owner_id: Mapped[Optional[int]] = mapped_column(
         ForeignKey("user.id", ondelete="CASCADE"), nullable=True
     )
@@ -279,6 +284,8 @@ class SetEntry(Base):
     weight: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
     rpe: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
     set_type: Mapped[str] = mapped_column(String, default="working")
+    # Held/timed efforts record duration instead of reps+weight.
+    duration_seconds: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     completed: Mapped[bool] = mapped_column(Boolean, default=True)
     completed_at: Mapped[Optional[datetime]] = mapped_column(DateTime, default=utcnow)
     # Free-text note on an individual set ("left shoulder tight", "easy", …).

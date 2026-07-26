@@ -326,6 +326,7 @@ def add_set(
         weight=payload.weight,
         rpe=payload.rpe,
         set_type=payload.set_type,
+        duration_seconds=payload.duration_seconds,
         completed=payload.completed,
         completed_at=(
             _resolve_started_at(payload.completed_at)

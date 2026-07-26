@@ -7,7 +7,13 @@ import type { SetInput, Units, WorkoutExercise } from '@/api/types';
 import { Text } from '@/components/ui/Text';
 import { Card } from '@/components/ui/Card';
 import { ExerciseThumb } from '@/components/ExerciseThumb';
-import { formatLoad, formatRepRange, formatTimeOfDay, titleCase } from '@/lib/format';
+import {
+  formatDurationSeconds,
+  formatLoad,
+  formatRepRange,
+  formatTimeOfDay,
+  titleCase,
+} from '@/lib/format';
 
 interface Props {
   workoutExercise: WorkoutExercise;
@@ -31,11 +37,16 @@ export function ActiveExerciseCard({
 }: Props) {
   const router = useRouter();
   const sets = workoutExercise.sets ?? [];
+  // How this movement is logged: load x reps, reps only, or a timed hold.
+  const kind = workoutExercise.exercise?.tracking_type ?? 'weight_reps';
+  const isTimed = kind === 'time';
+  const isBodyweight = kind === 'bodyweight';
   const last = sets[sets.length - 1];
   const [reps, setReps] = useState('');
   const [weight, setWeight] = useState('');
   const [rpe, setRpe] = useState('');
   const [note, setNote] = useState('');
+  const [duration, setDuration] = useState('');
   const [saving, setSaving] = useState(false);
 
   const name = workoutExercise.exercise?.name ?? 'Exercise';
@@ -67,20 +78,37 @@ export function ActiveExerciseCard({
       setWeight('');
       setRpe('');
       setNote('');
+      setDuration('');
     } finally {
       setSaving(false);
     }
   }
 
   async function addFromInputs() {
+    const rpeVal = rpe ? parseFloat(rpe) : null;
+
+    // Timed holds (plank, dead hang) record seconds, not reps or load.
+    if (isTimed) {
+      const secs = parseInt(duration, 10);
+      if (Number.isNaN(secs)) return;
+      await submit({
+        duration_seconds: secs,
+        rpe: rpeVal,
+        set_type: 'working',
+        notes: note.trim() || null,
+      });
+      return;
+    }
+
     const r = parseInt(reps, 10);
     if (Number.isNaN(r)) return;
-    // Weight is optional — blank means bodyweight (chin-ups, planks, …).
+    // Weight stays optional everywhere; bodyweight moves just don't ask for it
+    // up front (added load can still be typed into the +Wt field).
     const w = weight.trim() === '' ? null : parseFloat(weight);
     await submit({
       reps: r,
       weight: w != null && Number.isNaN(w) ? null : w,
-      rpe: rpe ? parseFloat(rpe) : null,
+      rpe: rpeVal,
       set_type: 'working',
       notes: note.trim() || null,
     });
@@ -91,6 +119,7 @@ export function ActiveExerciseCard({
     await submit({
       reps: last.reps,
       weight: last.weight,
+      duration_seconds: last.duration_seconds ?? null,
       rpe: last.rpe ?? null,
       set_type: last.set_type ?? 'working',
     });
@@ -145,12 +174,20 @@ export function ActiveExerciseCard({
             <Text variant="caption" className="w-10">
               SET
             </Text>
-            <Text variant="caption" className="flex-1">
-              Weight
-            </Text>
-            <Text variant="caption" className="flex-1">
-              Reps
-            </Text>
+            {isTimed ? (
+              <Text variant="caption" className="flex-1">
+                Time
+              </Text>
+            ) : (
+              <>
+                <Text variant="caption" className="flex-1">
+                  {isBodyweight ? '+Wt' : 'Weight'}
+                </Text>
+                <Text variant="caption" className="flex-1">
+                  Reps
+                </Text>
+              </>
+            )}
             <Text variant="caption" className="w-12">
               RPE
             </Text>
@@ -162,12 +199,20 @@ export function ActiveExerciseCard({
                 <Text variant="label" className="w-10 text-center">
                   {i + 1}
                 </Text>
-                <Text variant="body" className="flex-1">
-                  {formatLoad(s.weight, units)}
-                </Text>
-                <Text variant="body" className="flex-1">
-                  {s.reps}
-                </Text>
+                {isTimed ? (
+                  <Text variant="body" className="flex-1">
+                    {formatDurationSeconds(s.duration_seconds)}
+                  </Text>
+                ) : (
+                  <>
+                    <Text variant="body" className="flex-1">
+                      {formatLoad(s.weight, units)}
+                    </Text>
+                    <Text variant="body" className="flex-1">
+                      {s.reps ?? '-'}
+                    </Text>
+                  </>
+                )}
                 <Text variant="body" className="w-12">
                   {s.rpe ?? '-'}
                 </Text>
@@ -208,34 +253,53 @@ export function ActiveExerciseCard({
 
       {/* input row */}
       <View className="mt-3 flex-row items-end gap-2">
-        <View>
-          <Text variant="caption" className="mb-1">
-            Weight ({units})
-          </Text>
-          <TextInput
-            value={weight}
-            onChangeText={setWeight}
-            keyboardType="decimal-pad"
-            placeholder={last?.weight != null ? String(last.weight) : 'BW'}
-            placeholderTextColor="#78716c"
-            selectionColor="#f97316"
-            className={numInput}
-          />
-        </View>
-        <View>
-          <Text variant="caption" className="mb-1">
-            Reps
-          </Text>
-          <TextInput
-            value={reps}
-            onChangeText={setReps}
-            keyboardType="number-pad"
-            placeholder={last ? String(last.reps) : '0'}
-            placeholderTextColor="#78716c"
-            selectionColor="#f97316"
-            className={numInput}
-          />
-        </View>
+        {isTimed ? (
+          <View>
+            <Text variant="caption" className="mb-1">
+              Time (sec)
+            </Text>
+            <TextInput
+              value={duration}
+              onChangeText={setDuration}
+              keyboardType="number-pad"
+              placeholder={last?.duration_seconds != null ? String(last.duration_seconds) : '30'}
+              placeholderTextColor="#78716c"
+              selectionColor="#f97316"
+              className={numInput}
+            />
+          </View>
+        ) : (
+          <>
+            <View>
+              <Text variant="caption" className="mb-1">
+                {isBodyweight ? `+Wt (${units})` : `Weight (${units})`}
+              </Text>
+              <TextInput
+                value={weight}
+                onChangeText={setWeight}
+                keyboardType="decimal-pad"
+                placeholder={last?.weight != null ? String(last.weight) : 'BW'}
+                placeholderTextColor="#78716c"
+                selectionColor="#f97316"
+                className={numInput}
+              />
+            </View>
+            <View>
+              <Text variant="caption" className="mb-1">
+                Reps
+              </Text>
+              <TextInput
+                value={reps}
+                onChangeText={setReps}
+                keyboardType="number-pad"
+                placeholder={last?.reps != null ? String(last.reps) : '0'}
+                placeholderTextColor="#78716c"
+                selectionColor="#f97316"
+                className={numInput}
+              />
+            </View>
+          </>
+        )}
         <View>
           <Text variant="caption" className="mb-1">
             RPE
@@ -277,7 +341,9 @@ export function ActiveExerciseCard({
             className="flex-1 flex-row items-center justify-center rounded-lg border border-brand/40 bg-brand/10 px-3 py-2 active:opacity-70">
             <Ionicons name="repeat" size={16} color="#f97316" />
             <Text className="ml-1.5 text-sm font-bold text-brand">
-              {formatLoad(last.weight, units)} x {last.reps}
+              {isTimed
+                ? formatDurationSeconds(last.duration_seconds)
+                : `${formatLoad(last.weight, units)} x ${last.reps ?? '-'}`}
             </Text>
           </Pressable>
         </View>

@@ -30,6 +30,8 @@ export interface Exercise {
   instructions: string[];
   images: string[]; // full URLs
   is_custom: boolean;
+  /** How a set is measured: load x reps, reps only, or a timed hold. */
+  tracking_type?: 'weight_reps' | 'bodyweight' | 'time';
   owner_id: string | null;
 }
 
@@ -117,7 +119,8 @@ export interface RoutineInput {
 
 export interface WorkoutSet {
   id: string;
-  reps: number;
+  /** null for timed movements. */
+  reps: number | null;
   /** null = bodyweight (no external load). */
   weight: number | null;
   rpe: number | null;
@@ -125,6 +128,8 @@ export interface WorkoutSet {
   order?: number;
   completed?: boolean;
   notes?: string | null;
+  /** Seconds held, for timed movements. */
+  duration_seconds?: number | null;
   /** When the set was performed. */
   completed_at?: string | null;
   /** Client-only: logged locally, not yet pushed to the server. */
@@ -159,7 +164,8 @@ export interface Workout {
 }
 
 export interface SetInput {
-  reps: number;
+  /** Omit for timed movements. */
+  reps?: number | null;
   /** Omit / null for bodyweight exercises. */
   weight?: number | null;
   rpe?: number | null;
@@ -167,6 +173,8 @@ export interface SetInput {
   notes?: string | null;
   /** ISO time the set was actually performed (kept accurate across offline sync). */
   completed_at?: string;
+  /** Seconds held, for timed movements (plank, dead hang). */
+  duration_seconds?: number | null;
 }
 
 export interface Metric {

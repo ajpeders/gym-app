@@ -47,6 +47,8 @@ _ADDED_COLUMNS: list[tuple[str, str, str]] = [
     ("workout_exercise", "target_reps_max", "INTEGER"),
     ("workout_exercise", "target_weight", "FLOAT"),
     ("sets", "notes", "TEXT"),
+    ("sets", "duration_seconds", "INTEGER"),
+    ("exercise", "tracking_type", "VARCHAR"),
 ]
 
 

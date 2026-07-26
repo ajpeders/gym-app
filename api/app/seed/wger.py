@@ -22,6 +22,7 @@ from sqlalchemy.orm import Session
 from ..config import get_settings
 from ..db import SessionLocal, init_db
 from ..models import Exercise
+from .tracking import infer_tracking_type
 
 logger = logging.getLogger("gym.seed.wger")
 
@@ -123,6 +124,9 @@ def _map_exercise(client: httpx.Client, item: dict, download: bool) -> dict | No
         "level": None,
         "mechanic": None,
         "equipment": (equipment[0].get("name") if equipment else None),
+        "tracking_type": infer_tracking_type(
+            tr.get("name") or "", equipment[0].get("name") if equipment else None
+        ),
         "primary_muscles": _muscle_names(item.get("muscles")),
         "secondary_muscles": _muscle_names(item.get("muscles_secondary")),
         "instructions": _html_to_steps(tr.get("description")),

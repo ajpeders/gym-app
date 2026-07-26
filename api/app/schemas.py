@@ -54,6 +54,7 @@ class ExerciseOut(BaseModel):
     instructions: list[str] = []
     images: list[str] = []
     is_custom: bool = False
+    tracking_type: str = "weight_reps"
     owner_id: Optional[int] = None
 
 
@@ -203,6 +204,7 @@ class SetOut(BaseModel):
     weight: Optional[float] = None
     rpe: Optional[float] = None
     set_type: str
+    duration_seconds: Optional[int] = None
     completed: bool
     completed_at: Optional[datetime] = None
     notes: Optional[str] = None
@@ -213,6 +215,7 @@ class SetCreate(BaseModel):
     weight: Optional[float] = None
     rpe: Optional[float] = None
     set_type: str = "working"
+    duration_seconds: Optional[int] = None
     completed: bool = True
     set_number: Optional[int] = None
     notes: Optional[str] = None
@@ -227,6 +230,7 @@ class SetUpdate(BaseModel):
     weight: Optional[float] = None
     rpe: Optional[float] = None
     set_type: Optional[str] = None
+    duration_seconds: Optional[int] = None
     completed: Optional[bool] = None
     set_number: Optional[int] = None
     notes: Optional[str] = None
