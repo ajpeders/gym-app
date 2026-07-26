@@ -16,10 +16,10 @@ from ..models import (
     AthleteProfile,
     CoachMessage,
     Exercise,
+    Session as SessionModel,
+    SessionExercise,
     Settings,
     User,
-    Workout,
-    WorkoutExercise,
 )
 from . import prompts
 from .base import (
@@ -281,8 +281,8 @@ async def parse_sets(db: Session, user: User, text: str, workout_id: int | None 
             r[0]
             for r in db.execute(
                 select(Exercise.name)
-                .join(WorkoutExercise, WorkoutExercise.exercise_id == Exercise.id)
-                .where(WorkoutExercise.workout_id == workout_id)
+                .join(SessionExercise, SessionExercise.exercise_id == Exercise.id)
+                .where(SessionExercise.session_id == workout_id)
             ).all()
         ]
 
@@ -596,14 +596,14 @@ async def check_in(db: Session, user: User, text: str) -> dict:
 
 
 def _recent_training_summary(db: Session, user_id: int, limit: int = 6) -> str:
-    workouts = db.scalars(
-        select(Workout)
-        .where(Workout.owner_id == user_id)
-        .order_by(Workout.started_at.desc())
+    sessions = db.scalars(
+        select(SessionModel)
+        .where(SessionModel.owner_id == user_id)
+        .order_by(SessionModel.started_at.desc())
         .limit(limit)
     ).all()
     lines = []
-    for w in workouts:
+    for w in sessions:
         parts = []
         for we in w.exercises:
             ex_name = we.exercise.name if we.exercise else "?"
