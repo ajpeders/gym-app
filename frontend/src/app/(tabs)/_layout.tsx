@@ -17,15 +17,11 @@ function tabIcon(name: keyof typeof ICONS) {
   return ({ color, size, focused }: { color: string; size: number; focused: boolean }) => {
     const [active, inactive] = ICONS[name];
     return (
-      <View
-        className={`h-8 w-11 items-center justify-center rounded-lg ${
-          focused ? 'bg-brand' : 'bg-transparent'
-        }`}>
-        <Ionicons
-          name={focused ? active : inactive}
-          size={size ?? 22}
-          color={focused ? '#080706' : color}
-        />
+      <View className="h-8 w-12 items-center justify-center">
+        {focused ? (
+          <View className="absolute -top-2.5 h-0.5 w-6 rounded-full bg-brand" />
+        ) : null}
+        <Ionicons name={focused ? active : inactive} size={size ?? 22} color={color} />
       </View>
     );
   };
@@ -44,24 +40,25 @@ export default function TabsLayout() {
         tabBarInactiveTintColor: '#a8a29e',
         tabBarStyle: {
           position: 'absolute',
-          left: Platform.OS === 'web' ? 0 : 12,
-          right: Platform.OS === 'web' ? 0 : 12,
-          bottom: Platform.OS === 'ios' ? 12 : 10,
+          left: 0,
+          right: 0,
+          bottom: 0,
           maxWidth: 760,
           marginHorizontal: Platform.OS === 'web' ? 'auto' : 0,
-          borderRadius: 18,
-          backgroundColor: '#171412',
-          borderColor: '#2a2521',
-          borderWidth: 1,
-          height: Platform.OS === 'ios' ? 76 : 66,
-          paddingBottom: Platform.OS === 'ios' ? 14 : 8,
-          paddingTop: 8,
+          borderRadius: 0,
+          backgroundColor: '#0d0c0b',
+          borderColor: 'transparent',
+          borderTopColor: '#292524',
+          borderWidth: 0,
+          borderTopWidth: 1,
+          height: Platform.OS === 'ios' ? 82 : 70,
+          paddingBottom: Platform.OS === 'ios' ? 18 : 9,
+          paddingTop: 10,
         },
         tabBarItemStyle: {
-          borderRadius: 12,
-          marginHorizontal: 4,
+          marginHorizontal: 2,
         },
-        tabBarLabelStyle: { fontSize: 10, fontWeight: '800', marginTop: 2 },
+        tabBarLabelStyle: { fontSize: 10, fontWeight: '700', marginTop: 3 },
       }}>
       <Tabs.Screen name="index" options={{ title: 'Home', tabBarIcon: tabIcon('index') }} />
       <Tabs.Screen

@@ -185,6 +185,12 @@ Found while actually training with the app. Ordered by how much they hurt.
       would improve — but the dropped-sets and missing-exercise bugs are
       prompt/parse issues that remain. Highest-value fix before anyone else
       imports a plan.
+- [ ] **Import your own workout** — let each user bring in a personal workout or
+      full split from pasted text, CSV/JSON, or a supported app export. Imported
+      plans become user-owned, fully editable routines; unmatched movements are
+      created as that user's custom exercises instead of altering the shared
+      third-party catalog. Include a review step before saving and make imports
+      safe to retry without creating duplicates.
 - [ ] **Duplicate in-progress workouts** — starting a workout doesn't detect or
       resume an already-active one, so taps pile up sessions (3 were open during
       testing). Resume-or-prompt on start, and clean up the strays.
