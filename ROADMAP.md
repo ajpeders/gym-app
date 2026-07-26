@@ -255,7 +255,7 @@ Found while actually training with the app. Ordered by how much they hurt.
 - [~] Tests: backend pytest (`api/tests/`: auth, workouts, exercises) ✅; **frontend tests + pytest-in-CI still missing**
 - [x] Security: auth + per-owner scoping on every route, Pydantic validation, secrets via `GYM_*` env; no published host port (Traefik TLS + `local-only`); JWT-default startup warning
 - [~] Observability: `logging` on boot/seed + `latency_ms` on AI calls; **structured logs + full AI request tracing still to do**
-- [~] Docs: README ✅, ROADMAP ✅, PROPOSAL ✅; **ARCHITECTURE.md + HOWTO.md still missing**
+- [~] Docs: README ✅, ROADMAP ✅, PROPOSAL ✅, HOWTO ✅; **ARCHITECTURE.md still missing**
 
 ---
 
