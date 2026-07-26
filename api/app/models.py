@@ -162,7 +162,8 @@ class Workout(Base):
     split_id: Mapped[Optional[int]] = mapped_column(
         ForeignKey("split.id", ondelete="SET NULL"), nullable=True
     )
-    # Weekdays this workout is scheduled on: 0=Mon .. 6=Sun.
+    # Weekdays this workout is scheduled on: 0=Sun .. 6=Sat. Empty = unscheduled;
+    # see `floating` for "do once, any candidate day".
     weekdays: Mapped[list[int]] = mapped_column(JSON, default=list)
     # Floating workouts are not pinned to weekdays (do them whenever).
     floating: Mapped[bool] = mapped_column(Boolean, default=False)
