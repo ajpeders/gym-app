@@ -91,10 +91,16 @@ class ParsedWorkout(BaseModel):
     name: str
     notes: Optional[str] = None
     rest_day: bool = False
+    weekdays: list[int] = Field(default_factory=list)
+    floating: bool = False
+    optional: bool = False
     exercises: list[ParsedWorkoutExercise] = Field(default_factory=list)
 
 
 class ParsedProgram(BaseModel):
+    name: Optional[str] = None
+    notes: Optional[str] = None
+    rules: list[str] = Field(default_factory=list)
     workouts: list[ParsedWorkout] = Field(default_factory=list)
 
 
@@ -135,16 +141,22 @@ PROGRAM_SCHEMA: dict = {
                     "name": {"type": "string"},
                     "notes": {"anyOf": [{"type": "string"}, {"type": "null"}]},
                     "rest_day": {"type": "boolean"},
+                    "weekdays": {
+                        "type": "array",
+                        "items": {"type": "integer", "minimum": 0, "maximum": 6},
+                    },
+                    "floating": {"type": "boolean"},
+                    "optional": {"type": "boolean"},
                     "exercises": {
                         "type": "array",
                         "items": _WORKOUT_EXERCISE_ITEM,
                     },
                 },
-                "required": ["name", "notes", "rest_day", "exercises"],
+                "required": ["name", "notes", "rest_day", "weekdays", "floating", "optional", "exercises"],
             },
         }
     },
-    "required": ["workouts"],
+    "required": ["name", "notes", "rules", "workouts"],
 }
 
 

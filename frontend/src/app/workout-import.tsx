@@ -70,6 +70,15 @@ function summarizeTargets(
   return parts.length ? parts.join('  ·  ') : null;
 }
 
+const WEEKDAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+function scheduleLabel(workout: ParsedWorkout): string {
+  if (workout.rest_day) return 'Rest';
+  if (workout.floating) return workout.optional ? 'Optional / floating' : 'Floating';
+  if (workout.weekdays.length === 0) return 'Unscheduled';
+  return workout.weekdays.map((day) => WEEKDAY_LABELS[day] ?? '?').join(' / ');
+}
+
 export default function WorkoutImportScreen() {
   const router = useRouter();
 
@@ -145,6 +154,13 @@ export default function WorkoutImportScreen() {
 
     try {
       let done = 0;
+      const splitName = result.name?.trim() || 'Imported workout plan';
+      const split = await api.createSplit({
+        name: splitName,
+        notes: result.notes ?? null,
+        rules: result.rules ?? [],
+      });
+      await api.updateSplit(String(split.id), { is_active: true });
       // Cache custom exercises created during this save, keyed by
       // case-insensitive name, so the same unmatched exercise (repeated within a
       // day or across days) creates ONE custom exercise and reuses its id.
@@ -176,6 +192,7 @@ export default function WorkoutImportScreen() {
             target_reps: ex.target_reps,
             target_reps_max: ex.target_reps_max,
             target_weight: ex.target_weight,
+            notes: ex.notes,
           });
           order += 1;
         }
@@ -185,6 +202,10 @@ export default function WorkoutImportScreen() {
         await api.createWorkout({
           name: r.name,
           notes: r.notes ?? undefined,
+          split_id: split.id,
+          weekdays: r.floating ? [] : r.weekdays,
+          floating: r.floating || r.optional,
+          order: done,
           exercises,
         });
         done += 1;
@@ -263,6 +284,19 @@ export default function WorkoutImportScreen() {
             Found {result?.workouts.length ?? 0} days. Toggle anything you don&apos;t want, then
             save.
           </Text>
+
+          {result?.rules?.length ? (
+            <Card className="mb-3 rounded-[18px] p-4">
+              <Text variant="label" className="mb-2 text-brand">
+                Progression rules
+              </Text>
+              {result.rules.map((rule, index) => (
+                <Text key={index} variant="caption" className="mb-1 text-iron-300 last:mb-0">
+                  - {rule}
+                </Text>
+              ))}
+            </Card>
+          ) : null}
 
           {error ? (
             <View className="mb-3">
@@ -494,7 +528,7 @@ function DayCard({
               ) : null}
             </View>
             <Text variant="caption" className="mt-0.5">
-              {workout.exercises.length}{' '}
+              {scheduleLabel(workout)} · {workout.exercises.length}{' '}
               {workout.exercises.length === 1 ? 'exercise' : 'exercises'}
             </Text>
           </View>

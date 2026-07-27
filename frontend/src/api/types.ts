@@ -316,6 +316,9 @@ export interface ParsedWorkout {
   name: string;
   notes: string | null;
   rest_day: boolean;
+  weekdays: number[];
+  floating: boolean;
+  optional: boolean;
   exercises: ParsedWorkoutExercise[];
 }
 
@@ -324,6 +327,9 @@ export interface ParseWorkoutResult {
   model: string;
   units: string;
   latency_ms: number;
+  name?: string | null;
+  notes?: string | null;
+  rules?: string[];
   workouts: ParsedWorkout[];
 }
 

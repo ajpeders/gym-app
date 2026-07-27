@@ -378,6 +378,9 @@ def _build_workout_result(
                 "name": r.name,
                 "notes": r.notes,
                 "rest_day": r.rest_day,
+                "weekdays": r.weekdays,
+                "floating": r.floating,
+                "optional": r.optional,
                 "exercises": exercises,
             }
         )
@@ -386,8 +389,52 @@ def _build_workout_result(
         "model": provider.model,
         "units": units,
         "latency_ms": latency_ms,
+        "name": program.name,
+        "notes": program.notes,
+        "rules": program.rules,
         "workouts": workouts,
     }
+
+
+_DAY_NAMES = {
+    "sunday": 0,
+    "monday": 1,
+    "tuesday": 2,
+    "wednesday": 3,
+    "thursday": 4,
+    "friday": 5,
+    "saturday": 6,
+}
+
+
+def _infer_schedule_from_name(name: str) -> tuple[list[int], bool, bool]:
+    lower = name.lower()
+    days = [value for day, value in _DAY_NAMES.items() if day in lower]
+    optional = "optional" in lower
+    floating = optional and not days
+    return sorted(set(days)), floating, optional
+
+
+def _patch_program_schedule(data: dict) -> dict:
+    """Backfill schedule fields from headings if the model omits them."""
+    workouts = data.get("workouts")
+    if not isinstance(workouts, list):
+        return data
+    for workout in workouts:
+        if not isinstance(workout, dict):
+            continue
+        name = str(workout.get("name") or "")
+        inferred_days, inferred_floating, inferred_optional = _infer_schedule_from_name(name)
+        if not workout.get("weekdays") and inferred_days:
+            workout["weekdays"] = inferred_days
+        if inferred_optional:
+            workout["optional"] = True
+            if not inferred_days:
+                workout["floating"] = True
+        else:
+            workout.setdefault("floating", inferred_floating)
+            workout.setdefault("optional", False)
+    return data
 
 
 async def parse_workout(db: Session, user: User, text: str) -> dict:
@@ -401,7 +448,7 @@ async def parse_workout(db: Session, user: User, text: str) -> dict:
         schema=PROGRAM_SCHEMA,
     )
     latency_ms = int((time.monotonic() - t0) * 1000)
-    return _build_workout_result(db, user.id, provider, units, latency_ms, data)
+    return _build_workout_result(db, user.id, provider, units, latency_ms, _patch_program_schedule(data))
 
 
 async def parse_workout_stream(
@@ -440,7 +487,7 @@ async def parse_workout_stream(
         raise AIError("The AI returned no result.")
 
     latency_ms = int((time.monotonic() - t0) * 1000)
-    result = _build_workout_result(db, user.id, provider, units, latency_ms, data)
+    result = _build_workout_result(db, user.id, provider, units, latency_ms, _patch_program_schedule(data))
     yield {"type": "result", **result}
 
 
