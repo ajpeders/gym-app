@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { type ComponentProps, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Animated,
   Easing,
   KeyboardAvoidingView,
+  Modal,
   Platform,
   Pressable,
   ScrollView,
@@ -15,6 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { api } from '@/api/client';
 import { aiParseErrorMessage } from '@/api/errors';
 import type {
+  Exercise,
   ParsedMatch,
   ParsedWorkout,
   ParseWorkoutResult,
@@ -26,8 +28,22 @@ import { Text } from '@/components/ui/Text';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { FormError } from '@/components/ui/Feedback';
+import { ExerciseBrowser } from '@/components/ExerciseBrowser';
 
 type Phase = 'input' | 'parsing' | 'review' | 'saving' | 'done';
+type ResolveMode = 'matched' | 'swapped' | 'custom';
+
+interface ExerciseResolution {
+  exercise_id: string | null;
+  exercise_name: string;
+  match: ParsedMatch;
+  mode: ResolveMode;
+}
+
+interface PickerState {
+  dayIdx: number;
+  exIdx: number;
+}
 
 const PLACEHOLDER = 'Paste your workout plan here.';
 
@@ -90,6 +106,10 @@ export default function WorkoutImportScreen() {
   const [includeDay, setIncludeDay] = useState<Record<number, boolean>>({});
   const [includeExercise, setIncludeExercise] = useState<Record<string, boolean>>({});
   const [expanded, setExpanded] = useState<Record<number, boolean>>({});
+  const [resolutions, setResolutions] = useState<Record<string, ExerciseResolution>>({});
+  const [picker, setPicker] = useState<PickerState | null>(null);
+  const [customPicker, setCustomPicker] = useState<PickerState | null>(null);
+  const [customName, setCustomName] = useState('');
 
   const [saveCurrent, setSaveCurrent] = useState(0);
   const [saveTotal, setSaveTotal] = useState(0);
@@ -120,17 +140,26 @@ export default function WorkoutImportScreen() {
       const days: Record<number, boolean> = {};
       const exs: Record<string, boolean> = {};
       const exp: Record<number, boolean> = {};
+      const resolved: Record<string, ExerciseResolution> = {};
       res.workouts.forEach((r, di) => {
         days[di] = !r.rest_day; // rest days default to excluded from saving
         exp[di] = true;
-        r.exercises.forEach((_, ei) => {
-          exs[exKey(di, ei)] = true;
+        r.exercises.forEach((ex, ei) => {
+          const key = exKey(di, ei);
+          exs[key] = true;
+          resolved[key] = {
+            exercise_id: ex.exercise_id == null ? null : String(ex.exercise_id),
+            exercise_name: ex.exercise_name,
+            match: ex.match,
+            mode: ex.exercise_id == null ? 'custom' : 'matched',
+          };
         });
       });
       setResult(res);
       setIncludeDay(days);
       setIncludeExercise(exs);
       setExpanded(exp);
+      setResolutions(resolved);
       setPhase('review');
     } catch (e) {
       setPhase('input');
@@ -171,19 +200,25 @@ export default function WorkoutImportScreen() {
         for (let ei = 0; ei < r.exercises.length; ei++) {
           if (includeExercise[exKey(di, ei)] === false) continue;
           const ex = r.exercises[ei];
-          // No catalog match → create a custom exercise so nothing is lost.
+          const resolution = resolutions[exKey(di, ei)] ?? {
+            exercise_id: ex.exercise_id == null ? null : String(ex.exercise_id),
+            exercise_name: ex.exercise_name,
+            match: ex.match,
+            mode: ex.exercise_id == null ? 'custom' : 'matched',
+          };
+          // No selected catalog match → create a custom exercise so nothing is lost.
           let exerciseId: string;
-          if (ex.exercise_id === null) {
-            const key = ex.exercise_name.trim().toLowerCase();
+          if (resolution.exercise_id === null) {
+            const key = resolution.exercise_name.trim().toLowerCase();
             let cachedId = createdCustom.get(key);
             if (!cachedId) {
-              const created = await api.createExercise({ name: ex.exercise_name });
+              const created = await api.createExercise({ name: resolution.exercise_name });
               cachedId = created.id;
               createdCustom.set(key, cachedId);
             }
             exerciseId = cachedId;
           } else {
-            exerciseId = String(ex.exercise_id);
+            exerciseId = resolution.exercise_id;
           }
           exercises.push({
             exercise_id: exerciseId,
@@ -228,6 +263,48 @@ export default function WorkoutImportScreen() {
   function toggleExercise(di: number, ei: number) {
     setIncludeExercise((prev) => ({ ...prev, [exKey(di, ei)]: !prev[exKey(di, ei)] }));
   }
+  function removeExercise(di: number, ei: number) {
+    setIncludeExercise((prev) => ({ ...prev, [exKey(di, ei)]: false }));
+  }
+  function selectExercise(exercise: Exercise) {
+    if (!picker) return;
+    const key = exKey(picker.dayIdx, picker.exIdx);
+    setResolutions((prev) => ({
+      ...prev,
+      [key]: {
+        exercise_id: String(exercise.id),
+        exercise_name: exercise.name,
+        match: 'exact',
+        mode: 'swapped',
+      },
+    }));
+    setIncludeExercise((prev) => ({ ...prev, [key]: true }));
+    setPicker(null);
+  }
+  function startCustom(di: number, ei: number) {
+    const key = exKey(di, ei);
+    const fallback = result?.workouts[di]?.exercises[ei]?.exercise_name ?? '';
+    setCustomName(resolutions[key]?.exercise_name ?? fallback);
+    setCustomPicker({ dayIdx: di, exIdx: ei });
+  }
+  function saveCustom() {
+    if (!customPicker) return;
+    const name = customName.trim();
+    if (!name) return;
+    const key = exKey(customPicker.dayIdx, customPicker.exIdx);
+    setResolutions((prev) => ({
+      ...prev,
+      [key]: {
+        exercise_id: null,
+        exercise_name: name,
+        match: 'none',
+        mode: 'custom',
+      },
+    }));
+    setIncludeExercise((prev) => ({ ...prev, [key]: true }));
+    setCustomPicker(null);
+    setCustomName('');
+  }
 
   function reset(clearText = false) {
     setResult(null);
@@ -236,6 +313,10 @@ export default function WorkoutImportScreen() {
     setIncludeDay({});
     setIncludeExercise({});
     setExpanded({});
+    setResolutions({});
+    setPicker(null);
+    setCustomPicker(null);
+    setCustomName('');
     if (clearText) setText('');
   }
 
@@ -281,8 +362,8 @@ export default function WorkoutImportScreen() {
         <Stack.Screen options={{ headerShown: true, title: 'Review import' }} />
         <ScrollView className="flex-1" contentContainerClassName="px-4 pt-3 pb-40">
           <Text variant="muted" className="mb-3">
-            Found {result?.workouts.length ?? 0} days. Toggle anything you don&apos;t want, then
-            save.
+            Found {result?.workouts.length ?? 0} days. Review what the AI matched, then swap,
+            remove, or make a custom exercise before saving.
           </Text>
 
           {result?.rules?.length ? (
@@ -313,13 +394,34 @@ export default function WorkoutImportScreen() {
               included={!!includeDay[di]}
               expanded={!!expanded[di]}
               includeExercise={includeExercise}
+              resolutions={resolutions}
               disabled={saving}
               onToggleDay={() => toggleDay(di)}
               onToggleExpanded={() => toggleExpanded(di)}
               onToggleExercise={(ei) => toggleExercise(di, ei)}
+              onSwapExercise={(ei) => setPicker({ dayIdx: di, exIdx: ei })}
+              onCustomExercise={(ei) => startCustom(di, ei)}
+              onRemoveExercise={(ei) => removeExercise(di, ei)}
             />
           ))}
         </ScrollView>
+
+        <ExercisePickerModal
+          visible={!!picker}
+          onClose={() => setPicker(null)}
+          onSelect={selectExercise}
+        />
+
+        <CustomExerciseModal
+          visible={!!customPicker}
+          value={customName}
+          onChange={setCustomName}
+          onCancel={() => {
+            setCustomPicker(null);
+            setCustomName('');
+          }}
+          onSave={saveCustom}
+        />
 
         <View className="border-t border-iron-800 bg-iron-950 px-4 pb-8 pt-3">
           {saving ? (
@@ -478,10 +580,14 @@ interface DayCardProps {
   included: boolean;
   expanded: boolean;
   includeExercise: Record<string, boolean>;
+  resolutions: Record<string, ExerciseResolution>;
   disabled: boolean;
   onToggleDay: () => void;
   onToggleExpanded: () => void;
   onToggleExercise: (exIdx: number) => void;
+  onSwapExercise: (exIdx: number) => void;
+  onCustomExercise: (exIdx: number) => void;
+  onRemoveExercise: (exIdx: number) => void;
 }
 
 function DayCard({
@@ -491,10 +597,14 @@ function DayCard({
   included,
   expanded,
   includeExercise,
+  resolutions,
   disabled,
   onToggleDay,
   onToggleExpanded,
   onToggleExercise,
+  onSwapExercise,
+  onCustomExercise,
+  onRemoveExercise,
 }: DayCardProps) {
   return (
     <Card className={`mb-2.5 ${included ? 'border-brand/50' : 'opacity-60'}`}>
@@ -553,6 +663,12 @@ function DayCard({
           ) : (
             workout.exercises.map((ex, ei) => {
               const exIncluded = includeExercise[exKey(dayIdx, ei)] !== false;
+              const resolution = resolutions[exKey(dayIdx, ei)] ?? {
+                exercise_id: ex.exercise_id == null ? null : String(ex.exercise_id),
+                exercise_name: ex.exercise_name,
+                match: ex.match,
+                mode: ex.exercise_id == null ? 'custom' : 'matched',
+              };
               const targets = summarizeTargets(
                 ex.target_sets,
                 ex.target_reps,
@@ -580,12 +696,28 @@ function DayCard({
                     />
                   </Pressable>
                   <View className="flex-1">
-                    <View className="flex-row items-center justify-between">
-                      <Text variant="body" numberOfLines={1} className="flex-1 pr-2">
-                        {ex.exercise_name}
-                      </Text>
-                      <MatchBadge match={ex.match} />
+                    <View className="flex-row items-start justify-between gap-2">
+                      <View className="flex-1">
+                        <Text variant="body" numberOfLines={1}>
+                          {ex.exercise_name}
+                        </Text>
+                        <Text variant="caption" numberOfLines={1} className="mt-0.5 text-iron-400">
+                          Using: {resolution.exercise_name}
+                          {resolution.mode === 'custom'
+                            ? ' · custom'
+                            : resolution.mode === 'swapped'
+                              ? ' · swapped'
+                              : ''}
+                        </Text>
+                      </View>
+                      <MatchBadge match={resolution.match} />
                     </View>
+                    {ex.exercise_name.trim().toLowerCase() !==
+                    resolution.exercise_name.trim().toLowerCase() ? (
+                      <Text variant="caption" className="mt-1 text-amber-200">
+                        Changed from AI match to “{resolution.exercise_name}”.
+                      </Text>
+                    ) : null}
                     {targets ? (
                       <Text variant="label" className="mt-1 text-brand">
                         {targets}
@@ -596,6 +728,27 @@ function DayCard({
                         {ex.notes}
                       </Text>
                     ) : null}
+                    <View className="mt-3 flex-row flex-wrap gap-2">
+                      <ActionPill
+                        icon="swap-horizontal"
+                        label="Swap"
+                        disabled={disabled}
+                        onPress={() => onSwapExercise(ei)}
+                      />
+                      <ActionPill
+                        icon="create-outline"
+                        label="Custom"
+                        disabled={disabled}
+                        onPress={() => onCustomExercise(ei)}
+                      />
+                      <ActionPill
+                        icon="trash-outline"
+                        label={exIncluded ? 'Remove' : 'Removed'}
+                        danger
+                        disabled={disabled}
+                        onPress={() => onRemoveExercise(ei)}
+                      />
+                    </View>
                   </View>
                 </View>
               );
@@ -604,5 +757,121 @@ function DayCard({
         </View>
       ) : null}
     </Card>
+  );
+}
+
+function ActionPill({
+  icon,
+  label,
+  disabled,
+  danger = false,
+  onPress,
+}: {
+  icon: ComponentProps<typeof Ionicons>['name'];
+  label: string;
+  disabled?: boolean;
+  danger?: boolean;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      disabled={disabled}
+      onPress={onPress}
+      className={`flex-row items-center rounded-full border px-3 py-1.5 active:opacity-70 ${
+        danger ? 'border-red-500/40 bg-red-500/10' : 'border-iron-700 bg-iron-900'
+      } ${disabled ? 'opacity-50' : ''}`}>
+      <Ionicons name={icon} size={14} color={danger ? '#fca5a5' : '#818cf8'} />
+      <Text
+        variant="caption"
+        className={`ml-1.5 font-bold ${danger ? 'text-red-200' : 'text-iron-100'}`}>
+        {label}
+      </Text>
+    </Pressable>
+  );
+}
+
+function ExercisePickerModal({
+  visible,
+  onClose,
+  onSelect,
+}: {
+  visible: boolean;
+  onClose: () => void;
+  onSelect: (exercise: Exercise) => void;
+}) {
+  return (
+    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet">
+      <View className="flex-1 bg-iron-950 pt-5">
+        <View className="mb-3 flex-row items-center justify-between px-4">
+          <View className="flex-1 pr-3">
+            <Text variant="heading">Swap exercise</Text>
+            <Text variant="muted" className="mt-1">
+              Pick the database exercise that should replace the AI match.
+            </Text>
+          </View>
+          <Pressable
+            accessibilityRole="button"
+            onPress={onClose}
+            className="h-10 w-10 items-center justify-center rounded-full bg-iron-900 active:opacity-70">
+            <Ionicons name="close" size={22} color="#e2e8f0" />
+          </Pressable>
+        </View>
+        <ExerciseBrowser
+          onSelect={onSelect}
+          renderTrailing={() => (
+            <View className="rounded-full bg-brand px-3 py-1">
+              <Text variant="caption" className="font-bold text-iron-950">
+                Use
+              </Text>
+            </View>
+          )}
+        />
+      </View>
+    </Modal>
+  );
+}
+
+function CustomExerciseModal({
+  visible,
+  value,
+  onChange,
+  onCancel,
+  onSave,
+}: {
+  visible: boolean;
+  value: string;
+  onChange: (value: string) => void;
+  onCancel: () => void;
+  onSave: () => void;
+}) {
+  return (
+    <Modal visible={visible} transparent animationType="fade">
+      <View className="flex-1 justify-end bg-black/70 px-4 pb-8">
+        <Card className="rounded-[24px] p-4">
+          <Text variant="heading">Create custom exercise</Text>
+          <Text variant="muted" className="mt-1">
+            Use this when the database does not have the right movement, nickname, or variation.
+          </Text>
+          <TextInput
+            value={value}
+            onChangeText={onChange}
+            autoFocus
+            placeholder="Exercise name"
+            placeholderTextColor="#64748b"
+            selectionColor="#818cf8"
+            className="mt-4 min-h-[52px] rounded-lg border border-iron-700 bg-iron-950 px-4 text-base text-iron-50"
+          />
+          <View className="mt-4 flex-row gap-2">
+            <View className="flex-1">
+              <Button title="Cancel" variant="secondary" onPress={onCancel} />
+            </View>
+            <View className="flex-1">
+              <Button title="Create" disabled={!value.trim()} onPress={onSave} />
+            </View>
+          </View>
+        </Card>
+      </View>
+    </Modal>
   );
 }

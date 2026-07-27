@@ -7,6 +7,7 @@ import { api } from '@/api/client';
 import type { AthleteProfile } from '@/api/types';
 import { Card } from '@/components/ui/Card';
 import { Text } from '@/components/ui/Text';
+import { useSettings } from '@/state/settings';
 
 /**
  * Compact injuries + profile card for the Home screen so limitations are quick
@@ -15,6 +16,7 @@ import { Text } from '@/components/ui/Text';
  */
 export function HomeProfileCard() {
   const router = useRouter();
+  const { settings } = useSettings();
   const [profile, setProfile] = useState<AthleteProfile | null>(null);
   const [newInjury, setNewInjury] = useState('');
   const [busy, setBusy] = useState(false);
@@ -59,6 +61,10 @@ export function HomeProfileCard() {
   }
 
   if (!profile) return null;
+  const weightUnit = settings.units;
+  const heightUnit = settings.units === 'lb' ? 'in' : 'cm';
+  const hasBodyStats =
+    profile.current_weight != null || profile.goal_weight != null || profile.height != null;
 
   return (
     <Card elevated className="mb-4 rounded-[22px] p-5">
@@ -77,6 +83,35 @@ export function HomeProfileCard() {
         </View>
         <Ionicons name="chevron-forward" size={18} color="#475569" />
       </Pressable>
+
+      {hasBodyStats ? (
+        <View className="mb-3 flex-row gap-2">
+          <View className="flex-1 rounded-lg border border-iron-800 bg-iron-950 px-3 py-2.5">
+            <Text variant="caption" className="text-iron-400">
+              Weight
+            </Text>
+            <Text variant="label" className="mt-0.5">
+              {profile.current_weight == null ? '—' : `${profile.current_weight} ${weightUnit}`}
+            </Text>
+          </View>
+          <View className="flex-1 rounded-lg border border-iron-800 bg-iron-950 px-3 py-2.5">
+            <Text variant="caption" className="text-iron-400">
+              Goal
+            </Text>
+            <Text variant="label" className="mt-0.5">
+              {profile.goal_weight == null ? '—' : `${profile.goal_weight} ${weightUnit}`}
+            </Text>
+          </View>
+          <View className="flex-1 rounded-lg border border-iron-800 bg-iron-950 px-3 py-2.5">
+            <Text variant="caption" className="text-iron-400">
+              Height
+            </Text>
+            <Text variant="label" className="mt-0.5">
+              {profile.height == null ? '—' : `${profile.height} ${heightUnit}`}
+            </Text>
+          </View>
+        </View>
+      ) : null}
 
       {profile.injuries.length === 0 ? (
         <Text variant="muted" className="mb-3">

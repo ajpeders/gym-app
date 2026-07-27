@@ -9,6 +9,7 @@ import { Screen } from '@/components/ui/Screen';
 import { Text } from '@/components/ui/Text';
 import { Card } from '@/components/ui/Card';
 import { Loading, ErrorState } from '@/components/ui/Feedback';
+import { useSettings } from '@/state/settings';
 
 type SaveState = 'idle' | 'saving' | 'saved' | 'error';
 
@@ -82,7 +83,66 @@ function ProfileField({
   );
 }
 
+function NumericProfileField({
+  label,
+  value,
+  unit,
+  placeholder,
+  onCommit,
+}: {
+  label: string;
+  value: number | null;
+  unit: string;
+  placeholder: string;
+  onCommit: (next: number | null) => void;
+}) {
+  const [draft, setDraft] = useState(value == null ? '' : String(value));
+
+  useEffect(() => {
+    setDraft(value == null ? '' : String(value));
+  }, [value]);
+
+  function commit() {
+    const trimmed = draft.trim();
+    if (trimmed === '') {
+      if (value !== null) onCommit(null);
+      return;
+    }
+    const parsed = Number(trimmed);
+    if (!Number.isFinite(parsed)) {
+      setDraft(value == null ? '' : String(value));
+      return;
+    }
+    if (parsed === value) return;
+    onCommit(parsed);
+  }
+
+  return (
+    <View className="flex-1 rounded-lg border border-iron-800 bg-iron-900 px-3 py-3">
+      <Text variant="caption" className="font-bold uppercase tracking-wider text-iron-400">
+        {label}
+      </Text>
+      <View className="mt-2 flex-row items-baseline">
+        <TextInput
+          value={draft}
+          onChangeText={setDraft}
+          onEndEditing={commit}
+          onBlur={commit}
+          keyboardType="decimal-pad"
+          placeholder={placeholder}
+          placeholderTextColor="#64748b"
+          className="min-h-[40px] flex-1 p-0 text-2xl font-black text-iron-50"
+        />
+        <Text variant="caption" className="ml-1 text-iron-400">
+          {unit}
+        </Text>
+      </View>
+    </View>
+  );
+}
+
 export default function ProfileScreen() {
+  const { settings } = useSettings();
   const [profile, setProfile] = useState<AthleteProfile | null>(null);
   const [stats, setStats] = useState<StatsSummary | null>(null);
   const [loading, setLoading] = useState(true);
@@ -178,6 +238,8 @@ export default function ProfileScreen() {
         : saveState === 'error'
           ? 'Save failed'
           : '';
+  const weightUnit = settings.units;
+  const heightUnit = settings.units === 'lb' ? 'in' : 'cm';
 
   return (
     <Screen>
@@ -195,6 +257,39 @@ export default function ProfileScreen() {
       <Text variant="muted" className="mb-5">
         Your coach reads and writes this. Edit it by hand, or just talk to your coach.
       </Text>
+
+      <Text variant="label" className="mb-2">
+        BODY & GOAL
+      </Text>
+      <Card className="mb-5">
+        <View className="flex-row gap-2">
+          <NumericProfileField
+            label="Weight"
+            value={profile.current_weight}
+            unit={weightUnit}
+            placeholder="—"
+            onCommit={(current_weight) => void save({ current_weight })}
+          />
+          <NumericProfileField
+            label="Goal"
+            value={profile.goal_weight}
+            unit={weightUnit}
+            placeholder="—"
+            onCommit={(goal_weight) => void save({ goal_weight })}
+          />
+          <NumericProfileField
+            label="Height"
+            value={profile.height}
+            unit={heightUnit}
+            placeholder="—"
+            onCommit={(height) => void save({ height })}
+          />
+        </View>
+        <Text variant="caption" className="mt-3 text-iron-400">
+          These are coach context fields. Weigh-ins and progress photos can still track changes over
+          time.
+        </Text>
+      </Card>
 
       {/* Today / session note */}
       <Text variant="label" className="mb-2">

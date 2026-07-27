@@ -392,6 +392,9 @@ export interface WorkoutEditProposal {
 
 export interface AthleteProfile {
   experience_level: string | null;
+  height: number | null;
+  current_weight: number | null;
+  goal_weight: number | null;
   goals: string | null;
   injuries: string[];
   equipment: string | null;

@@ -15,6 +15,9 @@ router = APIRouter(prefix="/profile", tags=["profile"])
 
 class ProfileOut(BaseModel):
     experience_level: str | None = None
+    height: float | None = None
+    current_weight: float | None = None
+    goal_weight: float | None = None
     goals: str | None = None
     injuries: list[str] = []
     equipment: str | None = None
@@ -25,6 +28,9 @@ class ProfileOut(BaseModel):
 
 class ProfileUpdate(BaseModel):
     experience_level: str | None = None
+    height: float | None = None
+    current_weight: float | None = None
+    goal_weight: float | None = None
     goals: str | None = None
     injuries: list[str] | None = None
     equipment: str | None = None

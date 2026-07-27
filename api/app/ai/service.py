@@ -565,6 +565,9 @@ async def edit_workout_stream(
 
 _PROFILE_FIELDS = (
     "experience_level",
+    "height",
+    "current_weight",
+    "goal_weight",
     "goals",
     "injuries",
     "equipment",
@@ -593,6 +596,12 @@ def profile_summary(p: AthleteProfile) -> str:
     parts = []
     if p.experience_level:
         parts.append(f"Level: {p.experience_level}.")
+    if p.height:
+        parts.append(f"Height: {p.height}.")
+    if p.current_weight:
+        parts.append(f"Current weight: {p.current_weight}.")
+    if p.goal_weight:
+        parts.append(f"Goal weight: {p.goal_weight}.")
     if p.goals:
         parts.append(f"Goals: {p.goals}.")
     if p.injuries:

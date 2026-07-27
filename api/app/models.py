@@ -74,6 +74,9 @@ class AthleteProfile(Base):
         ForeignKey("user.id", ondelete="CASCADE"), unique=True, nullable=False
     )
     experience_level: Mapped[Optional[str]] = mapped_column(String, nullable=True)  # beginner|intermediate|advanced
+    height: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    current_weight: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    goal_weight: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
     goals: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     injuries: Mapped[list[str]] = mapped_column(JSON, default=list)
     equipment: Mapped[Optional[str]] = mapped_column(Text, nullable=True)

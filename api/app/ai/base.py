@@ -188,6 +188,9 @@ EDIT_WORKOUT_SCHEMA: dict = {
 
 class CheckinResult(BaseModel):
     experience_level: Optional[str] = None
+    height: Optional[float] = None
+    current_weight: Optional[float] = None
+    goal_weight: Optional[float] = None
     goals: Optional[str] = None
     injuries: list[str] = Field(default_factory=list)
     equipment: Optional[str] = None
@@ -207,6 +210,9 @@ CHECKIN_SCHEMA: dict = {
                 {"type": "null"},
             ]
         },
+        "height": {"anyOf": [{"type": "number"}, {"type": "null"}]},
+        "current_weight": {"anyOf": [{"type": "number"}, {"type": "null"}]},
+        "goal_weight": {"anyOf": [{"type": "number"}, {"type": "null"}]},
         "goals": {"anyOf": [{"type": "string"}, {"type": "null"}]},
         "injuries": {"type": "array", "items": {"type": "string"}},
         "equipment": {"anyOf": [{"type": "string"}, {"type": "null"}]},
@@ -217,6 +223,9 @@ CHECKIN_SCHEMA: dict = {
     },
     "required": [
         "experience_level",
+        "height",
+        "current_weight",
+        "goal_weight",
         "goals",
         "injuries",
         "equipment",
