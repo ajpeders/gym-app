@@ -4,7 +4,7 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
 import { api } from '@/api/client';
-import type { Session, Workout } from '@/api/types';
+import type { Session, StatsSummary, Workout } from '@/api/types';
 import { useActiveWorkout } from '@/state/active-workout';
 import { Screen, ScreenHeader, SectionHeader } from '@/components/ui/Screen';
 import { Text } from '@/components/ui/Text';
@@ -12,6 +12,41 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Loading, EmptyState } from '@/components/ui/Feedback';
 import { formatDuration, relativeTime } from '@/lib/format';
+
+function formatVolume(value: number): string {
+  const rounded = Math.round(value);
+  return rounded >= 1000 ? `${Math.round(rounded / 100) / 10}k` : String(rounded);
+}
+
+function SummaryTile({
+  icon,
+  label,
+  value,
+  tone = 'brand',
+}: {
+  icon: React.ComponentProps<typeof Ionicons>['name'];
+  label: string;
+  value: string;
+  tone?: 'brand' | 'mint' | 'steel';
+}) {
+  const colors = {
+    brand: { box: 'border-brand/30 bg-brand/10', text: 'text-brand', icon: '#818cf8' },
+    mint: { box: 'border-mint/30 bg-mint/10', text: 'text-mint', icon: '#2dd4bf' },
+    steel: { box: 'border-steel/30 bg-steel/10', text: 'text-steel', icon: '#22d3ee' },
+  }[tone];
+
+  return (
+    <View className={`flex-1 rounded-lg border px-3 py-3 ${colors.box}`}>
+      <Ionicons name={icon} size={17} color={colors.icon} />
+      <Text variant="heading" className={`mt-2 ${colors.text}`} numberOfLines={1}>
+        {value}
+      </Text>
+      <Text variant="caption" className="mt-0.5 text-iron-400" numberOfLines={1}>
+        {label}
+      </Text>
+    </View>
+  );
+}
 
 function StatBadge({
   icon,
@@ -43,18 +78,21 @@ export default function HistoryScreen() {
   const { start, activeId } = useActiveWorkout();
   const [sessions, setSessions] = useState<Session[]>([]);
   const [workouts, setWorkouts] = useState<Workout[]>([]);
+  const [stats, setStats] = useState<StatsSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [busy, setBusy] = useState(false);
 
   const fetchData = useCallback(async () => {
     try {
-      const [w, r] = await Promise.all([
+      const [w, r, summary] = await Promise.all([
         api.sessions({ limit: 50 }),
         api.workouts().catch(() => [] as Workout[]),
+        api.statsSummary().catch(() => null),
       ]);
       setSessions(w.items);
       setWorkouts(r);
+      setStats(summary);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -111,6 +149,55 @@ export default function HistoryScreen() {
           title="History"
           subtitle="Start training now or review what you have completed."
         />
+
+        {stats ? (
+          <View className="mb-5">
+            <View className="mb-2 flex-row gap-2">
+              <SummaryTile
+                icon="calendar-outline"
+                label="Last 7 days"
+                value={String(stats.this_week)}
+              />
+              <SummaryTile
+                icon="flame-outline"
+                label="Streak"
+                value={`${stats.streak ?? 0}d`}
+                tone="mint"
+              />
+              <SummaryTile
+                icon="barbell-outline"
+                label="Total"
+                value={String(stats.total_workouts)}
+                tone="steel"
+              />
+            </View>
+            <Card className="rounded-[20px] p-4">
+              <View className="flex-row items-center justify-between">
+                <View>
+                  <Text variant="caption" className="font-bold uppercase tracking-wider text-iron-400">
+                    Latest weekly volume
+                  </Text>
+                  <Text variant="heading" className="mt-1">
+                    {formatVolume(stats.volume_by_week.at(-1)?.volume ?? 0)}
+                  </Text>
+                </View>
+                {stats.recent_prs[0] ? (
+                  <View className="ml-4 flex-1 items-end">
+                    <Text variant="caption" className="font-bold uppercase tracking-wider text-iron-400">
+                      Top PR
+                    </Text>
+                    <Text variant="subheading" className="mt-1 text-right" numberOfLines={1}>
+                      {stats.recent_prs[0].exercise ?? stats.recent_prs[0].exercise_name ?? 'Exercise'}
+                    </Text>
+                    <Text variant="caption" className="mt-0.5 text-iron-400">
+                      {stats.recent_prs[0].weight} x {stats.recent_prs[0].reps ?? '-'}
+                    </Text>
+                  </View>
+                ) : null}
+              </View>
+            </Card>
+          </View>
+        ) : null}
 
         {activeId ? (
           <Card elevated className="mb-4 rounded-[24px] border-brand bg-brand/10 p-5">

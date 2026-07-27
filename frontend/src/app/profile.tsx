@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Pressable, TextInput, View } from 'react-native';
 import { Stack } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 
 import { api } from '@/api/client';
-import type { AthleteProfile } from '@/api/types';
+import type { AthleteProfile, StatsSummary } from '@/api/types';
 import { Screen } from '@/components/ui/Screen';
 import { Text } from '@/components/ui/Text';
 import { Card } from '@/components/ui/Card';
@@ -12,6 +13,28 @@ import { Loading, ErrorState } from '@/components/ui/Feedback';
 type SaveState = 'idle' | 'saving' | 'saved' | 'error';
 
 const LEVELS = ['beginner', 'intermediate', 'advanced'] as const;
+
+function StatTile({
+  icon,
+  label,
+  value,
+}: {
+  icon: React.ComponentProps<typeof Ionicons>['name'];
+  label: string;
+  value: string;
+}) {
+  return (
+    <View className="flex-1 rounded-lg border border-iron-800 bg-iron-900 px-3 py-3">
+      <Ionicons name={icon} size={17} color="#818cf8" />
+      <Text variant="heading" className="mt-2" numberOfLines={1}>
+        {value}
+      </Text>
+      <Text variant="caption" className="mt-0.5 text-iron-400" numberOfLines={1}>
+        {label}
+      </Text>
+    </View>
+  );
+}
 
 /** Multiline text field that commits to the server on blur / end-editing. */
 function ProfileField({
@@ -61,6 +84,7 @@ function ProfileField({
 
 export default function ProfileScreen() {
   const [profile, setProfile] = useState<AthleteProfile | null>(null);
+  const [stats, setStats] = useState<StatsSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [saveState, setSaveState] = useState<SaveState>('idle');
@@ -72,7 +96,12 @@ export default function ProfileScreen() {
     setLoading(true);
     setError(null);
     try {
-      setProfile(await api.getProfile());
+      const [nextProfile, nextStats] = await Promise.all([
+        api.getProfile(),
+        api.statsSummary().catch(() => null),
+      ]);
+      setProfile(nextProfile);
+      setStats(nextStats);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load profile');
     } finally {
@@ -198,6 +227,44 @@ export default function ProfileScreen() {
           </Text>
         )}
       </Card>
+
+      {/* Training stats */}
+      {stats ? (
+        <>
+          <Text variant="label" className="mb-2">
+            TRAINING STATS
+          </Text>
+          <Card className="mb-5">
+            <View className="flex-row gap-2">
+              <StatTile
+                icon="barbell-outline"
+                label="Sessions"
+                value={String(stats.total_workouts)}
+              />
+              <StatTile
+                icon="flame-outline"
+                label="Streak"
+                value={`${stats.streak ?? 0}d`}
+              />
+              <StatTile
+                icon="calendar-outline"
+                label="7 days"
+                value={String(stats.this_week)}
+              />
+            </View>
+            {stats.volume_by_week.length > 0 ? (
+              <View className="mt-3 rounded-lg border border-iron-800 bg-iron-950 px-3 py-3">
+                <Text variant="caption" className="font-bold uppercase tracking-wider text-iron-400">
+                  Latest weekly volume
+                </Text>
+                <Text variant="heading" className="mt-1">
+                  {Math.round(stats.volume_by_week.at(-1)?.volume ?? 0).toLocaleString()}
+                </Text>
+              </View>
+            ) : null}
+          </Card>
+        </>
+      ) : null}
 
       {/* Experience level */}
       <Text variant="label" className="mb-2">

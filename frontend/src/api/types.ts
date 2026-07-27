@@ -422,10 +422,12 @@ export interface StatsSummary {
   this_week: number;
   streak?: number;
   recent_prs: {
-    exercise_id: string;
+    exercise?: string;
+    exercise_id?: string;
     exercise_name?: string;
     weight: number;
-    reps: number;
+    reps: number | null;
+    date?: string | null;
     achieved_at?: string;
   }[];
   volume_by_week: { week: string; volume: number }[];
