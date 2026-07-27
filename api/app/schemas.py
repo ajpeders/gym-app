@@ -19,14 +19,17 @@ class UserOut(BaseModel):
     created_at: datetime
 
 
+# NOTE: `email` is a plain string (not EmailStr) and the password minimum is 1,
+# so simple test credentials like "alex" / "1234" work on this LAN-only personal
+# instance. Tighten these if the app is ever exposed beyond a trusted network.
 class RegisterIn(BaseModel):
-    email: EmailStr
-    password: str = Field(min_length=6)
+    email: str = Field(min_length=1)
+    password: str = Field(min_length=1)
     display_name: str = ""
 
 
 class LoginIn(BaseModel):
-    email: EmailStr
+    email: str = Field(min_length=1)
     password: str
 
 

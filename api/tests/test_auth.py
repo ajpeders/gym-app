@@ -49,3 +49,36 @@ def test_login_wrong_password(client):
 
 def test_me_requires_auth(client):
     assert client.get("/api/auth/me").status_code == 401
+
+
+def test_simple_username_and_short_password(client):
+    """Plain usernames and short passwords are allowed (LAN-only test instance)."""
+    reg = client.post("/api/auth/register", json={"email": "alex", "password": "1234"})
+    assert reg.status_code == 201, reg.text
+    login = client.post("/api/auth/login", json={"email": "alex", "password": "1234"})
+    assert login.status_code == 200, login.text
+
+
+def test_delete_me_removes_account_and_owned_data(client):
+    reg = client.post(
+        "/api/auth/register", json={"email": "gone@example.com", "password": "abcdef"}
+    )
+    headers = {"Authorization": f"Bearer {reg.json()['token']}"}
+    # Owned data that must be swept.
+    split = client.post("/api/splits", headers=headers, json={"name": "S"}).json()
+    client.post(
+        "/api/workouts",
+        headers=headers,
+        json={"name": "W", "split_id": split["id"], "weekdays": [1], "exercises": []},
+    )
+
+    assert client.delete("/api/auth/me", headers=headers).status_code == 204
+    # Token no longer resolves to a user.
+    assert client.get("/api/auth/me", headers=headers).status_code == 401
+    # Credentials are gone.
+    assert (
+        client.post(
+            "/api/auth/login", json={"email": "gone@example.com", "password": "abcdef"}
+        ).status_code
+        == 401
+    )

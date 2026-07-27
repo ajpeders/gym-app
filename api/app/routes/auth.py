@@ -6,7 +6,16 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from ..db import get_db
-from ..models import Settings, User
+from ..models import (
+    AthleteProfile,
+    CoachMessage,
+    Exercise,
+    ProgressPhoto,
+    Settings,
+    Split,
+    User,
+    Workout,
+)
 from ..schemas import LoginIn, RegisterIn, TokenOut, UserOut
 from ..security import create_token, get_current_user, hash_password, verify_password
 
@@ -56,3 +65,32 @@ def login(payload: LoginIn, db: Session = Depends(get_db)) -> TokenOut:
 @router.get("/me", response_model=UserOut)
 def me(current: User = Depends(get_current_user)) -> UserOut:
     return UserOut.model_validate(current)
+
+
+@router.delete("/me", status_code=status.HTTP_204_NO_CONTENT)
+def delete_me(
+    current: User = Depends(get_current_user), db: Session = Depends(get_db)
+):
+    """Permanently delete the current account and everything it owns.
+
+    Settings, sessions (+ their exercises/sets), and body metrics are removed by
+    the User relationship cascade on `db.delete(current)`. The rest is owned only
+    by `owner_id`/`user_id` and is swept explicitly here, so no rows are left
+    orphaned regardless of SQLite foreign-key enforcement. Custom exercises
+    (owner_id set) go; the shared catalog (owner_id NULL) is untouched.
+    """
+    uid = current.id
+    for row in db.scalars(select(Workout).where(Workout.owner_id == uid)):
+        db.delete(row)  # cascades its WorkoutExercise rows
+    for row in db.scalars(select(Split).where(Split.owner_id == uid)):
+        db.delete(row)
+    for row in db.scalars(select(ProgressPhoto).where(ProgressPhoto.owner_id == uid)):
+        db.delete(row)
+    for row in db.scalars(select(CoachMessage).where(CoachMessage.user_id == uid)):
+        db.delete(row)
+    for row in db.scalars(select(AthleteProfile).where(AthleteProfile.user_id == uid)):
+        db.delete(row)
+    for row in db.scalars(select(Exercise).where(Exercise.owner_id == uid)):
+        db.delete(row)
+    db.delete(current)
+    db.commit()
