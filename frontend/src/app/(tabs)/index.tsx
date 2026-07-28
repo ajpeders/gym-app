@@ -52,8 +52,21 @@ function PlanExerciseLine({
   const reps = repRange
     ? `${repRange} rep${repRange === '1' ? '' : 's'}`
     : 'Reps not set';
-  const weight = ex.target_weight != null ? `${ex.target_weight}${units}` : null;
-  const detail = [sets, reps, weight].filter(Boolean).join(' · ');
+  const weight =
+    ex.target_weight != null
+      ? `${ex.target_weight}${
+          ex.target_weight_max != null ? `–${ex.target_weight_max}` : ''
+        }${units}`
+      : null;
+  const duration =
+    ex.target_duration_seconds != null
+      ? `${ex.target_duration_seconds}${
+          ex.target_duration_seconds_max != null
+            ? `–${ex.target_duration_seconds_max}`
+            : ''
+        } sec`
+      : null;
+  const detail = [sets, repRange ? reps : null, weight, duration].filter(Boolean).join(' · ');
 
   return (
     <Pressable
@@ -272,6 +285,9 @@ export default function HomeScreen() {
             target_reps: e.target_reps,
             target_reps_max: e.target_reps_max ?? null,
             target_weight: e.target_weight,
+            target_weight_max: e.target_weight_max ?? null,
+            target_duration_seconds: e.target_duration_seconds ?? null,
+            target_duration_seconds_max: e.target_duration_seconds_max ?? null,
             notes: e.notes ?? null,
           })),
       });
@@ -281,7 +297,7 @@ export default function HomeScreen() {
         const exerciseId =
           ex.exercise_id != null
             ? String(ex.exercise_id)
-            : (await api.createExercise({ name: ex.exercise_name })).id;
+            : (await api.createExercise({ name: ex.matched_name ?? ex.exercise_name })).id;
         const previous = findPreviousExercise(workout, exerciseId, ex.exercise_name);
         exercises.push({
           exercise_id: exerciseId,
@@ -290,6 +306,9 @@ export default function HomeScreen() {
           target_reps: ex.target_reps,
           target_reps_max: ex.target_reps_max,
           target_weight: ex.target_weight,
+          target_weight_max: ex.target_weight_max,
+          target_duration_seconds: ex.target_duration_seconds,
+          target_duration_seconds_max: ex.target_duration_seconds_max,
           rest_seconds: previous?.rest_seconds ?? null,
           notes: ex.notes ?? previous?.notes ?? null,
         });

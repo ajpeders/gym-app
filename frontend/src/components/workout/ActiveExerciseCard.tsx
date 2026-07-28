@@ -39,7 +39,7 @@ export function ActiveExerciseCard({
   const sets = sessionExercise.sets ?? [];
   // How this movement is logged: load x reps, reps only, or a timed hold.
   const kind = sessionExercise.exercise?.tracking_type ?? 'weight_reps';
-  const isTimed = kind === 'time';
+  const isTimed = kind === 'time' || sessionExercise.target_duration_seconds != null;
   const isBodyweight = kind === 'bodyweight';
   const last = sets[sets.length - 1];
   const [reps, setReps] = useState('');
@@ -64,7 +64,20 @@ export function ActiveExerciseCard({
         : targetReps
           ? `${targetReps} reps`
           : null,
-    sessionExercise.target_weight != null ? `@ ${sessionExercise.target_weight}${units}` : null,
+    sessionExercise.target_weight != null
+      ? `@ ${sessionExercise.target_weight}${
+          sessionExercise.target_weight_max != null
+            ? `–${sessionExercise.target_weight_max}`
+            : ''
+        }${units}`
+      : null,
+    sessionExercise.target_duration_seconds != null
+      ? `${sessionExercise.target_duration_seconds}${
+          sessionExercise.target_duration_seconds_max != null
+            ? `–${sessionExercise.target_duration_seconds_max}`
+            : ''
+        } sec`
+      : null,
   ]
     .filter(Boolean)
     .join(' ');

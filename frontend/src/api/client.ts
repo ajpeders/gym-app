@@ -182,7 +182,9 @@ async function parseWorkoutStream(
   if (token) headers['Authorization'] = `Bearer ${token}`;
 
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 120_000);
+  // Local Ollama can spend a while evaluating a full program before it emits
+  // its first token. Keep the client aligned with the API's five-minute limit.
+  const timer = setTimeout(() => controller.abort(), 300_000);
 
   try {
     let res: Awaited<ReturnType<typeof expoFetch>>;
@@ -195,7 +197,7 @@ async function parseWorkoutStream(
       });
     } catch (err) {
       if ((err as Error).name === 'AbortError') {
-        throw new ApiError(408, 'The request took too long — try again.');
+        throw new ApiError(408, 'The import took longer than five minutes — try again.');
       }
       throw new ApiError(0, `Network error: ${(err as Error).message}`);
     }

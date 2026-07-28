@@ -102,6 +102,9 @@ class WorkoutExerciseIn(BaseModel):
     target_reps: Optional[int] = None
     target_reps_max: Optional[int] = None
     target_weight: Optional[float] = None
+    target_weight_max: Optional[float] = None
+    target_duration_seconds: Optional[int] = None
+    target_duration_seconds_max: Optional[int] = None
     rest_seconds: Optional[int] = None
     notes: Optional[str] = None
 
@@ -116,6 +119,9 @@ class WorkoutExerciseOut(BaseModel):
     target_reps: Optional[int] = None
     target_reps_max: Optional[int] = None
     target_weight: Optional[float] = None
+    target_weight_max: Optional[float] = None
+    target_duration_seconds: Optional[int] = None
+    target_duration_seconds_max: Optional[int] = None
     rest_seconds: Optional[int] = None
     notes: Optional[str] = None
     exercise: Optional[ExerciseOut] = None
@@ -271,6 +277,9 @@ class SessionExerciseOut(BaseModel):
     target_reps: Optional[int] = None
     target_reps_max: Optional[int] = None
     target_weight: Optional[float] = None
+    target_weight_max: Optional[float] = None
+    target_duration_seconds: Optional[int] = None
+    target_duration_seconds_max: Optional[int] = None
     exercise: Optional[ExerciseOut] = None
     sets: list[SetOut] = []
 

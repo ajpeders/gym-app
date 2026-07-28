@@ -11,10 +11,11 @@ interface WeekdayPickerProps {
   /** Selected weekdays, 0=Sun..6=Sat. */
   value: number[];
   onChange: (days: number[]) => void;
+  disabled?: boolean;
 }
 
 /** A controlled Sun→Sat row of 7 toggle chips. */
-export function WeekdayPicker({ value, onChange }: WeekdayPickerProps) {
+export function WeekdayPicker({ value, onChange, disabled = false }: WeekdayPickerProps) {
   function toggle(day: number) {
     const next = value.includes(day)
       ? value.filter((d) => d !== day)
@@ -31,11 +32,12 @@ export function WeekdayPicker({ value, onChange }: WeekdayPickerProps) {
           <Pressable
             key={day}
             onPress={() => toggle(day)}
+            disabled={disabled}
             accessibilityRole="button"
             accessibilityState={{ selected: active }}
             className={`h-11 flex-1 items-center justify-center rounded-full border active:opacity-75 ${
               active ? 'border-brand bg-brand' : 'border-iron-700 bg-iron-900/90'
-            }`}>
+            } ${disabled ? 'opacity-50' : ''}`}>
             <Text
               className={`text-sm font-bold ${
                 active ? 'text-iron-950' : 'text-iron-100'

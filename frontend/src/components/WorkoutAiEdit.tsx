@@ -53,6 +53,9 @@ function proposalToWorking(p: WorkoutEditProposal): WorkoutAiWorking {
       target_reps: e.target_reps,
       target_reps_max: e.target_reps_max,
       target_weight: e.target_weight,
+      target_weight_max: e.target_weight_max,
+      target_duration_seconds: e.target_duration_seconds,
+      target_duration_seconds_max: e.target_duration_seconds_max,
       notes: e.notes,
     })),
   };
@@ -299,7 +302,20 @@ function ProposalCard({ proposal, units }: { proposal: WorkoutEditProposal; unit
         const reps = formatRepRange(e.target_reps, e.target_reps_max);
         const sets = e.target_sets != null ? String(e.target_sets) : null;
         const scheme = sets && reps ? `${sets}×${reps}` : sets ? `${sets} sets` : reps ? `${reps} reps` : null;
-        const weight = e.target_weight != null ? `${e.target_weight}${units}` : null;
+        const weight =
+          e.target_weight != null
+            ? `${e.target_weight}${
+                e.target_weight_max != null ? `–${e.target_weight_max}` : ''
+              }${units}`
+            : null;
+        const duration =
+          e.target_duration_seconds != null
+            ? `${e.target_duration_seconds}${
+                e.target_duration_seconds_max != null
+                  ? `–${e.target_duration_seconds_max}`
+                  : ''
+              } sec`
+            : null;
         const missing = e.exercise_id == null;
         return (
           <View key={i} className="flex-row items-center py-1">
@@ -314,7 +330,7 @@ function ProposalCard({ proposal, units }: { proposal: WorkoutEditProposal; unit
               {missing ? '  (not in catalog)' : ''}
             </Text>
             <Text variant="caption" className="text-iron-400">
-              {[scheme, weight].filter(Boolean).join(' · ')}
+              {[scheme, weight, duration].filter(Boolean).join(' · ')}
             </Text>
           </View>
         );

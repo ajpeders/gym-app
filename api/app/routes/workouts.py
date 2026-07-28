@@ -45,6 +45,9 @@ def _build_workout_exercises(
                 target_reps=item.target_reps,
                 target_reps_max=item.target_reps_max,
                 target_weight=item.target_weight,
+                target_weight_max=item.target_weight_max,
+                target_duration_seconds=item.target_duration_seconds,
+                target_duration_seconds_max=item.target_duration_seconds_max,
                 rest_seconds=item.rest_seconds,
                 notes=item.notes,
             )

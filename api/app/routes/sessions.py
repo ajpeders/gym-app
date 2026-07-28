@@ -131,6 +131,9 @@ def start_session(
                     target_reps=we.target_reps,
                     target_reps_max=we.target_reps_max,
                     target_weight=we.target_weight,
+                    target_weight_max=we.target_weight_max,
+                    target_duration_seconds=we.target_duration_seconds,
+                    target_duration_seconds_max=we.target_duration_seconds_max,
                 )
             )
     db.add(session)

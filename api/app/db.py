@@ -37,6 +37,12 @@ _ADDED_COLUMNS: list[tuple[str, str, str]] = [
     ("athlete_profile", "height", "FLOAT"),
     ("athlete_profile", "current_weight", "FLOAT"),
     ("athlete_profile", "goal_weight", "FLOAT"),
+    ("workout_exercise", "target_weight_max", "FLOAT"),
+    ("workout_exercise", "target_duration_seconds", "INTEGER"),
+    ("workout_exercise", "target_duration_seconds_max", "INTEGER"),
+    ("session_exercise", "target_weight_max", "FLOAT"),
+    ("session_exercise", "target_duration_seconds", "INTEGER"),
+    ("session_exercise", "target_duration_seconds_max", "INTEGER"),
 ]
 
 

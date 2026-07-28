@@ -84,6 +84,9 @@ class ParsedWorkoutExercise(BaseModel):
     target_reps: Optional[int] = None
     target_reps_max: Optional[int] = None
     target_weight: Optional[float] = None
+    target_weight_max: Optional[float] = None
+    target_duration_seconds: Optional[int] = None
+    target_duration_seconds_max: Optional[int] = None
     notes: Optional[str] = None
 
 
@@ -115,6 +118,9 @@ _WORKOUT_EXERCISE_ITEM: dict = {
         "target_reps": {"anyOf": [{"type": "integer"}, {"type": "null"}]},
         "target_reps_max": {"anyOf": [{"type": "integer"}, {"type": "null"}]},
         "target_weight": {"anyOf": [{"type": "number"}, {"type": "null"}]},
+        "target_weight_max": {"anyOf": [{"type": "number"}, {"type": "null"}]},
+        "target_duration_seconds": {"anyOf": [{"type": "integer"}, {"type": "null"}]},
+        "target_duration_seconds_max": {"anyOf": [{"type": "integer"}, {"type": "null"}]},
         "notes": {"anyOf": [{"type": "string"}, {"type": "null"}]},
     },
     "required": [
@@ -123,6 +129,9 @@ _WORKOUT_EXERCISE_ITEM: dict = {
         "target_reps",
         "target_reps_max",
         "target_weight",
+        "target_weight_max",
+        "target_duration_seconds",
+        "target_duration_seconds_max",
         "notes",
     ],
 }

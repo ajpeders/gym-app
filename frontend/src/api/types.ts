@@ -60,6 +60,9 @@ export interface WorkoutExercise {
   target_reps: number | null;
   target_reps_max?: number | null;
   target_weight: number | null;
+  target_weight_max?: number | null;
+  target_duration_seconds?: number | null;
+  target_duration_seconds_max?: number | null;
   rest_seconds: number | null;
   notes?: string | null;
 }
@@ -114,6 +117,9 @@ export interface WorkoutExerciseInput {
   target_reps?: number | null;
   target_reps_max?: number | null;
   target_weight?: number | null;
+  target_weight_max?: number | null;
+  target_duration_seconds?: number | null;
+  target_duration_seconds_max?: number | null;
   rest_seconds?: number | null;
   notes?: string | null;
 }
@@ -160,6 +166,9 @@ export interface SessionExercise {
   target_reps?: number | null;
   target_reps_max?: number | null;
   target_weight?: number | null;
+  target_weight_max?: number | null;
+  target_duration_seconds?: number | null;
+  target_duration_seconds_max?: number | null;
   sets: SessionSet[];
 }
 
@@ -286,6 +295,7 @@ export interface ParsedSet {
 export interface ParsedItem {
   exercise_name: string;
   exercise_id: number | null;
+  matched_name?: string | null;
   match: ParsedMatch;
   sets: ParsedSet[];
   notes: string | null;
@@ -304,11 +314,15 @@ export interface ParseResult {
 export interface ParsedWorkoutExercise {
   exercise_name: string;
   exercise_id: number | null;
+  matched_name: string | null;
   match: ParsedMatch;
   target_sets: number | null;
   target_reps: number | null;
   target_reps_max: number | null;
   target_weight: number | null;
+  target_weight_max: number | null;
+  target_duration_seconds: number | null;
+  target_duration_seconds_max: number | null;
   notes: string | null;
 }
 
@@ -374,6 +388,9 @@ export interface WorkoutEditWorkingExercise {
   target_reps: number | null;
   target_reps_max: number | null;
   target_weight: number | null;
+  target_weight_max: number | null;
+  target_duration_seconds: number | null;
+  target_duration_seconds_max: number | null;
   notes?: string | null;
 }
 

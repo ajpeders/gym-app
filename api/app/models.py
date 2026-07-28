@@ -197,6 +197,9 @@ class WorkoutExercise(Base):
     target_reps: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)  # low end of a range
     target_reps_max: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)  # high end; null = fixed reps
     target_weight: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    target_weight_max: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    target_duration_seconds: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    target_duration_seconds_max: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     rest_seconds: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
 
@@ -244,6 +247,9 @@ class SessionExercise(Base):
     target_reps: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     target_reps_max: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     target_weight: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    target_weight_max: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    target_duration_seconds: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    target_duration_seconds_max: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
 
     session: Mapped["Session"] = relationship(back_populates="exercises")
     exercise: Mapped["Exercise"] = relationship()

@@ -95,6 +95,10 @@ def test_start_from_workout_prefills(client, auth):
                     "order": 0,
                     "target_sets": 3,
                     "target_reps": 5,
+                    "target_weight": 100,
+                    "target_weight_max": 110,
+                    "target_duration_seconds": 20,
+                    "target_duration_seconds_max": 60,
                     "rest_seconds": 180,
                 }
             ],
@@ -112,7 +116,12 @@ def test_start_from_workout_prefills(client, auth):
     assert data["source_workout_id"] == wid
     assert data["name"] == "Leg Day"
     assert len(data["exercises"]) == 1
-    assert data["exercises"][0]["exercise_id"] == ex_id
+    exercise = data["exercises"][0]
+    assert exercise["exercise_id"] == ex_id
+    assert exercise["target_weight"] == 100
+    assert exercise["target_weight_max"] == 110
+    assert exercise["target_duration_seconds"] == 20
+    assert exercise["target_duration_seconds_max"] == 60
 
 
 def test_session_isolation_between_users(client, auth):

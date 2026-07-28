@@ -220,27 +220,34 @@ def _resolve(db: Session, user: User) -> tuple[Provider, str]:
     )
 
 
-def _load_catalog(db: Session, user_id: int) -> list[tuple[int, frozenset[str]]]:
+CatalogEntry = tuple[int, str, frozenset[str]]
+
+
+def _load_catalog(db: Session, user_id: int) -> list[CatalogEntry]:
     """Load the exercise catalog (global + the user's custom) once, normalized."""
     rows = db.execute(
         select(Exercise.id, Exercise.name).where(
             (Exercise.owner_id.is_(None)) | (Exercise.owner_id == user_id)
         )
     ).all()
-    return [(ex_id, frozenset(_norm(ex_name))) for ex_id, ex_name in rows]
+    return [(ex_id, ex_name, frozenset(_norm(ex_name))) for ex_id, ex_name in rows]
 
 
-def _match(name: str, catalog: list[tuple[int, frozenset[str]]]) -> tuple[int | None, str]:
+def _match(
+    name: str, catalog: list[CatalogEntry]
+) -> tuple[int | None, str, str | None]:
     target = frozenset(_norm_query(name))
     if not target:
-        return None, "none"
+        return None, "none", None
     best_key: tuple = ()
     best_id: int | None = None
+    best_name: str | None = None
     fb_key: tuple = ()
     fb_id: int | None = None
-    for ex_id, toks in catalog:
+    fb_name: str | None = None
+    for ex_id, ex_name, toks in catalog:
         if toks == target:
-            return ex_id, "exact"
+            return ex_id, "exact", ex_name
         if not toks:
             continue
         inter = len(target & toks)
@@ -251,7 +258,7 @@ def _match(name: str, catalog: list[tuple[int, frozenset[str]]]) -> tuple[int | 
             # deterministic ranking: most overlap, closest size, shortest, lowest id
             key = (inter, -abs(len(toks) - len(target)), -len(toks), -ex_id)
             if best_id is None or key > best_key:
-                best_key, best_id = key, ex_id
+                best_key, best_id, best_name = key, ex_id, ex_name
         else:
             # Conservative fuzzy fallback: strong two-sided overlap even when
             # neither name fully contains the other (e.g. an extra qualifier on
@@ -261,15 +268,16 @@ def _match(name: str, catalog: list[tuple[int, frozenset[str]]]) -> tuple[int | 
             if inter >= 2 and inter >= shorter - 1:
                 key = (inter, -abs(len(toks) - len(target)), -len(toks), -ex_id)
                 if fb_id is None or key > fb_key:
-                    fb_key, fb_id = key, ex_id
+                    fb_key, fb_id, fb_name = key, ex_id, ex_name
     if best_id is not None:
-        return best_id, "fuzzy"
-    return (fb_id, "fuzzy") if fb_id is not None else (None, "none")
+        return best_id, "fuzzy", best_name
+    return (fb_id, "fuzzy", fb_name) if fb_id is not None else (None, "none", None)
 
 
 def match_exercise(db: Session, user_id: int, name: str) -> tuple[int | None, str]:
     """Match a single parsed exercise name to the catalog (loads the catalog)."""
-    return _match(name, _load_catalog(db, user_id))
+    ex_id, match, _ = _match(name, _load_catalog(db, user_id))
+    return ex_id, match
 
 
 async def parse_sets(db: Session, user: User, text: str, workout_id: int | None = None) -> dict:
@@ -302,11 +310,12 @@ async def parse_sets(db: Session, user: User, text: str, workout_id: int | None 
     catalog = _load_catalog(db, user.id)
     items = []
     for ex in parsed.exercises:
-        ex_id, match = _match(ex.exercise, catalog)
+        ex_id, match, matched_name = _match(ex.exercise, catalog)
         items.append(
             {
                 "exercise_name": ex.exercise,
                 "exercise_id": ex_id,
+                "matched_name": matched_name,
                 "match": match,
                 "sets": [s.model_dump() for s in ex.sets],
                 "notes": ex.notes,
@@ -340,6 +349,39 @@ def _normalize_rep_range(
     return lo, hi
 
 
+def _normalize_number_range(
+    lo: int | float | None, hi: int | float | None
+) -> tuple[int | float | None, int | float | None]:
+    """Normalize an optional numeric low/high pair without discarding ranges."""
+    if lo is None and hi is not None:
+        lo, hi = hi, None
+    if lo is not None and hi is not None:
+        if hi < lo:
+            lo, hi = hi, lo
+        if hi == lo:
+            hi = None
+    return lo, hi
+
+
+def _primary_exercise(name: str, notes: str | None) -> tuple[str, str | None]:
+    """Use the first slash-separated movement as the loggable catalog exercise.
+
+    Imported plans often use ``A / B`` to mean a substitution. The workout
+    model owns one exercise per slot, so retain B as a note instead of creating
+    an unmatchable combined exercise named ``A / B``.
+    """
+    parts = [part.strip() for part in re.split(r"\s+/\s+", name) if part.strip()]
+    if len(parts) < 2:
+        return name.strip(), notes
+    primary = parts[0]
+    alternative = " / ".join(parts[1:])
+    alternative_note = f"Alternative: {alternative}"
+    existing = (notes or "").strip()
+    if alternative.lower() in existing.lower():
+        return primary, existing or None
+    return primary, f"{alternative_note}\n{existing}".strip()
+
+
 def _build_workout_result(
     db: Session,
     user_id: int,
@@ -359,18 +401,29 @@ def _build_workout_result(
     for r in program.workouts:
         exercises = []
         for e in r.exercises:
-            ex_id, match = _match(e.exercise, catalog)
+            exercise_name, exercise_notes = _primary_exercise(e.exercise, e.notes)
+            ex_id, match, matched_name = _match(exercise_name, catalog)
             reps_lo, reps_hi = _normalize_rep_range(e.target_reps, e.target_reps_max)
+            weight_lo, weight_hi = _normalize_number_range(
+                e.target_weight, e.target_weight_max
+            )
+            duration_lo, duration_hi = _normalize_number_range(
+                e.target_duration_seconds, e.target_duration_seconds_max
+            )
             exercises.append(
                 {
-                    "exercise_name": e.exercise,
+                    "exercise_name": exercise_name,
                     "exercise_id": ex_id,
+                    "matched_name": matched_name,
                     "match": match,
                     "target_sets": e.target_sets,
                     "target_reps": reps_lo,
                     "target_reps_max": reps_hi,
-                    "target_weight": e.target_weight,
-                    "notes": e.notes,
+                    "target_weight": weight_lo,
+                    "target_weight_max": weight_hi,
+                    "target_duration_seconds": duration_lo,
+                    "target_duration_seconds_max": duration_hi,
+                    "notes": exercise_notes,
                 }
             )
         workouts.append(
@@ -533,18 +586,27 @@ async def edit_workout_stream(
     catalog = _load_catalog(db, user.id)
     exercises = []
     for e in edited.exercises:
-        ex_id, match = _match(e.exercise, catalog)
+        exercise_name, exercise_notes = _primary_exercise(e.exercise, e.notes)
+        ex_id, match, matched_name = _match(exercise_name, catalog)
         reps_lo, reps_hi = _normalize_rep_range(e.target_reps, e.target_reps_max)
+        weight_lo, weight_hi = _normalize_number_range(e.target_weight, e.target_weight_max)
+        duration_lo, duration_hi = _normalize_number_range(
+            e.target_duration_seconds, e.target_duration_seconds_max
+        )
         exercises.append(
             {
-                "exercise_name": e.exercise,
+                "exercise_name": exercise_name,
                 "exercise_id": ex_id,
+                "matched_name": matched_name,
                 "match": match,
                 "target_sets": e.target_sets,
                 "target_reps": reps_lo,
                 "target_reps_max": reps_hi,
-                "target_weight": e.target_weight,
-                "notes": e.notes,
+                "target_weight": weight_lo,
+                "target_weight_max": weight_hi,
+                "target_duration_seconds": duration_lo,
+                "target_duration_seconds_max": duration_hi,
+                "notes": exercise_notes,
             }
         )
     latency_ms = int((time.monotonic() - t0) * 1000)

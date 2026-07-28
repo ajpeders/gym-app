@@ -26,7 +26,19 @@ function toDraft(workout: Workout): DraftExercise[] {
             ? `${e.target_reps}-${e.target_reps_max}`
             : String(e.target_reps)
           : '',
-      target_weight: e.target_weight != null ? String(e.target_weight) : '',
+      target_weight:
+        e.target_weight != null
+          ? e.target_weight_max != null && e.target_weight_max !== e.target_weight
+            ? `${e.target_weight}-${e.target_weight_max}`
+            : String(e.target_weight)
+          : '',
+      target_duration:
+        e.target_duration_seconds != null
+          ? e.target_duration_seconds_max != null &&
+            e.target_duration_seconds_max !== e.target_duration_seconds
+            ? `${e.target_duration_seconds}-${e.target_duration_seconds_max}`
+            : String(e.target_duration_seconds)
+          : '',
       rest_seconds: e.rest_seconds != null ? String(e.rest_seconds) : '',
       notes: e.notes ?? '',
     }));

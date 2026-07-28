@@ -29,6 +29,7 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { FormError } from '@/components/ui/Feedback';
 import { ExerciseBrowser } from '@/components/ExerciseBrowser';
+import { WeekdayPicker } from '@/components/WeekdayPicker';
 
 type Phase = 'input' | 'parsing' | 'review' | 'saving' | 'done';
 type ResolveMode = 'matched' | 'swapped' | 'custom';
@@ -38,6 +39,14 @@ interface ExerciseResolution {
   exercise_name: string;
   match: ParsedMatch;
   mode: ResolveMode;
+}
+
+interface ExerciseDraft {
+  sets: string;
+  reps: string;
+  weight: string;
+  duration: string;
+  notes: string;
 }
 
 interface PickerState {
@@ -57,6 +66,26 @@ function exKey(dayIdx: number, exIdx: number) {
   return `${dayIdx}-${exIdx}`;
 }
 
+function formatNumberRange(
+  low: number | null | undefined,
+  high: number | null | undefined,
+): string {
+  if (low == null) return '';
+  return high != null && high !== low ? `${low}-${high}` : String(low);
+}
+
+function parseNumberRange(value: string, integer = false): [number | null, number | null] {
+  const normalized = value.trim().replace(/[–—]/g, '-');
+  if (!normalized) return [null, null];
+  const parts = normalized.split(/\s*(?:-|to)\s*/i).filter(Boolean);
+  const parse = integer ? (part: string) => parseInt(part, 10) : (part: string) => parseFloat(part);
+  const low = parse(parts[0]);
+  const high = parts.length > 1 ? parse(parts[1]) : NaN;
+  if (!Number.isFinite(low)) return [null, null];
+  if (!Number.isFinite(high) || high === low) return [low, null];
+  return low < high ? [low, high] : [high, low];
+}
+
 function MatchBadge({ match }: { match: ParsedMatch }) {
   const meta = MATCH_META[match];
   return (
@@ -66,24 +95,6 @@ function MatchBadge({ match }: { match: ParsedMatch }) {
       </Text>
     </View>
   );
-}
-
-function summarizeTargets(
-  sets: number | null,
-  reps: number | null,
-  repsMax: number | null,
-  weight: number | null,
-  units: string,
-): string | null {
-  const parts: string[] = [];
-  const repStr = formatRepRange(reps, repsMax);
-  if (sets != null || repStr) {
-    parts.push(`${sets ?? '?'} × ${repStr ?? '?'}`);
-  }
-  if (weight != null) {
-    parts.push(`${weight} ${units}`);
-  }
-  return parts.length ? parts.join('  ·  ') : null;
 }
 
 const WEEKDAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -107,6 +118,7 @@ export default function WorkoutImportScreen() {
   const [includeExercise, setIncludeExercise] = useState<Record<string, boolean>>({});
   const [expanded, setExpanded] = useState<Record<number, boolean>>({});
   const [resolutions, setResolutions] = useState<Record<string, ExerciseResolution>>({});
+  const [exerciseDrafts, setExerciseDrafts] = useState<Record<string, ExerciseDraft>>({});
   const [picker, setPicker] = useState<PickerState | null>(null);
   const [customPicker, setCustomPicker] = useState<PickerState | null>(null);
   const [customName, setCustomName] = useState('');
@@ -141,6 +153,7 @@ export default function WorkoutImportScreen() {
       const exs: Record<string, boolean> = {};
       const exp: Record<number, boolean> = {};
       const resolved: Record<string, ExerciseResolution> = {};
+      const drafts: Record<string, ExerciseDraft> = {};
       res.workouts.forEach((r, di) => {
         days[di] = !r.rest_day; // rest days default to excluded from saving
         exp[di] = true;
@@ -149,9 +162,19 @@ export default function WorkoutImportScreen() {
           exs[key] = true;
           resolved[key] = {
             exercise_id: ex.exercise_id == null ? null : String(ex.exercise_id),
-            exercise_name: ex.exercise_name,
+            exercise_name: ex.matched_name ?? ex.exercise_name,
             match: ex.match,
             mode: ex.exercise_id == null ? 'custom' : 'matched',
+          };
+          drafts[key] = {
+            sets: ex.target_sets == null ? '' : String(ex.target_sets),
+            reps: formatRepRange(ex.target_reps, ex.target_reps_max) ?? '',
+            weight: formatNumberRange(ex.target_weight, ex.target_weight_max),
+            duration: formatNumberRange(
+              ex.target_duration_seconds,
+              ex.target_duration_seconds_max,
+            ),
+            notes: ex.notes ?? '',
           };
         });
       });
@@ -160,6 +183,7 @@ export default function WorkoutImportScreen() {
       setIncludeExercise(exs);
       setExpanded(exp);
       setResolutions(resolved);
+      setExerciseDrafts(drafts);
       setPhase('review');
     } catch (e) {
       setPhase('input');
@@ -200,9 +224,19 @@ export default function WorkoutImportScreen() {
         for (let ei = 0; ei < r.exercises.length; ei++) {
           if (includeExercise[exKey(di, ei)] === false) continue;
           const ex = r.exercises[ei];
+          const draft = exerciseDrafts[exKey(di, ei)] ?? {
+            sets: ex.target_sets == null ? '' : String(ex.target_sets),
+            reps: formatRepRange(ex.target_reps, ex.target_reps_max) ?? '',
+            weight: formatNumberRange(ex.target_weight, ex.target_weight_max),
+            duration: formatNumberRange(
+              ex.target_duration_seconds,
+              ex.target_duration_seconds_max,
+            ),
+            notes: ex.notes ?? '',
+          };
           const resolution = resolutions[exKey(di, ei)] ?? {
             exercise_id: ex.exercise_id == null ? null : String(ex.exercise_id),
-            exercise_name: ex.exercise_name,
+            exercise_name: ex.matched_name ?? ex.exercise_name,
             match: ex.match,
             mode: ex.exercise_id == null ? 'custom' : 'matched',
           };
@@ -220,14 +254,20 @@ export default function WorkoutImportScreen() {
           } else {
             exerciseId = resolution.exercise_id;
           }
+          const [reps, repsMax] = parseNumberRange(draft.reps, true);
+          const [weight, weightMax] = parseNumberRange(draft.weight);
+          const [duration, durationMax] = parseNumberRange(draft.duration, true);
           exercises.push({
             exercise_id: exerciseId,
             order,
-            target_sets: ex.target_sets,
-            target_reps: ex.target_reps,
-            target_reps_max: ex.target_reps_max,
-            target_weight: ex.target_weight,
-            notes: ex.notes,
+            target_sets: draft.sets ? parseInt(draft.sets, 10) : null,
+            target_reps: reps,
+            target_reps_max: repsMax,
+            target_weight: weight,
+            target_weight_max: weightMax,
+            target_duration_seconds: duration,
+            target_duration_seconds_max: durationMax,
+            notes: draft.notes.trim() || null,
           });
           order += 1;
         }
@@ -235,11 +275,11 @@ export default function WorkoutImportScreen() {
         // empty workout.
         if (exercises.length === 0) continue;
         await api.createWorkout({
-          name: r.name,
+          name: r.name.trim() || `Workout ${done + 1}`,
           notes: r.notes ?? undefined,
           split_id: split.id,
           weekdays: r.floating ? [] : r.weekdays,
-          floating: r.floating || r.optional,
+          floating: r.floating,
           order: done,
           exercises,
         });
@@ -262,6 +302,59 @@ export default function WorkoutImportScreen() {
   }
   function toggleExercise(di: number, ei: number) {
     setIncludeExercise((prev) => ({ ...prev, [exKey(di, ei)]: !prev[exKey(di, ei)] }));
+  }
+  function updatePlanName(name: string) {
+    setResult((prev) => (prev ? { ...prev, name } : prev));
+  }
+  function updateWorkout(di: number, patch: Partial<ParsedWorkout>) {
+    setResult((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        workouts: prev.workouts.map((workout, index) =>
+          index === di ? { ...workout, ...patch } : workout,
+        ),
+      };
+    });
+  }
+  function updateExerciseDraft(di: number, ei: number, patch: Partial<ExerciseDraft>) {
+    const key = exKey(di, ei);
+    setExerciseDrafts((prev) => ({
+      ...prev,
+      [key]: { ...prev[key], ...patch },
+    }));
+  }
+  function moveExercise(di: number, from: number, direction: -1 | 1) {
+    const to = from + direction;
+    const workout = result?.workouts[di];
+    if (!workout || to < 0 || to >= workout.exercises.length) return;
+
+    setResult((prev) => {
+      if (!prev) return prev;
+      const workouts = [...prev.workouts];
+      const exercises = [...workouts[di].exercises];
+      [exercises[from], exercises[to]] = [exercises[to], exercises[from]];
+      workouts[di] = { ...workouts[di], exercises };
+      return { ...prev, workouts };
+    });
+
+    const fromKey = exKey(di, from);
+    const toKey = exKey(di, to);
+    setIncludeExercise((prev) => ({
+      ...prev,
+      [fromKey]: prev[toKey],
+      [toKey]: prev[fromKey],
+    }));
+    setResolutions((prev) => ({
+      ...prev,
+      [fromKey]: prev[toKey],
+      [toKey]: prev[fromKey],
+    }));
+    setExerciseDrafts((prev) => ({
+      ...prev,
+      [fromKey]: prev[toKey],
+      [toKey]: prev[fromKey],
+    }));
   }
   function removeExercise(di: number, ei: number) {
     setIncludeExercise((prev) => ({ ...prev, [exKey(di, ei)]: false }));
@@ -314,6 +407,7 @@ export default function WorkoutImportScreen() {
     setIncludeExercise({});
     setExpanded({});
     setResolutions({});
+    setExerciseDrafts({});
     setPicker(null);
     setCustomPicker(null);
     setCustomName('');
@@ -362,9 +456,27 @@ export default function WorkoutImportScreen() {
         <Stack.Screen options={{ headerShown: true, title: 'Review import' }} />
         <ScrollView className="flex-1" contentContainerClassName="px-4 pt-3 pb-40">
           <Text variant="muted" className="mb-3">
-            Found {result?.workouts.length ?? 0} days. Review what the AI matched, then swap,
-            remove, or make a custom exercise before saving.
+            Found {result?.workouts.length ?? 0} days. Fix names and scheduling, then swap,
+            remove, or create exercises before saving.
           </Text>
+
+          <Card className="mb-3 rounded-[18px] p-4">
+            <Text variant="label" className="text-brand">
+              Plan name
+            </Text>
+            <TextInput
+              value={result?.name ?? ''}
+              onChangeText={updatePlanName}
+              editable={!saving}
+              placeholder="My workout plan"
+              placeholderTextColor="#64748b"
+              selectionColor="#818cf8"
+              className="mt-2 min-h-[50px] rounded-lg border border-iron-700 bg-iron-950 px-3.5 text-base font-bold text-iron-50"
+            />
+            <Text variant="caption" className="mt-2 text-iron-400">
+              This becomes the name of the split that holds all imported workouts.
+            </Text>
+          </Card>
 
           {result?.rules?.length ? (
             <Card className="mb-3 rounded-[18px] p-4">
@@ -395,10 +507,20 @@ export default function WorkoutImportScreen() {
               expanded={!!expanded[di]}
               includeExercise={includeExercise}
               resolutions={resolutions}
+              exerciseDrafts={exerciseDrafts}
               disabled={saving}
               onToggleDay={() => toggleDay(di)}
               onToggleExpanded={() => toggleExpanded(di)}
               onToggleExercise={(ei) => toggleExercise(di, ei)}
+              onUpdateExercise={(ei, patch) => updateExerciseDraft(di, ei, patch)}
+              onMoveExercise={(ei, direction) => moveExercise(di, ei, direction)}
+              onChangeName={(name) => updateWorkout(di, { name })}
+              onChangeWeekdays={(weekdays) =>
+                updateWorkout(di, { weekdays, floating: false })
+              }
+              onChangeFloating={(floating) =>
+                updateWorkout(di, { floating })
+              }
               onSwapExercise={(ei) => setPicker({ dayIdx: di, exIdx: ei })}
               onCustomExercise={(ei) => startCustom(di, ei)}
               onRemoveExercise={(ei) => removeExercise(di, ei)}
@@ -517,6 +639,7 @@ const PARSE_STAGES = [
 // screen). The status line walks the actual pipeline stages for flavor.
 function ParseProgress({ received = 0 }: { received?: number }) {
   const [stage, setStage] = useState(0);
+  const [elapsed, setElapsed] = useState(0);
   const progress = useRef(new Animated.Value(0.02)).current;
 
   useEffect(() => {
@@ -527,10 +650,14 @@ function ParseProgress({ received = 0 }: { received?: number }) {
       useNativeDriver: false,
     }).start();
 
-    const id = setInterval(() => {
+    const stageId = setInterval(() => {
       setStage((s) => Math.min(s + 1, PARSE_STAGES.length - 1));
     }, 3500);
-    return () => clearInterval(id);
+    const elapsedId = setInterval(() => setElapsed((seconds) => seconds + 1), 1000);
+    return () => {
+      clearInterval(stageId);
+      clearInterval(elapsedId);
+    };
   }, [progress]);
 
   useEffect(() => {
@@ -567,7 +694,12 @@ function ParseProgress({ received = 0 }: { received?: number }) {
         <Animated.View style={{ width }} className="h-full rounded-full bg-brand" />
       </View>
       <Text variant="caption" className="mt-3 text-center">
-        A full week can take 10–20 seconds.
+        {received > 0
+          ? `Receiving the plan · ${received.toLocaleString()} characters · ${elapsed}s`
+          : `Waiting for Ollama's first response · ${elapsed}s`}
+      </Text>
+      <Text variant="caption" className="mt-1 text-center text-iron-500">
+        Large plans can take a few minutes on a local model. You can leave this screen open.
       </Text>
     </View>
   );
@@ -581,10 +713,16 @@ interface DayCardProps {
   expanded: boolean;
   includeExercise: Record<string, boolean>;
   resolutions: Record<string, ExerciseResolution>;
+  exerciseDrafts: Record<string, ExerciseDraft>;
   disabled: boolean;
   onToggleDay: () => void;
   onToggleExpanded: () => void;
   onToggleExercise: (exIdx: number) => void;
+  onUpdateExercise: (exIdx: number, patch: Partial<ExerciseDraft>) => void;
+  onMoveExercise: (exIdx: number, direction: -1 | 1) => void;
+  onChangeName: (name: string) => void;
+  onChangeWeekdays: (weekdays: number[]) => void;
+  onChangeFloating: (floating: boolean) => void;
   onSwapExercise: (exIdx: number) => void;
   onCustomExercise: (exIdx: number) => void;
   onRemoveExercise: (exIdx: number) => void;
@@ -598,10 +736,16 @@ function DayCard({
   expanded,
   includeExercise,
   resolutions,
+  exerciseDrafts,
   disabled,
   onToggleDay,
   onToggleExpanded,
   onToggleExercise,
+  onUpdateExercise,
+  onMoveExercise,
+  onChangeName,
+  onChangeWeekdays,
+  onChangeFloating,
   onSwapExercise,
   onCustomExercise,
   onRemoveExercise,
@@ -652,6 +796,63 @@ function DayCard({
 
       {expanded ? (
         <View className="mt-3 gap-2">
+          <View className="rounded-lg border border-iron-700 bg-iron-950 p-3">
+            <Text variant="label" className="text-iron-300">
+              Workout name
+            </Text>
+            <TextInput
+              value={workout.name}
+              onChangeText={onChangeName}
+              editable={!disabled}
+              placeholder={`Workout ${dayIdx + 1}`}
+              placeholderTextColor="#64748b"
+              selectionColor="#818cf8"
+              className="mt-2 min-h-[48px] rounded-lg border border-iron-700 bg-iron-900 px-3 text-base font-bold text-iron-50"
+            />
+
+            {!workout.rest_day ? (
+              <>
+                <Text variant="label" className="mb-2 mt-4 text-iron-300">
+                  When should it appear?
+                </Text>
+                <View className="flex-row gap-2">
+                  <ScheduleMode
+                    label="Selected days"
+                    icon="calendar-outline"
+                    active={!workout.floating}
+                    disabled={disabled}
+                    onPress={() => onChangeFloating(false)}
+                  />
+                  <ScheduleMode
+                    label="Any day"
+                    icon="shuffle-outline"
+                    active={workout.floating}
+                    disabled={disabled}
+                    onPress={() => onChangeFloating(true)}
+                  />
+                </View>
+
+                {workout.floating ? (
+                  <Text variant="caption" className="mt-2 text-iron-400">
+                    This workout is available whenever it fits, with no fixed weekday.
+                  </Text>
+                ) : (
+                  <View className="mt-3">
+                    <WeekdayPicker
+                      value={workout.weekdays}
+                      onChange={onChangeWeekdays}
+                      disabled={disabled}
+                    />
+                    <Text variant="caption" className="mt-2 text-iron-400">
+                      If several days are selected, it appears on those days until completed
+                      once that Sunday–Saturday week.
+                    </Text>
+                  </View>
+                )}
+              </>
+            ) : null}
+          </View>
+
           {workout.notes ? (
             <Text variant="muted" className="italic">
               {workout.notes}
@@ -665,17 +866,20 @@ function DayCard({
               const exIncluded = includeExercise[exKey(dayIdx, ei)] !== false;
               const resolution = resolutions[exKey(dayIdx, ei)] ?? {
                 exercise_id: ex.exercise_id == null ? null : String(ex.exercise_id),
-                exercise_name: ex.exercise_name,
+                exercise_name: ex.matched_name ?? ex.exercise_name,
                 match: ex.match,
                 mode: ex.exercise_id == null ? 'custom' : 'matched',
               };
-              const targets = summarizeTargets(
-                ex.target_sets,
-                ex.target_reps,
-                ex.target_reps_max,
-                ex.target_weight,
-                units,
-              );
+              const draft = exerciseDrafts[exKey(dayIdx, ei)] ?? {
+                sets: ex.target_sets == null ? '' : String(ex.target_sets),
+                reps: formatRepRange(ex.target_reps, ex.target_reps_max) ?? '',
+                weight: formatNumberRange(ex.target_weight, ex.target_weight_max),
+                duration: formatNumberRange(
+                  ex.target_duration_seconds,
+                  ex.target_duration_seconds_max,
+                ),
+                notes: ex.notes ?? '',
+              };
               return (
                 <View
                   key={ei}
@@ -702,7 +906,7 @@ function DayCard({
                           {ex.exercise_name}
                         </Text>
                         <Text variant="caption" numberOfLines={1} className="mt-0.5 text-iron-400">
-                          Using: {resolution.exercise_name}
+                          Database: {resolution.exercise_name}
                           {resolution.mode === 'custom'
                             ? ' · custom'
                             : resolution.mode === 'swapped'
@@ -718,17 +922,63 @@ function DayCard({
                         Changed from AI match to “{resolution.exercise_name}”.
                       </Text>
                     ) : null}
-                    {targets ? (
-                      <Text variant="label" className="mt-1 text-brand">
-                        {targets}
-                      </Text>
-                    ) : null}
-                    {ex.notes ? (
-                      <Text variant="caption" className="mt-1">
-                        {ex.notes}
-                      </Text>
-                    ) : null}
                     <View className="mt-3 flex-row flex-wrap gap-2">
+                      <ReviewTargetField
+                        label="Sets"
+                        value={draft.sets}
+                        placeholder="3"
+                        keyboardType="number-pad"
+                        disabled={disabled}
+                        onChangeText={(sets) => onUpdateExercise(ei, { sets })}
+                      />
+                      <ReviewTargetField
+                        label="Reps"
+                        value={draft.reps}
+                        placeholder="8-12"
+                        disabled={disabled}
+                        onChangeText={(reps) => onUpdateExercise(ei, { reps })}
+                      />
+                      <ReviewTargetField
+                        label={`Weight (${units})`}
+                        value={draft.weight}
+                        placeholder="20-25"
+                        disabled={disabled}
+                        onChangeText={(weight) => onUpdateExercise(ei, { weight })}
+                      />
+                      <ReviewTargetField
+                        label="Time (sec)"
+                        value={draft.duration}
+                        placeholder="20-60"
+                        disabled={disabled}
+                        onChangeText={(duration) => onUpdateExercise(ei, { duration })}
+                      />
+                    </View>
+                    <Text variant="caption" className="mb-1 mt-3 text-iron-400">
+                      Notes and alternatives
+                    </Text>
+                    <TextInput
+                      value={draft.notes}
+                      onChangeText={(notes) => onUpdateExercise(ei, { notes })}
+                      editable={!disabled}
+                      multiline
+                      placeholder="Set history, cues, or substitutions"
+                      placeholderTextColor="#64748b"
+                      selectionColor="#818cf8"
+                      className="min-h-[64px] rounded-lg border border-iron-700 bg-iron-900 px-3 py-2.5 text-sm text-iron-50"
+                    />
+                    <View className="mt-3 flex-row flex-wrap gap-2">
+                      <ActionPill
+                        icon="arrow-up"
+                        label="Earlier"
+                        disabled={disabled || ei === 0}
+                        onPress={() => onMoveExercise(ei, -1)}
+                      />
+                      <ActionPill
+                        icon="arrow-down"
+                        label="Later"
+                        disabled={disabled || ei === workout.exercises.length - 1}
+                        onPress={() => onMoveExercise(ei, 1)}
+                      />
                       <ActionPill
                         icon="swap-horizontal"
                         label="Swap"
@@ -757,6 +1007,72 @@ function DayCard({
         </View>
       ) : null}
     </Card>
+  );
+}
+
+function ReviewTargetField({
+  label,
+  value,
+  placeholder,
+  keyboardType = 'default',
+  disabled,
+  onChangeText,
+}: {
+  label: string;
+  value: string;
+  placeholder: string;
+  keyboardType?: ComponentProps<typeof TextInput>['keyboardType'];
+  disabled?: boolean;
+  onChangeText: (value: string) => void;
+}) {
+  return (
+    <View className="min-w-[46%] flex-1">
+      <Text variant="caption" className="mb-1 text-iron-400">
+        {label}
+      </Text>
+      <TextInput
+        value={value}
+        onChangeText={onChangeText}
+        editable={!disabled}
+        keyboardType={keyboardType}
+        placeholder={placeholder}
+        placeholderTextColor="#475569"
+        selectionColor="#818cf8"
+        className="min-h-[44px] rounded-lg border border-iron-700 bg-iron-900 px-3 text-sm text-iron-50"
+      />
+    </View>
+  );
+}
+
+function ScheduleMode({
+  label,
+  icon,
+  active,
+  disabled,
+  onPress,
+}: {
+  label: string;
+  icon: ComponentProps<typeof Ionicons>['name'];
+  active: boolean;
+  disabled?: boolean;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityState={{ selected: active }}
+      disabled={disabled}
+      onPress={onPress}
+      className={`min-h-[48px] flex-1 flex-row items-center justify-center rounded-lg border px-3 active:opacity-75 ${
+        active ? 'border-brand bg-brand/15' : 'border-iron-700 bg-iron-900'
+      } ${disabled ? 'opacity-50' : ''}`}>
+      <Ionicons name={icon} size={16} color={active ? '#818cf8' : '#94a3b8'} />
+      <Text
+        variant="caption"
+        className={`ml-2 font-bold ${active ? 'text-brand' : 'text-iron-200'}`}>
+        {label}
+      </Text>
+    </Pressable>
   );
 }
 

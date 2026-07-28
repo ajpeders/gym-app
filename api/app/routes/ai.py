@@ -32,6 +32,9 @@ class EditWorkoutExercise(BaseModel):
     target_reps: int | None = None
     target_reps_max: int | None = None
     target_weight: float | None = None
+    target_weight_max: float | None = None
+    target_duration_seconds: int | None = None
+    target_duration_seconds_max: int | None = None
     notes: str | None = None
 
 

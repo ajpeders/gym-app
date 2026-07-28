@@ -19,7 +19,16 @@ def test_workout_crud_roundtrips_weekdays_and_floating(client, auth):
             "floating": False,
             "order": 2,
             "exercises": [
-                {"exercise_id": ex_id, "order": 0, "target_sets": 4, "target_reps": 8}
+                {
+                    "exercise_id": ex_id,
+                    "order": 0,
+                    "target_sets": 4,
+                    "target_reps": 8,
+                    "target_weight": 20,
+                    "target_weight_max": 25,
+                    "target_duration_seconds": 20,
+                    "target_duration_seconds_max": 60,
+                }
             ],
         },
     )
@@ -30,6 +39,11 @@ def test_workout_crud_roundtrips_weekdays_and_floating(client, auth):
     assert body["floating"] is False
     assert body["order"] == 2
     assert len(body["exercises"]) == 1
+    exercise = body["exercises"][0]
+    assert exercise["target_weight"] == 20
+    assert exercise["target_weight_max"] == 25
+    assert exercise["target_duration_seconds"] == 20
+    assert exercise["target_duration_seconds_max"] == 60
 
     # Single fetch round-trips the same values.
     one = client.get(f"/api/workouts/{wid}", headers=headers).json()

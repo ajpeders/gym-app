@@ -24,6 +24,7 @@ export interface DraftExercise {
   target_sets: string;
   target_reps: string;
   target_weight: string;
+  target_duration: string;
   rest_seconds: string;
   notes: string;
 }
@@ -44,6 +45,22 @@ interface WorkoutEditorProps {
 
 const smallInput =
   'rounded-md border border-iron-700 bg-iron-950 px-2 py-2 text-center text-base text-iron-50';
+
+function formatNumberRange(low: number | null | undefined, high: number | null | undefined) {
+  if (low == null) return '';
+  return high != null && high !== low ? `${low}-${high}` : String(low);
+}
+
+function parseNumberRange(value: string, integer = false): [number | null, number | null] {
+  const parts = value.trim().replace(/[–—]/g, '-').split(/\s*(?:-|to)\s*/i).filter(Boolean);
+  if (!parts.length) return [null, null];
+  const parse = integer ? (part: string) => parseInt(part, 10) : (part: string) => parseFloat(part);
+  const low = parse(parts[0]);
+  const high = parts.length > 1 ? parse(parts[1]) : NaN;
+  if (!Number.isFinite(low)) return [null, null];
+  if (!Number.isFinite(high) || high === low) return [low, null];
+  return low < high ? [low, high] : [high, low];
+}
 
 export function WorkoutEditor({
   title,
@@ -76,12 +93,17 @@ export function WorkoutEditor({
       notes: notes.trim() || null,
       exercises: exercises.map((e) => {
         const reps = parseRepRange(e.target_reps);
+        const [weight, weightMax] = parseNumberRange(e.target_weight);
+        const [duration, durationMax] = parseNumberRange(e.target_duration, true);
         return {
           exercise: e.name,
           target_sets: e.target_sets ? parseInt(e.target_sets, 10) : null,
           target_reps: reps.min,
           target_reps_max: reps.max,
-          target_weight: e.target_weight ? parseFloat(e.target_weight) : null,
+          target_weight: weight,
+          target_weight_max: weightMax,
+          target_duration_seconds: duration,
+          target_duration_seconds_max: durationMax,
           notes: e.notes.trim() || null,
         };
       }),
@@ -100,10 +122,14 @@ export function WorkoutEditor({
         const id = String(e.exercise_id);
         return {
           exercise_id: id,
-          name: e.exercise_name,
+          name: e.matched_name ?? e.exercise_name,
           target_sets: e.target_sets != null ? String(e.target_sets) : '',
           target_reps: formatRepRange(e.target_reps, e.target_reps_max) ?? '',
-          target_weight: e.target_weight != null ? String(e.target_weight) : '',
+          target_weight: formatNumberRange(e.target_weight, e.target_weight_max),
+          target_duration: formatNumberRange(
+            e.target_duration_seconds,
+            e.target_duration_seconds_max,
+          ),
           rest_seconds: previous.get(id)?.rest_seconds ?? '',
           notes: e.notes ?? previous.get(id)?.notes ?? '',
         };
@@ -124,6 +150,7 @@ export function WorkoutEditor({
         target_sets: '3',
         target_reps: '8',
         target_weight: '',
+        target_duration: '',
         rest_seconds: '',
         notes: '',
       },
@@ -166,13 +193,18 @@ export function WorkoutEditor({
       floating,
       exercises: exercises.map((e, i) => {
         const reps = parseRepRange(e.target_reps);
+        const [weight, weightMax] = parseNumberRange(e.target_weight);
+        const [duration, durationMax] = parseNumberRange(e.target_duration, true);
         return {
           exercise_id: e.exercise_id,
           order: i,
           target_sets: e.target_sets ? parseInt(e.target_sets, 10) : null,
           target_reps: reps.min,
           target_reps_max: reps.max,
-          target_weight: e.target_weight ? parseFloat(e.target_weight) : null,
+          target_weight: weight,
+          target_weight_max: weightMax,
+          target_duration_seconds: duration,
+          target_duration_seconds_max: durationMax,
           rest_seconds: e.rest_seconds ? parseInt(e.rest_seconds, 10) : null,
           notes: e.notes.trim() || null,
         };
@@ -265,7 +297,7 @@ export function WorkoutEditor({
                 </View>
               </View>
 
-              <View className="mt-3 flex-row gap-2">
+              <View className="mt-3 flex-row flex-wrap gap-2">
                 <Field
                   label="Sets"
                   value={e.target_sets}
@@ -281,7 +313,13 @@ export function WorkoutEditor({
                   label={`Wt (${settings.units})`}
                   value={e.target_weight}
                   onChangeText={(v) => update(idx, { target_weight: v })}
-                  decimal
+                  range
+                />
+                <Field
+                  label="Time (sec)"
+                  value={e.target_duration}
+                  onChangeText={(v) => update(idx, { target_duration: v })}
+                  range
                 />
                 <Field
                   label="Rest (sec)"
@@ -395,7 +433,7 @@ function Field({
 }) {
   const keyboardType = range ? 'default' : decimal ? 'decimal-pad' : 'number-pad';
   return (
-    <View className="flex-1">
+    <View className="min-w-[46%] flex-1">
       <Text variant="caption" className="mb-1">
         {label}
       </Text>
