@@ -47,8 +47,36 @@ def _stem(tok: str) -> str:
     if tok.endswith(("sses", "shes", "ches", "xes", "zzes")):  # presses -> press, crunches -> crunch
         return tok[:-2]
     if tok.endswith("s") and not tok.endswith("ss"):  # raises -> raise, curls -> curl
-        return tok[:-1]
+        tok = tok[:-1]
+    if tok == "flye":  # flyes/flys/fly all unify ("Dumbbell Flyes" vs "Cable Fly")
+        return "fly"
     return tok
+
+
+# Adjacent token pairs fused into one token on BOTH sides, because the catalog
+# itself is inconsistent ("Pullups" vs "Chin-Up" vs "Weighted Pull Ups") and
+# {pull, up} shares nothing with {pullup}.
+_FUSED_PAIRS = {
+    ("pull", "up"): "pullup",
+    ("pull", "ups"): "pullup",  # 'ups' is too short for the plural stemmer
+    ("chin", "up"): "chinup",
+    ("chin", "ups"): "chinup",
+    ("push", "up"): "pushup",
+    ("push", "ups"): "pushup",
+}
+
+
+def _fuse(toks: list[str]) -> list[str]:
+    out: list[str] = []
+    i = 0
+    while i < len(toks):
+        if i + 1 < len(toks) and (toks[i], toks[i + 1]) in _FUSED_PAIRS:
+            out.append(_FUSED_PAIRS[(toks[i], toks[i + 1])])
+            i += 2
+        else:
+            out.append(toks[i])
+            i += 1
+    return out
 
 
 # Noise words that carry no matching signal — dropped so token-overlap focuses
@@ -78,11 +106,29 @@ _PHRASE_SYNONYMS = [
 def _norm(s: str) -> list[str]:
     """Catalog-side normalization: stem + drop stopwords. No synonym rewriting,
     so the catalog vocabulary stays untouched."""
-    return [
-        t
-        for t in (_stem(w) for w in _WORD_RE.sub(" ", (s or "").lower()).split())
-        if t and t not in _STOPWORDS
-    ]
+    return _fuse(
+        [
+            t
+            for t in (_stem(w) for w in _WORD_RE.sub(" ", (s or "").lower()).split())
+            if t and t not in _STOPWORDS
+        ]
+    )
+
+
+# Whole-name synonyms (query side, keyed on the stemmed token string): common
+# gym names whose token overlap alone lands on the wrong catalog variant
+# ('Lateral Raises' -> 'Lateral Raise - With Bands'). Whole-name keys can't
+# accidentally rewrite parts of longer, more specific names.
+_NAME_SYNONYMS = {
+    "flat dumbbell press": "dumbbell bench press",
+    "flat dumbbell bench press": "dumbbell bench press",
+    "cable fly": "cable crossover",
+    "lateral raise": "side lateral raise",
+    "dumbbell lateral raise": "side lateral raise",
+    "lat pulldown": "wide grip lat pulldown",
+    "leg curl machine": "seated leg curl",
+    "leg curl": "seated leg curl",
+}
 
 
 def _norm_query(s: str) -> list[str]:
@@ -100,6 +146,10 @@ def _norm_query(s: str) -> list[str]:
             t = _stem(part)
             if t and t not in _STOPWORDS:
                 toks.append(t)
+    toks = _fuse(toks)
+    canonical = _NAME_SYNONYMS.get(" ".join(toks))
+    if canonical is not None:
+        toks = _norm(canonical)
     return toks
 
 

@@ -141,6 +141,9 @@ PROGRAM_SCHEMA: dict = {
     "type": "object",
     "additionalProperties": False,
     "properties": {
+        "name": {"anyOf": [{"type": "string"}, {"type": "null"}]},
+        "notes": {"anyOf": [{"type": "string"}, {"type": "null"}]},
+        "rules": {"type": "array", "items": {"type": "string"}},
         "workouts": {
             "type": "array",
             "items": {
