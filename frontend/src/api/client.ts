@@ -27,6 +27,7 @@ import type {
   Settings,
   SettingsUpdate,
   SetInput,
+  ExerciseStats,
   StatsSummary,
   TodayWorkout,
   User,
@@ -60,15 +61,25 @@ export class ApiError extends Error {
   }
 }
 
-type Query = Record<string, string | number | boolean | undefined | null>;
+type QueryValue = string | number | boolean | undefined | null;
+type Query = Record<string, QueryValue | QueryValue[]>;
 
 function buildUrl(path: string, query?: Query): string {
   const url = `${API_BASE}${path}`;
   if (!query) return url;
   const params = new URLSearchParams();
-  for (const [key, value] of Object.entries(query)) {
+  const append = (key: string, value: QueryValue) => {
     if (value !== undefined && value !== null && value !== '') {
       params.append(key, String(value));
+    }
+  };
+  for (const [key, value] of Object.entries(query)) {
+    // An array becomes repeated params (?id=1&id=2) — what FastAPI's
+    // list-valued Query() expects; joining them would arrive as one string.
+    if (Array.isArray(value)) {
+      for (const item of value) append(key, item);
+    } else {
+      append(key, value);
     }
   }
   const qs = params.toString();
@@ -597,6 +608,12 @@ export const api = {
 
   // ---- stats ----
   statsSummary: () => request<StatsSummary>('/stats/summary'),
+  exerciseStats: (exerciseIds: string[]) =>
+    exerciseIds.length === 0
+      ? Promise.resolve([] as ExerciseStats[])
+      : request<ExerciseStats[]>('/stats/exercises', {
+          query: { exercise_ids: exerciseIds },
+        }),
 
   // ---- ai (Phase 3) ----
   aiProviders: () => request<AiProviders>('/ai/providers'),

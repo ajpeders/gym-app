@@ -458,3 +458,17 @@ export interface StatsSummary {
   }[];
   volume_by_week: { week: string; volume: number }[];
 }
+
+/** One exercise's personal records (GET /stats/exercises). Every requested id
+ * comes back; never-logged ones have null stats and set_count 0. */
+export interface ExerciseStats {
+  exercise_id: number;
+  best_weight: number | null;
+  best_weight_reps: number | null;
+  best_weight_at: string | null;
+  min_weight: number | null;
+  max_weight: number | null;
+  max_reps: number | null;
+  set_count: number;
+  last_performed_at: string | null;
+}

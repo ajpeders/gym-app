@@ -4,7 +4,9 @@ from __future__ import annotations
 from collections import defaultdict
 from datetime import datetime, timedelta, timezone
 
-from fastapi import APIRouter, Depends
+from typing import Annotated
+
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy import select
 from sqlalchemy.orm import Session as SASession
 
@@ -16,7 +18,7 @@ from ..models import (
     SetEntry,
     User,
 )
-from ..schemas import StatsSummary
+from ..schemas import ExerciseStats, StatsSummary
 from ..security import get_current_user
 
 router = APIRouter(prefix="/stats", tags=["stats"])
@@ -106,3 +108,78 @@ def summary(
         recent_prs=recent_prs,
         volume_by_week=volume_list,
     )
+
+
+@router.get("/exercises", response_model=list[ExerciseStats])
+def exercise_stats(
+    exercise_ids: Annotated[list[int], Query()] = [],
+    db: SASession = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> list[ExerciseStats]:
+    """Personal records for specific exercises, batched for one workout's worth.
+
+    Only the caller's own completed sets count. Weight-based figures ignore
+    sets logged without a load (bodyweight work), so an unweighted set can't
+    pull min_weight down to nothing, while set_count and max_reps still see
+    every set.
+    """
+    if not exercise_ids:
+        return []
+    wanted = list(dict.fromkeys(exercise_ids))  # de-dupe, keep request order
+
+    rows = db.execute(
+        select(
+            SessionExercise.exercise_id,
+            SetEntry.reps,
+            SetEntry.weight,
+            SetEntry.completed_at,
+            Session.started_at,
+        )
+        .join(SessionExercise, SessionExercise.session_id == Session.id)
+        .join(SetEntry, SetEntry.session_exercise_id == SessionExercise.id)
+        .where(
+            Session.owner_id == user.id,
+            SetEntry.completed.is_(True),
+            SessionExercise.exercise_id.in_(wanted),
+        )
+    ).all()
+
+    acc: dict[int, dict] = {ex_id: {"sets": 0} for ex_id in wanted}
+    for ex_id, reps, weight, completed_at, started_at in rows:
+        a = acc[ex_id]
+        a["sets"] += 1
+        when = completed_at or started_at
+        if when is not None:
+            prev = a.get("last")
+            if prev is None or when > prev:
+                a["last"] = when
+        if reps is not None and reps > (a.get("max_reps") or 0):
+            a["max_reps"] = reps
+        if weight is None:
+            continue
+        if a.get("min_w") is None or weight < a["min_w"]:
+            a["min_w"] = weight
+        # Ties go to the rep-richer set: same load for more reps is the better lift.
+        if (
+            a.get("max_w") is None
+            or weight > a["max_w"]
+            or (weight == a["max_w"] and (reps or 0) > (a.get("best_reps") or 0))
+        ):
+            a["max_w"] = weight
+            a["best_reps"] = reps
+            a["best_at"] = when
+
+    return [
+        ExerciseStats(
+            exercise_id=ex_id,
+            best_weight=a.get("max_w"),
+            best_weight_reps=a.get("best_reps"),
+            best_weight_at=a.get("best_at"),
+            min_weight=a.get("min_w"),
+            max_weight=a.get("max_w"),
+            max_reps=a.get("max_reps"),
+            set_count=a["sets"],
+            last_performed_at=a.get("last"),
+        )
+        for ex_id, a in ((i, acc[i]) for i in wanted)
+    ]

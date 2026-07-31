@@ -417,3 +417,21 @@ class StatsSummary(BaseModel):
     streak: int = 0  # consecutive days (ending today/yesterday) with a workout
     recent_prs: list[dict[str, Any]] = []
     volume_by_week: list[dict[str, Any]] = []
+
+
+class ExerciseStats(BaseModel):
+    """One exercise's personal records — the PR / min-max line on a workout.
+
+    Every requested id gets a row; one the athlete has never logged comes back
+    with null stats and set_count 0 rather than being omitted.
+    """
+
+    exercise_id: int
+    best_weight: Optional[float] = None
+    best_weight_reps: Optional[int] = None
+    best_weight_at: Optional[datetime] = None
+    min_weight: Optional[float] = None
+    max_weight: Optional[float] = None
+    max_reps: Optional[int] = None
+    set_count: int = 0
+    last_performed_at: Optional[datetime] = None

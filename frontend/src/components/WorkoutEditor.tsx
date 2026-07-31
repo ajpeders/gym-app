@@ -16,6 +16,7 @@ import { ExerciseThumb } from '@/components/ExerciseThumb';
 import { WeekdayPicker } from '@/components/WeekdayPicker';
 import { WorkoutAiEdit, type WorkoutAiWorking } from '@/components/WorkoutAiEdit';
 import { formatRepRange, parseRepRange, titleCase } from '@/lib/format';
+import { formatExerciseStats, statsFor, useExerciseStats } from '@/hooks/use-exercise-stats';
 
 export interface DraftExercise {
   exercise_id: string;
@@ -79,6 +80,7 @@ export function WorkoutEditor({
   const [name, setName] = useState(initialName);
   const [notes, setNotes] = useState(initialNotes);
   const [exercises, setExercises] = useState<DraftExercise[]>(initialExercises);
+  const exerciseStats = useExerciseStats(exercises.map((e) => e.exercise_id));
   const [weekdays, setWeekdays] = useState<number[]>(initialWeekdays);
   const [floating, setFloating] = useState(initialFloating);
   const [picking, setPicking] = useState(false);
@@ -267,9 +269,22 @@ export function WorkoutEditor({
             <Card key={`${e.exercise_id}-${idx}`} className="mb-3">
               <View className="flex-row items-center justify-between">
                 <ExerciseThumb images={e.image ? [e.image] : null} size={36} radius={6} />
-                <Text variant="subheading" numberOfLines={1} className="ml-2 flex-1">
-                  {idx + 1}. {titleCase(e.name)}
-                </Text>
+                <View className="ml-2 flex-1">
+                  <Text variant="subheading" numberOfLines={1}>
+                    {idx + 1}. {titleCase(e.name)}
+                  </Text>
+                  {(() => {
+                    const pr = formatExerciseStats(
+                      statsFor(exerciseStats, e.exercise_id),
+                      settings.units,
+                    );
+                    return pr ? (
+                      <Text variant="caption" numberOfLines={1} className="mt-0.5 text-iron-400">
+                        {pr}
+                      </Text>
+                    ) : null;
+                  })()}
+                </View>
                 <View className="flex-row items-center gap-1">
                   <Pressable
                     onPress={() => move(idx, -1)}
