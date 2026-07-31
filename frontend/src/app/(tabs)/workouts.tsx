@@ -145,7 +145,7 @@ export default function WorkoutsScreen() {
                     <Ionicons
                       name={showPlanPicker ? 'chevron-up' : 'chevron-down'}
                       size={16}
-                      color="#5eead4"
+                      color="#818cf8"
                     />
                   </Pressable>
 
@@ -174,7 +174,7 @@ export default function WorkoutsScreen() {
                               </Text>
                             </View>
                             {selected ? (
-                              <Ionicons name="checkmark-circle" size={19} color="#5eead4" />
+                              <Ionicons name="checkmark-circle" size={19} color="#818cf8" />
                             ) : (
                               <Ionicons name="chevron-forward" size={16} color="#475569" />
                             )}
@@ -251,7 +251,7 @@ export default function WorkoutsScreen() {
                             {date.getDate()}
                           </Text>
                           {hasPhoto ? (
-                            <Ionicons name="camera" size={11} color="#86efac" style={{ marginTop: 6 }} />
+                            <Ionicons name="camera" size={11} color="#2dd4bf" style={{ marginTop: 6 }} />
                           ) : (
                             <View className={`mt-2 h-2 w-2 rounded-full ${isRest ? 'bg-iron-700' : 'bg-brand'}`} />
                           )}
@@ -293,7 +293,7 @@ export default function WorkoutsScreen() {
                   className="mb-3 rounded-lg p-5">
                   <View className="flex-row items-center">
                     <View className="mr-3 h-12 w-12 items-center justify-center rounded-lg border border-brand/30 bg-brand/10">
-                      <Ionicons name="calendar" size={22} color="#5eead4" />
+                      <Ionicons name="calendar" size={22} color="#818cf8" />
                     </View>
                     <View className="flex-1">
                       <Text variant="subheading" numberOfLines={1}>

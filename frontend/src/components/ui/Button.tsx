@@ -52,7 +52,7 @@ export function Button({
   ...rest
 }: ButtonProps) {
   const isDisabled = disabled || loading;
-  const iconColor = variant === 'primary' ? '#05070a' : variant === 'danger' ? '#ffffff' : '#5eead4';
+  const iconColor = variant === 'primary' ? '#070b12' : variant === 'danger' ? '#ffffff' : '#818cf8';
 
   return (
     <Pressable
@@ -63,7 +63,7 @@ export function Button({
       } ${className ?? ''}`}
       {...rest}>
       {loading ? (
-        <ActivityIndicator color={variant === 'secondary' || variant === 'ghost' ? '#5eead4' : '#05070a'} />
+        <ActivityIndicator color={variant === 'secondary' || variant === 'ghost' ? '#818cf8' : '#070b12'} />
       ) : (
         <View className="flex-row items-center justify-center">
           {icon ? <Ionicons name={icon} size={size === 'sm' ? 15 : 18} color={iconColor} /> : null}

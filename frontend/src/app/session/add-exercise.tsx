@@ -34,7 +34,7 @@ export default function AddExerciseScreen() {
         onSelect={onSelect}
         renderTrailing={(ex) =>
           addingId === ex.id ? (
-            <ActivityIndicator color="#5eead4" />
+            <ActivityIndicator color="#818cf8" />
           ) : (
             <Text className="text-xl font-black text-brand">ADD</Text>
           )

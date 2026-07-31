@@ -247,7 +247,7 @@ export default function SplitDetailScreen() {
                 </Text>
                 {isDone ? (
                   <View className="mr-2 flex-row items-center rounded-full bg-brand/15 px-2 py-1">
-                    <Ionicons name="checkmark-circle" size={13} color="#5eead4" />
+                    <Ionicons name="checkmark-circle" size={13} color="#818cf8" />
                     <Text variant="caption" className="ml-1 font-bold text-brand">
                       Done
                     </Text>
@@ -297,7 +297,7 @@ export default function SplitDetailScreen() {
                   <Ionicons
                     name="checkmark-circle"
                     size={16}
-                    color="#5eead4"
+                    color="#818cf8"
                     style={{ marginTop: 2 }}
                   />
                   <Text variant="body" className="ml-2 flex-1 text-iron-200">
@@ -330,7 +330,7 @@ export default function SplitDetailScreen() {
                   router.push(`/session/active/${s.id}`);
                 }}
                 className="mr-2 flex-row items-center rounded-lg bg-brand px-3 py-2 active:bg-brand-600">
-                <Ionicons name="play" size={13} color="#05070a" />
+                <Ionicons name="play" size={13} color="#070b12" />
                 <Text variant="caption" className="ml-1 font-bold text-iron-950">
                   Start
                 </Text>

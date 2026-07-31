@@ -71,7 +71,7 @@ export function SplitEditor({ visible, split, saving = false, onSave, onClose }:
               onChangeText={setName}
               placeholder="e.g. Push / Pull / Legs"
               placeholderTextColor="#64748b"
-              selectionColor="#5eead4"
+              selectionColor="#818cf8"
               className={INPUT_CLASS}
             />
 
@@ -83,7 +83,7 @@ export function SplitEditor({ visible, split, saving = false, onSave, onClose }:
               onChangeText={setNotes}
               placeholder="Anything to remember about this split"
               placeholderTextColor="#64748b"
-              selectionColor="#5eead4"
+              selectionColor="#818cf8"
               multiline
               className={`${INPUT_CLASS} min-h-[80px]`}
               style={{ textAlignVertical: 'top' }}
@@ -97,7 +97,7 @@ export function SplitEditor({ visible, split, saving = false, onSave, onClose }:
                 onPress={() => setRules((prev) => [...prev, ''])}
                 hitSlop={8}
                 className="flex-row items-center active:opacity-70">
-                <Ionicons name="add" size={16} color="#5eead4" />
+                <Ionicons name="add" size={16} color="#818cf8" />
                 <Text variant="caption" className="ml-0.5 font-bold text-brand">
                   Add rule
                 </Text>
@@ -118,7 +118,7 @@ export function SplitEditor({ visible, split, saving = false, onSave, onClose }:
                     }
                     placeholder="e.g. add weight when you hit the top of the range"
                     placeholderTextColor="#64748b"
-                    selectionColor="#5eead4"
+                    selectionColor="#818cf8"
                     multiline
                     className={`${INPUT_CLASS} flex-1`}
                     style={{ textAlignVertical: 'top' }}

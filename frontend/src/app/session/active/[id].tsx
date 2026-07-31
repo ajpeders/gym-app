@@ -151,13 +151,13 @@ export default function ActiveWorkoutScreen() {
         {pendingCount > 0 ? (
           <Pressable
             onPress={() => void sync()}
-            className="mb-3 flex-row items-center rounded-lg border border-yellow-500/40 bg-yellow-500/10 px-3 py-2.5 active:opacity-70">
-            <Ionicons name="cloud-offline-outline" size={16} color="#facc15" />
-            <Text variant="caption" className="ml-2 flex-1 font-semibold text-yellow-300">
+            className="mb-3 flex-row items-center rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2.5 active:opacity-70">
+            <Ionicons name="cloud-offline-outline" size={16} color="#fbbf24" />
+            <Text variant="caption" className="ml-2 flex-1 font-semibold text-amber-300">
               {pendingCount} set{pendingCount === 1 ? '' : 's'} saved on this device — will sync
               automatically
             </Text>
-            <Text variant="caption" className="font-bold text-yellow-300">
+            <Text variant="caption" className="font-bold text-amber-300">
               Retry
             </Text>
           </Pressable>
@@ -170,7 +170,7 @@ export default function ActiveWorkoutScreen() {
         {settings.feature_flags.in_set_prompts ? (
           <Card className="mb-3 border-brand bg-iron-900">
             <View className="flex-row items-center">
-              <Ionicons name="sparkles" size={18} color="#5eead4" />
+              <Ionicons name="sparkles" size={18} color="#818cf8" />
               <Text variant="label" className="ml-2 text-brand">
                 AI coaching on
               </Text>
@@ -246,7 +246,7 @@ function Stat({
   return (
     <View className="w-[48%] rounded-lg border border-iron-800 bg-iron-900/90 px-3 py-2.5">
       <View className="flex-row items-center">
-        <Ionicons name={icon} size={14} color="#5eead4" />
+        <Ionicons name={icon} size={14} color="#818cf8" />
         <Text variant="caption" className="ml-1.5 text-iron-400">
           {label}
         </Text>

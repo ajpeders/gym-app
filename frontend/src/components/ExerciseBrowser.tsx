@@ -108,7 +108,7 @@ export function ExerciseBrowser({ onSelect, renderTrailing }: ExerciseBrowserPro
           onChangeText={setQuery}
           placeholder="Search exercises"
           placeholderTextColor="#64748b"
-          selectionColor="#5eead4"
+          selectionColor="#818cf8"
           autoCapitalize="none"
           className="min-h-[48px] flex-1 px-3 text-base text-iron-50"
         />
@@ -175,7 +175,7 @@ export function ExerciseBrowser({ onSelect, renderTrailing }: ExerciseBrowserPro
 
       {loading ? (
         <View className="flex-1 items-center justify-center py-16">
-          <ActivityIndicator color="#5eead4" />
+          <ActivityIndicator color="#818cf8" />
         </View>
       ) : error ? (
         <ErrorState message={error} onRetry={() => load(true)} />
@@ -205,7 +205,7 @@ export function ExerciseBrowser({ onSelect, renderTrailing }: ExerciseBrowserPro
           ))}
           {loadingMore ? (
             <View className="py-4">
-              <ActivityIndicator color="#5eead4" />
+              <ActivityIndicator color="#818cf8" />
             </View>
           ) : null}
         </ScrollView>
