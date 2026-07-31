@@ -47,12 +47,14 @@ export function SplitEditor({ visible, split, saving = false, onSave, onClose }:
 
   return (
     <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
-      <SafeAreaView edges={['top', 'left', 'right']} className="flex-1 bg-iron-950">
-        <View className="flex-row items-center justify-between border-b border-iron-800 px-4 py-3">
-          <Text variant="heading">Edit split</Text>
-          <Pressable onPress={onClose} hitSlop={8}>
-            <Text className="font-bold text-brand">Close</Text>
-          </Pressable>
+      <SafeAreaView edges={['top', 'left', 'right', 'bottom']} className="flex-1 bg-iron-950">
+        <View className="border-b border-iron-800">
+          <View className="w-full max-w-[760px] self-center flex-row items-center justify-between px-4 py-3">
+            <Text variant="heading">Edit split</Text>
+            <Pressable onPress={onClose} hitSlop={8} accessibilityRole="button">
+              <Text className="font-bold text-brand">Close</Text>
+            </Pressable>
+          </View>
         </View>
 
         <KeyboardAvoidingView
@@ -61,7 +63,7 @@ export function SplitEditor({ visible, split, saving = false, onSave, onClose }:
           keyboardVerticalOffset={Platform.OS === 'ios' ? 40 : 0}>
           <ScrollView
             className="flex-1"
-            contentContainerClassName="px-4 pt-4 pb-6"
+            contentContainerClassName="w-full max-w-[760px] self-center px-4 pt-4 pb-10"
             keyboardShouldPersistTaps="handled">
             <Text variant="caption" className="mb-1.5 text-iron-400">
               Name
@@ -133,16 +135,16 @@ export function SplitEditor({ visible, split, saving = false, onSave, onClose }:
                 </View>
               ))
             )}
-          </ScrollView>
 
-          <View className="border-t border-iron-800 px-4 pb-6 pt-3">
-            <Button
-              title="Save changes"
-              onPress={save}
-              loading={saving}
-              disabled={!trimmedName}
-            />
-          </View>
+            <View className="mt-5 border-t border-iron-800 pt-4">
+              <Button
+                title="Save changes"
+                onPress={save}
+                loading={saving}
+                disabled={!trimmedName}
+              />
+            </View>
+          </ScrollView>
         </KeyboardAvoidingView>
       </SafeAreaView>
     </Modal>
