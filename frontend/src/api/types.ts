@@ -108,6 +108,10 @@ export interface TodayWorkout {
   floating: boolean;
   weekdays: number[];
   done_this_week: boolean;
+  /** Today's weekday claims this day. */
+  scheduled_today: boolean;
+  /** Scheduled earlier this week and not done — offerable as a makeup. */
+  missed: boolean;
 }
 
 export interface WorkoutExerciseInput {

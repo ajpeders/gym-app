@@ -68,14 +68,54 @@ def _done_this_week(db: SASession, user_id: int, workout_id: int, now: datetime)
 
 @router.get("/today", response_model=list[TodayWorkout])
 def today(db: SASession = Depends(get_db), user: User = Depends(get_current_user)):
+    """What the athlete could train right now, from the active split.
+
+    Returns three kinds of day, distinguished by flags rather than by being
+    filtered out, so a rest day still has something to offer:
+
+    * ``scheduled_today`` — today's weekday claims it.
+    * ``missed`` — scheduled earlier this week and not yet done: a makeup.
+    * floating — pinned to no weekday, so always available. These used to be
+      dropped entirely, since a floating day has empty ``weekdays`` and the
+      old filter asked whether today was in that empty list.
+
+    Days still upcoming later this week are omitted — they aren't due yet.
+    """
     now = datetime.now(timezone.utc)
     weekday = (now.weekday() + 1) % 7  # 0=Sun..6=Sat
     active = db.scalar(select(Split).where(Split.owner_id == user.id, Split.is_active.is_(True)))
     if active is None:
         return []
-    return [TodayWorkout(id=w.id, name=w.name, floating=w.floating, weekdays=w.weekdays,
-                         done_this_week=_done_this_week(db, user.id, w.id, now))
-            for w in active.workouts if weekday in (w.weekdays or [])]
+
+    rows: list[TodayWorkout] = []
+    for w in active.workouts:
+        weekdays = w.weekdays or []
+        scheduled_today = weekday in weekdays
+        done = _done_this_week(db, user.id, w.id, now)
+        # Earlier this week and never done — offer it as a makeup. "Earlier"
+        # means every weekday it claims has already passed, so a day pinned to
+        # both Friday and Saturday isn't missed until Saturday is behind us.
+        missed = (
+            not scheduled_today
+            and not w.floating
+            and bool(weekdays)
+            and max(weekdays) < weekday
+            and not done
+        )
+        if not (scheduled_today or missed or w.floating):
+            continue
+        rows.append(
+            TodayWorkout(
+                id=w.id,
+                name=w.name,
+                floating=w.floating,
+                weekdays=weekdays,
+                done_this_week=done,
+                scheduled_today=scheduled_today,
+                missed=missed,
+            )
+        )
+    return rows
 
 
 @router.get("/{split_id}", response_model=SplitOut)

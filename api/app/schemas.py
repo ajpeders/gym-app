@@ -188,6 +188,10 @@ class TodayWorkout(BaseModel):
     floating: bool
     weekdays: list[int]
     done_this_week: bool
+    # Today's weekday claims this day.
+    scheduled_today: bool = False
+    # Scheduled earlier this week and not done — available as a makeup.
+    missed: bool = False
 
 
 # ---------------------------------------------------------------------------

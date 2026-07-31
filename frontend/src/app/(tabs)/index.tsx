@@ -346,13 +346,23 @@ export default function HomeScreen() {
   const dayName = DOW[now.getDay()];
   const dateLabel = `${dayName}, ${MON[now.getMonth()]} ${now.getDate()}`;
 
-  // Resolve the workout to feature: manual pick → today's scheduled → first.
-  const defaultId = today[0]?.id ?? workouts[0]?.id ?? null;
+  // /splits/today now returns three kinds of day; prefer one actually due today.
+  const scheduledToday = today.filter((t) => t.scheduled_today);
+  // Days scheduled earlier this week and still undone — offer as makeups when
+  // there is nothing on today.
+  const makeups = today.filter((t) => t.missed);
+
+  // Resolve the workout to feature: manual pick → due today → makeup → first.
+  const defaultId = scheduledToday[0]?.id ?? makeups[0]?.id ?? workouts[0]?.id ?? null;
   const selectedId = pickedId ?? defaultId;
   const selectedWorkout =
     workouts.find((w) => String(w.id) === String(selectedId)) ?? workouts[0] ?? null;
   const todayEntry = today.find((t) => String(t.id) === String(selectedWorkout?.id));
   const doneThisWeek = todayEntry?.done_this_week ?? false;
+  // True when the featured workout isn't actually due today, so the UI can say
+  // so instead of silently presenting an arbitrary workout as today's.
+  const isMakeup = todayEntry?.missed ?? false;
+  const nothingScheduledToday = scheduledToday.length === 0;
 
   const selectedExercises = selectedWorkout
     ? [...selectedWorkout.exercises].sort((a, b) => a.order - b.order)
@@ -364,9 +374,13 @@ export default function HomeScreen() {
   );
   const summaryLabel = active
     ? 'Session in progress'
-    : selectedWorkout
-      ? 'Split ready to start'
-      : 'Set up your first split';
+    : isMakeup
+      ? 'Rest day — makeup available'
+      : nothingScheduledToday && selectedWorkout
+        ? 'Rest day'
+        : selectedWorkout
+          ? 'Split ready to start'
+          : 'Set up your first split';
 
   return (
     <Screen scroll={false} padded={false}>
@@ -393,6 +407,13 @@ export default function HomeScreen() {
                   <Ionicons name="checkmark-circle" size={14} color="#2dd4bf" />
                   <Text variant="caption" className="ml-1 font-bold text-mint">
                     Done
+                  </Text>
+                </View>
+              ) : isMakeup ? (
+                <View className="flex-row items-center rounded-full border border-amber-400/30 bg-amber-400/10 px-2.5 py-1">
+                  <Ionicons name="refresh" size={14} color="#fbbf24" />
+                  <Text variant="caption" className="ml-1 font-bold text-amber-400">
+                    Makeup
                   </Text>
                 </View>
               ) : null}
