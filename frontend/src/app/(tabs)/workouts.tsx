@@ -88,14 +88,14 @@ export default function WorkoutsScreen() {
           />
         }>
         <ScreenHeader
-          eyebrow="Plans"
-          title="Training plans"
+          eyebrow="Splits"
+          title="Splits"
           subtitle="Organize your week into workout days, or import an existing program."
         />
 
         <View className="mb-5 flex-row gap-2">
           <Button
-            title="Import plan"
+            title="Import split"
             variant="secondary"
             icon="document-text-outline"
             className="flex-1"
@@ -114,7 +114,7 @@ export default function WorkoutsScreen() {
         ) : splits.length === 0 && standalone.length === 0 ? (
           <EmptyState
             icon="PLAN"
-            title="No training plans yet"
+            title="No splits yet"
             subtitle="Import a program or create your first workout day above."
           />
         ) : (
@@ -283,7 +283,7 @@ export default function WorkoutsScreen() {
               </View>
             ) : null}
 
-            <SectionHeader title="All plans" subtitle="Open a plan to edit its weekly schedule." />
+            <SectionHeader title="All splits" subtitle="Open a split to edit its weekly schedule." />
             {splits.map((s) => {
               const trainingDays = s.workouts.length;
               return (
@@ -300,7 +300,7 @@ export default function WorkoutsScreen() {
                         {s.name}
                       </Text>
                       <Text variant="caption" className="mt-0.5 text-iron-400">
-                        {trainingDays} training days · weekly plan
+                        {trainingDays} training days · weekly split
                       </Text>
                     </View>
                     <Ionicons name="chevron-forward" size={18} color="#475569" />
@@ -329,7 +329,7 @@ export default function WorkoutsScreen() {
               <>
                 <SectionHeader
                   title="Other workout days"
-                  subtitle="Workouts that are not assigned to a weekly plan."
+                  subtitle="Workouts that are not assigned to a split."
                 />
                 <View className="gap-2">
                   {standalone.map((r) => (

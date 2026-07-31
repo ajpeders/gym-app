@@ -223,7 +223,7 @@ export default function HistoryScreen() {
           <Card elevated className="mb-4 p-5">
             <Text variant="heading">Start a session</Text>
             <Text variant="muted" className="mt-1 mb-4">
-              Begin empty, or choose one of your saved plans below.
+              Begin empty, or choose one of your saved splits below.
             </Text>
             <Button
               title="Start empty session"
@@ -246,7 +246,7 @@ export default function HistoryScreen() {
         {workouts.length > 0 ? (
           <View className="mb-5">
             <SectionHeader
-              title="From a plan"
+              title="From a split"
               subtitle="Start with exercises and targets already loaded."
               className="mt-0"
             />

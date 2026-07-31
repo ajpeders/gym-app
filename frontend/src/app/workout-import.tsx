@@ -54,7 +54,7 @@ interface PickerState {
   exIdx: number;
 }
 
-const PLACEHOLDER = 'Paste your workout plan here.';
+const PLACEHOLDER = 'Paste your workout split here.';
 
 const MATCH_META: Record<ParsedMatch, { icon: string; label: string; className: string }> = {
   exact: { icon: '✓', label: 'matched', className: 'border-green-500/40 bg-green-500/10 text-green-300' },
@@ -207,7 +207,7 @@ export default function WorkoutImportScreen() {
 
     try {
       let done = 0;
-      const splitName = result.name?.trim() || 'Imported workout plan';
+      const splitName = result.name?.trim() || 'Imported split';
       const split = await api.createSplit({
         name: splitName,
         notes: result.notes ?? null,
@@ -468,7 +468,7 @@ export default function WorkoutImportScreen() {
               value={result?.name ?? ''}
               onChangeText={updatePlanName}
               editable={!saving}
-              placeholder="My workout plan"
+              placeholder="My split"
               placeholderTextColor="#64748b"
               selectionColor="#818cf8"
               className="mt-2 min-h-[50px] rounded-lg border border-iron-700 bg-iron-950 px-3.5 text-base font-bold text-iron-50"
@@ -593,10 +593,10 @@ export default function WorkoutImportScreen() {
           contentContainerClassName="px-4 pt-3 pb-6"
           keyboardShouldPersistTaps="handled">
           <Text variant="heading" className="mb-2">
-            Paste your plan here
+            Paste your split here
           </Text>
           <Text variant="muted" className="mb-3">
-            Drop in your workout plan and the AI will turn it into workouts.
+            Drop in your workout split and the AI will turn it into workouts.
           </Text>
 
           <TextInput
@@ -695,11 +695,11 @@ function ParseProgress({ received = 0 }: { received?: number }) {
       </View>
       <Text variant="caption" className="mt-3 text-center">
         {received > 0
-          ? `Receiving the plan · ${received.toLocaleString()} characters · ${elapsed}s`
+          ? `Receiving the split · ${received.toLocaleString()} characters · ${elapsed}s`
           : `Waiting for Ollama's first response · ${elapsed}s`}
       </Text>
       <Text variant="caption" className="mt-1 text-center text-iron-500">
-        Large plans can take a few minutes on a local model. You can leave this screen open.
+        Large splits can take a few minutes on a local model. You can leave this screen open.
       </Text>
     </View>
   );

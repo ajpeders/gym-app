@@ -364,8 +364,8 @@ export default function HomeScreen() {
   const summaryLabel = active
     ? 'Session in progress'
     : selectedWorkout
-      ? 'Plan ready to start'
-      : 'Set up your first plan';
+      ? 'Split ready to start'
+      : 'Set up your first split';
 
   return (
     <Screen scroll={false} padded={false}>
@@ -476,13 +476,13 @@ export default function HomeScreen() {
             <View className="mb-4 h-12 w-12 items-center justify-center rounded-2xl border border-brand/30 bg-brand/10">
               <Ionicons name="clipboard-outline" size={24} color="#818cf8" />
             </View>
-            <Text variant="heading">No training plan yet</Text>
+            <Text variant="heading">No split yet</Text>
             <Text variant="muted" className="mt-1">
               Import your program from notes or create a workout day manually.
             </Text>
             <View className="mt-4 gap-3">
               <Button
-                title="Import a plan"
+                title="Import a split"
                 icon="document-text-outline"
                 onPress={() => router.push('/workout-import')}
               />

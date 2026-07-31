@@ -135,7 +135,7 @@ export default function SplitDetailScreen() {
           ) : null}
         </View>
         <Text variant="muted" className="mt-0.5">
-          {ordered.length} {ordered.length === 1 ? 'workout' : 'workouts'} · weekly plan
+          {ordered.length} {ordered.length === 1 ? 'workout' : 'workouts'} · weekly split
         </Text>
 
         {actionError ? (

@@ -392,7 +392,7 @@ export default function CoachScreen() {
               <ScreenHeader
                 eyebrow="AI training partner"
                 title="Coach"
-                subtitle="Advice grounded in your plans, history, goals, and limitations."
+                subtitle="Advice grounded in your splits, history, goals, and limitations."
               />
               <EmptyIntro onPick={setInput} />
             </>
