@@ -209,7 +209,7 @@ export default function SplitDetailScreen() {
         <Text variant="heading" className="mb-2 mt-5">
           Weekly schedule
         </Text>
-        <Card className="mb-1 rounded-[20px] p-2">
+        <Card className="mb-1 rounded-lg p-2">
           {DOW.map((dayName, day) => {
             const dayWorkouts = workoutsForDay(day);
             const isToday = day === todayDow;
@@ -247,7 +247,7 @@ export default function SplitDetailScreen() {
                 </Text>
                 {isDone ? (
                   <View className="mr-2 flex-row items-center rounded-full bg-brand/15 px-2 py-1">
-                    <Ionicons name="checkmark-circle" size={13} color="#818cf8" />
+                    <Ionicons name="checkmark-circle" size={13} color="#5eead4" />
                     <Text variant="caption" className="ml-1 font-bold text-brand">
                       Done
                     </Text>
@@ -269,7 +269,7 @@ export default function SplitDetailScreen() {
             <Text variant="heading" className="mb-2 mt-6">
               Anytime
             </Text>
-            <Card className="mb-1 rounded-[20px] p-2">
+            <Card className="mb-1 rounded-lg p-2">
               {floating.map((w) => (
                 <Pressable
                   key={w.id}
@@ -291,13 +291,13 @@ export default function SplitDetailScreen() {
             <Text variant="heading" className="mb-2 mt-6">
               Progression rules
             </Text>
-            <Card className="mb-1 rounded-[20px] p-4">
+            <Card className="mb-1 rounded-lg p-4">
               {split.rules.map((rule, i) => (
                 <View key={i} className="mb-2.5 flex-row last:mb-0">
                   <Ionicons
                     name="checkmark-circle"
                     size={16}
-                    color="#818cf8"
+                    color="#5eead4"
                     style={{ marginTop: 2 }}
                   />
                   <Text variant="body" className="ml-2 flex-1 text-iron-200">
@@ -314,7 +314,7 @@ export default function SplitDetailScreen() {
           Workouts
         </Text>
         {ordered.map((w) => (
-          <Card key={w.id} className="mb-3 rounded-[20px] p-4" onPress={() => router.push(`/workout/${w.id}`)}>
+          <Card key={w.id} className="mb-3 rounded-lg p-4" onPress={() => router.push(`/workout/${w.id}`)}>
             <View className="flex-row items-center">
               <View className="flex-1">
                 <Text variant="subheading" numberOfLines={1}>
@@ -330,7 +330,7 @@ export default function SplitDetailScreen() {
                   router.push(`/session/active/${s.id}`);
                 }}
                 className="mr-2 flex-row items-center rounded-lg bg-brand px-3 py-2 active:bg-brand-600">
-                <Ionicons name="play" size={13} color="#070b12" />
+                <Ionicons name="play" size={13} color="#05070a" />
                 <Text variant="caption" className="ml-1 font-bold text-iron-950">
                   Start
                 </Text>

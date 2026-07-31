@@ -67,13 +67,13 @@ export function HomeProfileCard() {
     profile.current_weight != null || profile.goal_weight != null || profile.height != null;
 
   return (
-    <Card elevated className="mb-4 rounded-[22px] p-5">
+    <Card elevated className="mb-4 rounded-lg p-5">
       <Pressable
         onPress={() => router.push('/profile')}
         accessibilityRole="button"
         className="mb-3 flex-row items-center active:opacity-70">
-        <View className="mr-3 h-10 w-10 items-center justify-center rounded-2xl border border-brand/25 bg-brand/10">
-          <Ionicons name="medkit-outline" size={19} color="#818cf8" />
+        <View className="mr-3 h-10 w-10 items-center justify-center rounded-lg border border-brand/25 bg-brand/10">
+          <Ionicons name="medkit-outline" size={19} color="#5eead4" />
         </View>
         <View className="flex-1">
           <Text variant="heading">Injuries & limitations</Text>
@@ -126,11 +126,11 @@ export function HomeProfileCard() {
               disabled={busy}
               accessibilityRole="button"
               accessibilityLabel={`Remove ${inj}`}
-              className="flex-row items-center rounded-full border border-amber-500/40 bg-amber-500/10 px-3 py-1.5 active:opacity-70">
-              <Text variant="caption" className="font-semibold text-amber-300">
+              className="flex-row items-center rounded-full border border-yellow-500/40 bg-yellow-500/10 px-3 py-1.5 active:opacity-70">
+              <Text variant="caption" className="font-semibold text-yellow-300">
                 {inj}
               </Text>
-              <Ionicons name="close" size={13} color="#fcd34d" style={{ marginLeft: 6 }} />
+              <Ionicons name="close" size={13} color="#fde047" style={{ marginLeft: 6 }} />
             </Pressable>
           ))}
         </View>
@@ -153,7 +153,7 @@ export function HomeProfileCard() {
           className={`h-11 w-11 items-center justify-center rounded-lg ${
             newInjury.trim() ? 'bg-brand active:bg-brand-600' : 'bg-iron-800 opacity-50'
           }`}>
-          <Ionicons name="add" size={22} color="#070b12" />
+          <Ionicons name="add" size={22} color="#05070a" />
         </Pressable>
       </View>
     </Card>

@@ -125,12 +125,12 @@ export default function WorkoutsScreen() {
                   title="This week"
                   subtitle="Choose a split, then tap a day for workouts or progress photos."
                 />
-                <Card className="rounded-[22px] p-3">
+                <Card className="rounded-lg p-3">
                   <Pressable
                     accessibilityRole="button"
                     accessibilityLabel="Choose training split"
                     onPress={() => setShowPlanPicker((open) => !open)}
-                    className="mb-3 flex-row items-center rounded-2xl border border-iron-800 bg-iron-900 px-3 py-3 active:bg-iron-850">
+                    className="mb-3 flex-row items-center rounded-lg border border-iron-800 bg-iron-900 px-3 py-3 active:bg-iron-850">
                     <View className="flex-1">
                       <Text variant="caption" className="font-bold uppercase tracking-wider text-iron-400">
                         Viewing split
@@ -145,12 +145,12 @@ export default function WorkoutsScreen() {
                     <Ionicons
                       name={showPlanPicker ? 'chevron-up' : 'chevron-down'}
                       size={16}
-                      color="#818cf8"
+                      color="#5eead4"
                     />
                   </Pressable>
 
                   {showPlanPicker ? (
-                    <View className="mb-3 gap-2 rounded-2xl bg-iron-950 p-2">
+                    <View className="mb-3 gap-2 rounded-lg bg-iron-950 p-2">
                       {splits.map((split) => {
                         const selected = split.id === activePlan.id;
                         return (
@@ -160,7 +160,7 @@ export default function WorkoutsScreen() {
                               setSelectedPlanId(split.id);
                               setShowPlanPicker(false);
                             }}
-                            className={`flex-row items-center rounded-xl px-3 py-3 ${
+                            className={`flex-row items-center rounded-lg px-3 py-3 ${
                               selected ? 'bg-brand/15' : 'active:bg-iron-850'
                             }`}>
                             <View className="flex-1">
@@ -174,7 +174,7 @@ export default function WorkoutsScreen() {
                               </Text>
                             </View>
                             {selected ? (
-                              <Ionicons name="checkmark-circle" size={19} color="#818cf8" />
+                              <Ionicons name="checkmark-circle" size={19} color="#5eead4" />
                             ) : (
                               <Ionicons name="chevron-forward" size={16} color="#475569" />
                             )}
@@ -237,7 +237,7 @@ export default function WorkoutsScreen() {
                               router.push(`/workout/${primary.id}`);
                             }
                           }}
-                          className={`min-w-0 flex-1 items-center rounded-2xl px-0.5 py-2.5 ${
+                          className={`min-w-0 flex-1 items-center rounded-lg px-0.5 py-2.5 ${
                             isToday ? 'border border-brand/50 bg-brand/10' : 'border border-transparent'
                           } ${primary || isPastOrToday ? 'active:bg-brand/15' : ''}`}>
                           <Text
@@ -251,7 +251,7 @@ export default function WorkoutsScreen() {
                             {date.getDate()}
                           </Text>
                           {hasPhoto ? (
-                            <Ionicons name="camera" size={11} color="#2dd4bf" style={{ marginTop: 6 }} />
+                            <Ionicons name="camera" size={11} color="#86efac" style={{ marginTop: 6 }} />
                           ) : (
                             <View className={`mt-2 h-2 w-2 rounded-full ${isRest ? 'bg-iron-700' : 'bg-brand'}`} />
                           )}
@@ -268,7 +268,7 @@ export default function WorkoutsScreen() {
                         <Pressable
                           key={workout.id}
                           onPress={() => router.push(`/workout/${workout.id}`)}
-                          className="mb-1 flex-row items-center rounded-xl px-2 py-2 active:bg-brand/10 last:mb-0">
+                          className="mb-1 flex-row items-center rounded-lg px-2 py-2 active:bg-brand/10 last:mb-0">
                           <Text variant="caption" className="w-16 font-bold text-iron-400">
                             {workout.weekdays.map((day) => WEEK_DAYS[day]?.slice(0, 3)).join('/')}
                           </Text>
@@ -290,10 +290,10 @@ export default function WorkoutsScreen() {
                 <Card
                   key={s.id}
                   onPress={() => router.push(`/split/${s.id}`)}
-                  className="mb-3 rounded-[22px] p-5">
+                  className="mb-3 rounded-lg p-5">
                   <View className="flex-row items-center">
-                    <View className="mr-3 h-12 w-12 items-center justify-center rounded-2xl border border-brand/30 bg-brand/10">
-                      <Ionicons name="calendar" size={22} color="#818cf8" />
+                    <View className="mr-3 h-12 w-12 items-center justify-center rounded-lg border border-brand/30 bg-brand/10">
+                      <Ionicons name="calendar" size={22} color="#5eead4" />
                     </View>
                     <View className="flex-1">
                       <Text variant="subheading" numberOfLines={1}>
@@ -336,7 +336,7 @@ export default function WorkoutsScreen() {
                     <Card
                       key={r.id}
                       onPress={() => router.push(`/workout/${r.id}`)}
-                      className="rounded-[20px] p-4">
+                      className="rounded-lg p-4">
                       <View className="flex-row items-center">
                         <View className="flex-1">
                           <Text variant="subheading" numberOfLines={1}>

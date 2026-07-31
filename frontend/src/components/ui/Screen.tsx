@@ -31,13 +31,11 @@ export function Screen({
 
   return (
     <SafeAreaView edges={edges} className={`flex-1 bg-iron-950 ${className ?? ''}`}>
-      <View pointerEvents="none" className="absolute inset-x-0 top-0 h-40 bg-iron-900/45" />
-      <View pointerEvents="none" className="absolute left-0 top-0 h-1 w-28 bg-brand" />
-      <View pointerEvents="none" className="absolute left-28 right-0 top-0 h-px bg-iron-700" />
+      <View pointerEvents="none" className="absolute inset-x-0 top-0 h-36 bg-iron-900/40" />
       {scroll ? (
         <ScrollView
           className="flex-1"
-          contentContainerClassName={`${contentWidth} ${pad} pb-28 pt-5 ${contentClassName ?? ''}`}
+          contentContainerClassName={`${contentWidth} ${pad} pb-24 pt-5 ${contentClassName ?? ''}`}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled">
           {children}

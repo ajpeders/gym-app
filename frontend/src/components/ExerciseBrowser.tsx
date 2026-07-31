@@ -101,14 +101,14 @@ export function ExerciseBrowser({ onSelect, renderTrailing }: ExerciseBrowserPro
 
   return (
     <View className="flex-1">
-      <View className="mx-4 flex-row items-center rounded-[18px] border border-iron-700 bg-iron-900 px-3">
+      <View className="mx-4 flex-row items-center rounded-lg border border-iron-700 bg-iron-900 px-3">
         <Ionicons name="search" size={18} color="#64748b" />
         <TextInput
           value={query}
           onChangeText={setQuery}
           placeholder="Search exercises"
           placeholderTextColor="#64748b"
-          selectionColor="#818cf8"
+          selectionColor="#5eead4"
           autoCapitalize="none"
           className="min-h-[48px] flex-1 px-3 text-base text-iron-50"
         />
@@ -175,7 +175,7 @@ export function ExerciseBrowser({ onSelect, renderTrailing }: ExerciseBrowserPro
 
       {loading ? (
         <View className="flex-1 items-center justify-center py-16">
-          <ActivityIndicator color="#818cf8" />
+          <ActivityIndicator color="#5eead4" />
         </View>
       ) : error ? (
         <ErrorState message={error} onRetry={() => load(true)} />
@@ -205,7 +205,7 @@ export function ExerciseBrowser({ onSelect, renderTrailing }: ExerciseBrowserPro
           ))}
           {loadingMore ? (
             <View className="py-4">
-              <ActivityIndicator color="#818cf8" />
+              <ActivityIndicator color="#5eead4" />
             </View>
           ) : null}
         </ScrollView>

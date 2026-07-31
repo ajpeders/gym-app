@@ -16,7 +16,7 @@ export function Loading({ label }: { label?: string }) {
   return (
     <View className="flex-1 items-center justify-center py-16">
       <View className="h-14 w-14 items-center justify-center rounded-2xl border border-iron-700 bg-iron-900">
-        <ActivityIndicator color="#818cf8" />
+        <ActivityIndicator color="#5eead4" />
       </View>
       {label ? <Text variant="muted" className="mt-3">{label}</Text> : null}
     </View>
@@ -35,7 +35,7 @@ export function EmptyState({
   return (
     <View className="items-center justify-center py-16 px-6">
       <View className="mb-3 h-14 w-14 items-center justify-center rounded-2xl border border-iron-700 bg-iron-900">
-        <Ionicons name={icon ? (emptyIcons[icon] ?? 'albums-outline') : 'albums-outline'} size={24} color="#818cf8" />
+        <Ionicons name={icon ? (emptyIcons[icon] ?? 'albums-outline') : 'albums-outline'} size={24} color="#5eead4" />
       </View>
       <Text variant="subheading" className="text-center">
         {title}

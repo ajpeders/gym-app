@@ -27,6 +27,7 @@ import { Text } from '@/components/ui/Text';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { ExerciseThumb } from '@/components/ExerciseThumb';
+import { HomeProfileCard } from '@/components/HomeProfileCard';
 import { formatRepRange } from '@/lib/format';
 
 type IoniconName = React.ComponentProps<typeof Ionicons>['name'];
@@ -147,10 +148,10 @@ function QuickLink({
     <Pressable
       onPress={onPress}
       accessibilityRole="button"
-      className="min-h-[104px] flex-1 rounded-[18px] border border-iron-800 bg-iron-900/85 p-4 active:opacity-75">
+      className="min-h-[96px] flex-1 rounded-lg border border-iron-800 bg-iron-900/75 p-3.5 active:bg-iron-850">
       <View className="flex-row items-start">
-        <View className="h-10 w-10 items-center justify-center rounded-xl border border-brand/25 bg-brand/10">
-          <Ionicons name={icon} size={18} color="#818cf8" />
+        <View className="h-10 w-10 items-center justify-center rounded-lg border border-brand/25 bg-brand/10">
+          <Ionicons name={icon} size={18} color="#5eead4" />
         </View>
         <Ionicons
           name="arrow-up-outline"
@@ -172,9 +173,9 @@ function QuickLink({
 type MetricTone = 'brand' | 'mint' | 'steel';
 
 const metricTone: Record<MetricTone, { box: string; text: string; icon: string }> = {
-  brand: { box: 'border-brand/30 bg-brand/10', text: 'text-brand', icon: '#818cf8' },
-  mint: { box: 'border-mint/30 bg-mint/10', text: 'text-mint', icon: '#2dd4bf' },
-  steel: { box: 'border-steel/30 bg-steel/10', text: 'text-steel', icon: '#22d3ee' },
+  brand: { box: 'border-iron-700 bg-iron-950', text: 'text-brand', icon: '#5eead4' },
+  mint: { box: 'border-iron-700 bg-iron-950', text: 'text-mint', icon: '#86efac' },
+  steel: { box: 'border-iron-700 bg-iron-950', text: 'text-steel', icon: '#38bdf8' },
 };
 
 function MetricPill({
@@ -389,7 +390,7 @@ export default function HomeScreen() {
             <View className="flex-row items-center gap-2">
               {doneThisWeek ? (
                 <View className="flex-row items-center rounded-full border border-mint/30 bg-mint/10 px-2.5 py-1">
-                  <Ionicons name="checkmark-circle" size={14} color="#2dd4bf" />
+                  <Ionicons name="checkmark-circle" size={14} color="#86efac" />
                   <Text variant="caption" className="ml-1 font-bold text-mint">
                     Done
                   </Text>
@@ -408,10 +409,10 @@ export default function HomeScreen() {
         />
 
         {active ? (
-          <Card elevated className="border-brand bg-brand/10 p-5">
+          <Card elevated className="border-brand/35 bg-iron-900 p-4">
             <View className="flex-row items-center">
-              <View className="mr-3 h-12 w-12 items-center justify-center rounded-2xl bg-brand">
-                <Ionicons name="barbell" size={23} color="#070b12" />
+              <View className="mr-3 h-12 w-12 items-center justify-center rounded-lg bg-brand">
+                <Ionicons name="barbell" size={23} color="#05070a" />
               </View>
               <View className="flex-1">
                 <View className="mb-1 self-start rounded-full bg-brand px-2 py-0.5">
@@ -472,9 +473,9 @@ export default function HomeScreen() {
             />
           </Card>
         ) : workouts.length === 0 ? (
-          <Card elevated className="p-5">
-            <View className="mb-4 h-12 w-12 items-center justify-center rounded-2xl border border-brand/30 bg-brand/10">
-              <Ionicons name="clipboard-outline" size={24} color="#818cf8" />
+          <Card elevated className="p-4">
+            <View className="mb-4 h-12 w-12 items-center justify-center rounded-lg border border-brand/30 bg-brand/10">
+              <Ionicons name="clipboard-outline" size={24} color="#5eead4" />
             </View>
             <Text variant="heading">No split yet</Text>
             <Text variant="muted" className="mt-1">
@@ -495,14 +496,14 @@ export default function HomeScreen() {
             </View>
           </Card>
         ) : selectedWorkout ? (
-          <Card elevated className="p-5">
+          <Card elevated className="p-4">
             {workouts.length > 1 ? (
               <Pressable
                 onPress={() => setPickerOpen((v) => !v)}
                 accessibilityRole="button"
                 className="flex-row items-center active:opacity-70">
-                <View className="mr-3 h-12 w-12 items-center justify-center rounded-2xl border border-brand/30 bg-brand/10">
-                  <Ionicons name="calendar-outline" size={23} color="#818cf8" />
+                <View className="mr-3 h-12 w-12 items-center justify-center rounded-lg border border-brand/30 bg-brand/10">
+                  <Ionicons name="calendar-outline" size={23} color="#5eead4" />
                 </View>
                 <View className="flex-1">
                   <Text variant="heading" numberOfLines={1}>
@@ -515,13 +516,13 @@ export default function HomeScreen() {
                 <Ionicons
                   name={pickerOpen ? 'chevron-up' : 'chevron-down'}
                   size={22}
-                  color="#818cf8"
+                  color="#5eead4"
                 />
               </Pressable>
             ) : (
               <View className="flex-row items-center">
-                <View className="mr-3 h-12 w-12 items-center justify-center rounded-2xl border border-brand/30 bg-brand/10">
-                  <Ionicons name="calendar-outline" size={23} color="#818cf8" />
+                <View className="mr-3 h-12 w-12 items-center justify-center rounded-lg border border-brand/30 bg-brand/10">
+                  <Ionicons name="calendar-outline" size={23} color="#5eead4" />
                 </View>
                 <View className="flex-1">
                   <Text variant="heading" numberOfLines={1}>
@@ -540,6 +541,18 @@ export default function HomeScreen() {
                 value={String(selectedExercises.length)}
                 label="Exercises"
                 tone="brand"
+              />
+              <MetricPill
+                icon="calendar-outline"
+                value={todayEntry ? 'Today' : selectedWorkout.floating ? 'Any' : 'Plan'}
+                label="Schedule"
+                tone="steel"
+              />
+              <MetricPill
+                icon={doneThisWeek ? 'checkmark-done-outline' : 'radio-button-off-outline'}
+                value={doneThisWeek ? 'Done' : 'Open'}
+                label="This week"
+                tone={doneThisWeek ? 'mint' : 'brand'}
               />
             </View>
 
@@ -570,7 +583,7 @@ export default function HomeScreen() {
                           <Text variant="caption">today</Text>
                         </View>
                       ) : null}
-                      {isSel ? <Ionicons name="checkmark" size={18} color="#818cf8" /> : null}
+                      {isSel ? <Ionicons name="checkmark" size={18} color="#5eead4" /> : null}
                     </Pressable>
                   );
                 })}
@@ -631,6 +644,8 @@ export default function HomeScreen() {
             </View>
           </Card>
         ) : null}
+
+        <HomeProfileCard />
 
         <SectionHeader
           title="Tools"
@@ -695,7 +710,7 @@ export default function HomeScreen() {
 
               {aiReply ? (
                 <View className="mt-4 flex-row rounded-lg border border-brand/40 bg-brand/10 p-3">
-                  <Ionicons name="sparkles" size={16} color="#818cf8" />
+                  <Ionicons name="sparkles" size={16} color="#5eead4" />
                   <View className="ml-2 flex-1">
                     <Text variant="caption" className="font-bold text-brand">
                       Coach

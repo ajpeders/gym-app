@@ -30,9 +30,9 @@ function SummaryTile({
   tone?: 'brand' | 'mint' | 'steel';
 }) {
   const colors = {
-    brand: { box: 'border-brand/30 bg-brand/10', text: 'text-brand', icon: '#818cf8' },
-    mint: { box: 'border-mint/30 bg-mint/10', text: 'text-mint', icon: '#2dd4bf' },
-    steel: { box: 'border-steel/30 bg-steel/10', text: 'text-steel', icon: '#22d3ee' },
+    brand: { box: 'border-brand/30 bg-brand/10', text: 'text-brand', icon: '#5eead4' },
+    mint: { box: 'border-mint/30 bg-mint/10', text: 'text-mint', icon: '#86efac' },
+    steel: { box: 'border-steel/30 bg-steel/10', text: 'text-steel', icon: '#38bdf8' },
   }[tone];
 
   return (
@@ -58,9 +58,9 @@ function StatBadge({
   tone?: 'brand' | 'mint' | 'steel';
 }) {
   const colors = {
-    brand: { box: 'border-brand/30 bg-brand/10', text: 'text-brand', icon: '#818cf8' },
-    mint: { box: 'border-mint/30 bg-mint/10', text: 'text-mint', icon: '#2dd4bf' },
-    steel: { box: 'border-steel/30 bg-steel/10', text: 'text-steel', icon: '#22d3ee' },
+    brand: { box: 'border-brand/30 bg-brand/10', text: 'text-brand', icon: '#5eead4' },
+    mint: { box: 'border-mint/30 bg-mint/10', text: 'text-mint', icon: '#86efac' },
+    steel: { box: 'border-steel/30 bg-steel/10', text: 'text-steel', icon: '#38bdf8' },
   }[tone];
 
   return (
@@ -171,7 +171,7 @@ export default function HistoryScreen() {
                 tone="steel"
               />
             </View>
-            <Card className="rounded-[20px] p-4">
+            <Card className="rounded-lg p-4">
               <View className="flex-row items-center justify-between">
                 <View>
                   <Text variant="caption" className="font-bold uppercase tracking-wider text-iron-400">
@@ -200,10 +200,10 @@ export default function HistoryScreen() {
         ) : null}
 
         {activeId ? (
-          <Card elevated className="mb-4 rounded-[24px] border-brand bg-brand/10 p-5">
+          <Card elevated className="mb-4 rounded-lg border-brand bg-brand/10 p-5">
             <View className="mb-4 flex-row items-center">
               <View className="mr-3 h-12 w-12 items-center justify-center rounded-2xl bg-brand">
-                <Ionicons name="radio-button-on" size={14} color="#070b12" />
+                <Ionicons name="radio-button-on" size={14} color="#05070a" />
               </View>
               <View className="flex-1">
                 <Text variant="heading">Active session</Text>
@@ -256,9 +256,9 @@ export default function HistoryScreen() {
                   <Card
                     key={r.id}
                     onPress={() => startFromWorkout(r)}
-                    className="w-48 rounded-[22px] border-iron-700 bg-iron-900 p-5">
+                    className="w-48 rounded-lg border-iron-700 bg-iron-900 p-5">
                     <View className="mb-3 h-11 w-11 items-center justify-center rounded-2xl border border-brand/30 bg-brand/10">
-                      <Ionicons name="clipboard-outline" size={20} color="#818cf8" />
+                      <Ionicons name="clipboard-outline" size={20} color="#5eead4" />
                     </View>
                     <Text variant="subheading" numberOfLines={1}>
                       {r.name}
@@ -293,7 +293,7 @@ export default function HistoryScreen() {
               <Card key={w.id} onPress={() => router.push(`/session/${w.id}`)}>
                 <View className="flex-row items-center justify-between">
                   <View className="mr-3 h-11 w-11 items-center justify-center rounded-lg border border-iron-700 bg-iron-850">
-                    <Ionicons name="checkmark" size={20} color="#2dd4bf" />
+                    <Ionicons name="checkmark" size={20} color="#86efac" />
                   </View>
                   <View className="flex-1">
                     <Text variant="subheading" numberOfLines={1}>

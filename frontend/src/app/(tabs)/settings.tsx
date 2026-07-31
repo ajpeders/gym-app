@@ -69,8 +69,8 @@ function Row({
       <Switch
         value={value}
         onValueChange={onValueChange}
-        trackColor={{ false: '#243044', true: '#818cf8' }}
-        thumbColor={value ? '#070b12' : '#64748b'}
+        trackColor={{ false: '#243044', true: '#5eead4' }}
+        thumbColor={value ? '#05070a' : '#64748b'}
       />
     </View>
   );
@@ -101,10 +101,10 @@ export default function SettingsScreen() {
         subtitle="Tune units, workout behavior, and your AI provider from one place."
       />
 
-      <Card className="mb-4 rounded-[22px] p-5" onPress={() => router.push('/profile')}>
+      <Card className="mb-4 rounded-lg p-5" onPress={() => router.push('/profile')}>
         <View className="flex-row items-center justify-between">
           <View className="mr-3 h-12 w-12 items-center justify-center rounded-2xl border border-brand/30 bg-brand/10">
-            <Ionicons name="person-outline" size={21} color="#818cf8" />
+            <Ionicons name="person-outline" size={21} color="#5eead4" />
           </View>
           <View className="flex-1 pr-3">
             <Text variant="subheading">{user?.display_name ?? 'Your profile'}</Text>
@@ -120,7 +120,7 @@ export default function SettingsScreen() {
       </Card>
 
       <SectionHeader title={`Units${saving ? ' · saving…' : ''}`} className="mt-0" />
-      <Card className="mb-4 rounded-[22px] p-5">
+      <Card className="mb-4 rounded-lg p-5">
         <Segmented<Units>
           options={[
             { label: 'Kilograms (kg)', value: 'kg' },
@@ -132,7 +132,7 @@ export default function SettingsScreen() {
       </Card>
 
       <SectionHeader title="Training" />
-      <Card className="mb-4 gap-3 rounded-[22px] p-5">
+      <Card className="mb-4 gap-3 rounded-lg p-5">
         <Row
           title="Quick-add buttons"
           subtitle="Show one-tap set buttons during a workout."
@@ -395,7 +395,7 @@ function AiProviderControl({
       <Card className="mb-3 gap-1">
         {loading ? (
           <View className="flex-row items-center py-1">
-            <ActivityIndicator color="#818cf8" />
+            <ActivityIndicator color="#5eead4" />
             <Text variant="muted" className="ml-2">
               Checking providers…
             </Text>
@@ -511,7 +511,7 @@ function AiProviderControl({
 
           {modelsLoading ? (
             <View className="flex-row items-center py-2">
-              <ActivityIndicator color="#818cf8" />
+              <ActivityIndicator color="#5eead4" />
               <Text variant="muted" className="ml-2">
                 Finding installed models…
               </Text>
@@ -556,7 +556,7 @@ function AiProviderControl({
                       </Text>
                     </View>
                     {active ? (
-                      <Ionicons name="checkmark-circle" size={18} color="#818cf8" />
+                      <Ionicons name="checkmark-circle" size={18} color="#5eead4" />
                     ) : null}
                   </Pressable>
                 );
@@ -670,10 +670,10 @@ function AiProviderControl({
             testing ? 'opacity-60' : ''
           }`}>
           {testing ? (
-            <ActivityIndicator color="#818cf8" />
+            <ActivityIndicator color="#5eead4" />
           ) : (
             <>
-              <Ionicons name="flash-outline" size={16} color="#818cf8" />
+              <Ionicons name="flash-outline" size={16} color="#5eead4" />
               <Text className="ml-1.5 text-base font-semibold text-iron-50">Test connection</Text>
             </>
           )}
