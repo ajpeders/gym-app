@@ -35,11 +35,44 @@ const DATE_PRESETS: { label: string; days: number }[] = [
   { label: 'A week ago', days: 7 },
 ];
 
-function isoForDaysBack(days: number): string {
+/** Local calendar date as YYYY-MM-DD (not UTC — a late-evening session must
+ * not roll into tomorrow's date). */
+function toDateStr(d: Date): string {
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
+function dateStrForDaysBack(days: number): string {
   const d = new Date();
   d.setDate(d.getDate() - days);
-  d.setHours(12, 0, 0, 0);
-  return d.toISOString();
+  return toDateStr(d);
+}
+
+/** Parse YYYY-MM-DD into local noon (midday keeps DST/timezone shifts from
+ * moving the calendar day). Null when the text isn't a real date. */
+function parseDateStr(s: string): Date | null {
+  const m = s.trim().match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!m) return null;
+  const year = Number(m[1]);
+  const month = Number(m[2]);
+  const day = Number(m[3]);
+  const d = new Date(year, month - 1, day, 12, 0, 0, 0);
+  // Rejects overflow like 2026-02-31, which Date would roll into March.
+  if (d.getFullYear() !== year || d.getMonth() !== month - 1 || d.getDate() !== day) {
+    return null;
+  }
+  return d;
+}
+
+function formatDateLabel(s: string): string {
+  const d = parseDateStr(s);
+  if (!d) return s;
+  return d.toLocaleDateString(undefined, {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+    year: d.getFullYear() === new Date().getFullYear() ? undefined : 'numeric',
+  });
 }
 
 const smallInput =
@@ -49,7 +82,8 @@ export default function LogSessionScreen() {
   const router = useRouter();
   const { settings } = useSettings();
   const [name, setName] = useState('');
-  const [daysBack, setDaysBack] = useState(0);
+  const [dateStr, setDateStr] = useState(() => dateStrForDaysBack(0));
+  const [pickingDate, setPickingDate] = useState(false);
   const [notes, setNotes] = useState('');
   const [exercises, setExercises] = useState<DraftLoggedExercise[]>([]);
   const [picking, setPicking] = useState(false);
@@ -106,9 +140,18 @@ export default function LogSessionScreen() {
       setError('Add at least one exercise.');
       return;
     }
+    const when = parseDateStr(dateStr);
+    if (!when) {
+      setError('Enter the date as YYYY-MM-DD.');
+      return;
+    }
+    if (when.getTime() > Date.now()) {
+      setError("That date is in the future — pick today or a day you've already trained.");
+      return;
+    }
     const payload: SessionLogInput = {
       name: name.trim() || null,
-      started_at: isoForDaysBack(daysBack),
+      started_at: when.toISOString(),
       notes: notes.trim() || null,
       exercises: exercises.map((e) => ({
         exercise_id: e.exercise_id,
@@ -156,11 +199,15 @@ export default function LogSessionScreen() {
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
           <View className="flex-row gap-2">
             {DATE_PRESETS.map((p) => {
-              const active = p.days === daysBack;
+              const presetStr = dateStrForDaysBack(p.days);
+              const active = !pickingDate && presetStr === dateStr;
               return (
                 <Pressable
                   key={p.days}
-                  onPress={() => setDaysBack(p.days)}
+                  onPress={() => {
+                    setPickingDate(false);
+                    setDateStr(presetStr);
+                  }}
                   className={`rounded-full border px-3.5 py-2 ${
                     active ? 'border-brand bg-brand/20' : 'border-iron-700 bg-iron-900'
                   }`}>
@@ -170,8 +217,37 @@ export default function LogSessionScreen() {
                 </Pressable>
               );
             })}
+            <Pressable
+              onPress={() => setPickingDate(true)}
+              className={`rounded-full border px-3.5 py-2 ${
+                pickingDate ? 'border-brand bg-brand/20' : 'border-iron-700 bg-iron-900'
+              }`}>
+              <Text
+                variant="caption"
+                className={pickingDate ? 'font-bold text-brand' : 'text-iron-200'}>
+                Another day…
+              </Text>
+            </Pressable>
           </View>
         </ScrollView>
+
+        {pickingDate ? (
+          <View className="mt-2.5">
+            <TextInput
+              value={dateStr}
+              onChangeText={setDateStr}
+              placeholder="YYYY-MM-DD"
+              placeholderTextColor="#64748b"
+              selectionColor="#818cf8"
+              autoCapitalize="none"
+              className="rounded-lg border border-iron-700 bg-iron-900 px-4 py-2.5 text-base text-iron-50"
+            />
+          </View>
+        ) : null}
+
+        <Text variant="caption" className="mt-1.5 text-iron-400">
+          Logging for {formatDateLabel(dateStr)}
+        </Text>
 
         <Text variant="heading" className="mb-2 mt-5">
           Exercises
