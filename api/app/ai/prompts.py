@@ -150,6 +150,28 @@ def edit_split_user_prompt(split_json: str, instruction: str) -> str:
     return f"Current split:\n{split_json}\n\nInstruction:\n{instruction}"
 
 
+_NUTRITION_RULES = (
+    "You turn a sentence about food eaten into structured entries: a short label, "
+    "calories, and grams of protein.\n"
+    "Rules:\n"
+    "- One entry per distinct food or meal the user mentions.\n"
+    "- Use the numbers the user gives. 'about 800 cal' -> calories 800. '60g protein' -> protein 60.\n"
+    "- If the user gives no number for a common food, estimate a reasonable value and keep the "
+    "label descriptive. If you truly cannot estimate, use null rather than guessing wildly.\n"
+    "- 'a shake' or 'protein shake' with no numbers -> a modest estimate, not zero.\n"
+    "- Keep the label short and human, e.g. 'Chicken and rice', not a sentence.\n"
+    "- Never invent a food the user did not mention."
+)
+
+
+def nutrition_system_prompt() -> str:
+    return _NUTRITION_RULES
+
+
+def nutrition_user_prompt(text: str) -> str:
+    return f"Eaten:\n{text}"
+
+
 _CHECKIN_SYSTEM = (
     "You maintain a strength athlete's persistent training profile for a coaching app. "
     "Given the current profile (JSON) and a new check-in message, return the UPDATED profile.\n"

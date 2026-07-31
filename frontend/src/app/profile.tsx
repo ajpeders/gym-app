@@ -285,9 +285,25 @@ export default function ProfileScreen() {
             onCommit={(height) => void save({ height })}
           />
         </View>
+        <View className="mt-3 flex-row gap-2">
+          <NumericProfileField
+            label="Daily calories"
+            value={profile.calorie_target}
+            unit="cal"
+            placeholder="—"
+            onCommit={(calorie_target) => void save({ calorie_target })}
+          />
+          <NumericProfileField
+            label="Daily protein"
+            value={profile.protein_target}
+            unit="g"
+            placeholder="—"
+            onCommit={(protein_target) => void save({ protein_target })}
+          />
+        </View>
         <Text variant="caption" className="mt-3 text-iron-400">
           These are coach context fields. Weigh-ins and progress photos can still track changes over
-          time.
+          time. Daily calorie and protein targets drive the nutrition screen.
         </Text>
       </Card>
 

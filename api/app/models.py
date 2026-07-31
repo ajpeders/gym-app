@@ -82,7 +82,10 @@ class AthleteProfile(Base):
     equipment: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     preferences: Mapped[Optional[str]] = mapped_column(Text, nullable=True)  # cues that land, likes/dislikes
     notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)        # durable AI-maintained memory
-    session_note: Mapped[Optional[str]] = mapped_column(Text, nullable=True) # transient pre-session check-in
+    session_note: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    # Daily nutrition goals, set explicitly by the athlete.
+    calorie_target: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    protein_target: Mapped[Optional[float]] = mapped_column(Float, nullable=True) # transient pre-session check-in
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, onupdate=utcnow)
 
 
@@ -300,6 +303,27 @@ class BodyMetric(Base):
     notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
 
     owner: Mapped["User"] = relationship(back_populates="metrics")
+
+
+class NutritionEntry(Base):
+    """One logged intake — a meal, a shake, a snack.
+
+    Timestamped rather than aggregated per day: the client groups by *local*
+    calendar day, because no per-user timezone is stored anywhere and grouping
+    here would quietly impose UTC day boundaries.
+    """
+
+    __tablename__ = "nutrition_entry"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    owner_id: Mapped[int] = mapped_column(
+        ForeignKey("user.id", ondelete="CASCADE"), index=True, nullable=False
+    )
+    eaten_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+    label: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    calories: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    protein: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
 
 
 class ProgressPhoto(Base):

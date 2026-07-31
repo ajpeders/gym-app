@@ -24,6 +24,8 @@ class ProfileOut(BaseModel):
     preferences: str | None = None
     notes: str | None = None
     session_note: str | None = None
+    calorie_target: int | None = None
+    protein_target: float | None = None
 
 
 class ProfileUpdate(BaseModel):
@@ -37,6 +39,19 @@ class ProfileUpdate(BaseModel):
     preferences: str | None = None
     notes: str | None = None
     session_note: str | None = None
+    calorie_target: int | None = None
+    protein_target: float | None = None
+
+
+def _out(p) -> "ProfileOut":
+    """Targets live on the model but outside service.profile_dict, which is the
+    AI check-in's field list — adding them there would require matching fields
+    on CheckinResult."""
+    return ProfileOut(
+        **service.profile_dict(p),
+        calorie_target=p.calorie_target,
+        protein_target=p.protein_target,
+    )
 
 
 @router.get("", response_model=ProfileOut)
@@ -44,7 +59,7 @@ def get_profile(
     db: Session = Depends(get_db), user: User = Depends(get_current_user)
 ) -> ProfileOut:
     p = service.get_or_create_profile(db, user.id)
-    return ProfileOut(**service.profile_dict(p))
+    return _out(p)
 
 
 @router.patch("", response_model=ProfileOut)
@@ -58,4 +73,4 @@ def update_profile(
         setattr(p, key, value)
     db.commit()
     db.refresh(p)
-    return ProfileOut(**service.profile_dict(p))
+    return _out(p)

@@ -427,6 +427,9 @@ export interface AthleteProfile {
   preferences: string | null;
   notes: string | null;
   session_note: string | null;
+  /** Daily nutrition goals, set explicitly by the athlete. */
+  calorie_target: number | null;
+  protein_target: number | null;
 }
 
 export interface CheckinResult {
@@ -502,4 +505,37 @@ export interface SplitEditProposal {
   notes: string | null;
   rules: string[];
   days: SplitEditWorkingDay[];
+}
+
+/** One logged intake — a meal, shake, or snack (GET/POST /nutrition). */
+export interface NutritionEntry {
+  id: number;
+  owner_id: number;
+  eaten_at: string;
+  label: string | null;
+  calories: number | null;
+  protein: number | null;
+  created_at: string;
+}
+
+export interface NutritionEntryInput {
+  label?: string | null;
+  calories?: number | null;
+  protein?: number | null;
+  /** ISO time it was eaten. Omitted -> now. */
+  eaten_at?: string;
+}
+
+/** One item parsed from a sentence about food (POST /ai/parse-nutrition). */
+export interface ParsedNutritionItem {
+  label: string;
+  calories: number | null;
+  protein: number | null;
+}
+
+export interface ParsedNutritionResult {
+  provider: string;
+  model: string;
+  latency_ms: number;
+  items: ParsedNutritionItem[];
 }

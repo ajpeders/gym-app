@@ -28,6 +28,9 @@ import type {
   SettingsUpdate,
   SetInput,
   ExerciseStats,
+  NutritionEntry,
+  NutritionEntryInput,
+  ParsedNutritionResult,
   StatsSummary,
   TodayWorkout,
   User,
@@ -634,6 +637,14 @@ export const api = {
   settings: () => request<Settings>('/settings'),
   updateSettings: (input: SettingsUpdate) =>
     request<Settings>('/settings', { method: 'PATCH', body: input }),
+
+  // ---- nutrition (calorie / protein log) ----
+  nutrition: (days = 14) => request<NutritionEntry[]>('/nutrition', { query: { days } }),
+  createNutrition: (input: NutritionEntryInput) =>
+    request<NutritionEntry>('/nutrition', { method: 'POST', body: input }),
+  deleteNutrition: (id: string) => request<void>(`/nutrition/${id}`, { method: 'DELETE' }),
+  parseNutrition: (text: string) =>
+    request<ParsedNutritionResult>('/ai/parse-nutrition', { method: 'POST', body: { text } }),
 
   // ---- stats ----
   statsSummary: () => request<StatsSummary>('/stats/summary'),

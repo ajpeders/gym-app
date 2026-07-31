@@ -28,6 +28,7 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { ExerciseThumb } from '@/components/ExerciseThumb';
 import { HomeProfileCard } from '@/components/HomeProfileCard';
+import { HomeNutritionCard } from '@/components/HomeNutritionCard';
 import { formatRepRange } from '@/lib/format';
 
 type IoniconName = React.ComponentProps<typeof Ionicons>['name'];
@@ -665,6 +666,8 @@ export default function HomeScreen() {
             </View>
           </Card>
         ) : null}
+
+        <HomeNutritionCard />
 
         <HomeProfileCard />
 

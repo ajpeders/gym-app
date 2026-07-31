@@ -243,6 +243,41 @@ EDIT_SPLIT_SCHEMA: dict = {
 }
 
 
+# --- Nutrition parsing (a sentence about food -> calories/protein) ---
+
+
+class ParsedNutritionItem(BaseModel):
+    label: str
+    calories: Optional[int] = None
+    protein: Optional[float] = None
+
+
+class ParsedNutrition(BaseModel):
+    items: list[ParsedNutritionItem] = Field(default_factory=list)
+
+
+NUTRITION_SCHEMA: dict = {
+    "type": "object",
+    "additionalProperties": False,
+    "properties": {
+        "items": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "additionalProperties": False,
+                "properties": {
+                    "label": {"type": "string"},
+                    "calories": {"anyOf": [{"type": "integer"}, {"type": "null"}]},
+                    "protein": {"anyOf": [{"type": "number"}, {"type": "null"}]},
+                },
+                "required": ["label", "calories", "protein"],
+            },
+        }
+    },
+    "required": ["items"],
+}
+
+
 # --- Athlete-memory check-in (AI updates the persistent profile) ---
 
 

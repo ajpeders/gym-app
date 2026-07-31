@@ -443,3 +443,26 @@ class ExerciseStats(BaseModel):
     max_reps: Optional[int] = None
     set_count: int = 0
     last_performed_at: Optional[datetime] = None
+
+
+# ---------------------------------------------------------------------------
+# Nutrition (calorie / protein log)
+# ---------------------------------------------------------------------------
+class NutritionEntryOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    owner_id: int
+    eaten_at: datetime
+    label: Optional[str] = None
+    calories: Optional[int] = None
+    protein: Optional[float] = None
+    created_at: datetime
+
+
+class NutritionEntryCreate(BaseModel):
+    label: Optional[str] = None
+    calories: Optional[int] = None
+    protein: Optional[float] = None
+    # When it was eaten. Omitted -> now, so logging as you go is one step.
+    eaten_at: Optional[datetime] = None

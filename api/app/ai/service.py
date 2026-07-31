@@ -26,12 +26,14 @@ from .base import (
     CHECKIN_SCHEMA,
     EDIT_SPLIT_SCHEMA,
     EDIT_WORKOUT_SCHEMA,
+    NUTRITION_SCHEMA,
     PARSE_SCHEMA,
     PROGRAM_SCHEMA,
     AIError,
     CheckinResult,
     EditedSplit,
     EditedWorkout,
+    ParsedNutrition,
     ParsedProgram,
     ParsedSession,
 )
@@ -744,6 +746,31 @@ async def edit_split_stream(
     }
 
 
+async def parse_nutrition(db: Session, user: User, text: str) -> dict:
+    """Turn a sentence about food into structured calorie/protein entries.
+
+    Persists nothing — the client reviews the entries and posts them.
+    """
+    provider, _units = _resolve(db, user)
+    t0 = time.monotonic()
+    data = await provider.complete_json(
+        system=prompts.nutrition_system_prompt(),
+        user=prompts.nutrition_user_prompt(text),
+        schema=NUTRITION_SCHEMA,
+    )
+    latency_ms = int((time.monotonic() - t0) * 1000)
+    try:
+        parsed = ParsedNutrition.model_validate(data)
+    except Exception as exc:  # noqa: BLE001
+        raise AIError(f"Model output did not match the expected shape: {exc}") from exc
+    return {
+        "provider": provider.name,
+        "model": provider.model,
+        "latency_ms": latency_ms,
+        "items": [i.model_dump() for i in parsed.items],
+    }
+
+
 # --- Athlete memory ---
 
 _PROFILE_FIELDS = (
@@ -920,6 +947,7 @@ __all__ = [
     "parse_workout",
     "edit_workout_stream",
     "edit_split_stream",
+    "parse_nutrition",
     "match_exercise",
     "get_or_create_profile",
     "profile_dict",
