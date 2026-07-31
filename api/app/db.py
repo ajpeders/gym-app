@@ -43,6 +43,7 @@ _ADDED_COLUMNS: list[tuple[str, str, str]] = [
     ("session_exercise", "target_weight_max", "FLOAT"),
     ("session_exercise", "target_duration_seconds", "INTEGER"),
     ("session_exercise", "target_duration_seconds_max", "INTEGER"),
+    ("sets", "rest_seconds", "INTEGER"),
 ]
 
 

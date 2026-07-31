@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Keyboard, Pressable, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -8,6 +8,7 @@ import { Text } from '@/components/ui/Text';
 import { Card } from '@/components/ui/Card';
 import { ExerciseThumb } from '@/components/ExerciseThumb';
 import {
+  formatClock,
   formatDurationSeconds,
   formatLoad,
   formatRepRange,
@@ -37,6 +38,35 @@ export function ActiveExerciseCard({
 }: Props) {
   const router = useRouter();
   const sets = sessionExercise.sets ?? [];
+  // Rest is timed between sets and stored on the NEXT set (see SetInput.rest_seconds):
+  // an offline-queued set has no server id to PATCH, so recording it forward
+  // keeps it to a single write.
+  const [restStartedAt, setRestStartedAt] = useState<number | null>(null);
+  const [pendingRest, setPendingRest] = useState<number | null>(null);
+  const [restElapsed, setRestElapsed] = useState(0);
+  const restStartedRef = useRef<number | null>(null);
+  restStartedRef.current = restStartedAt;
+
+  // Tick only while resting, so an idle card isn't re-rendering every second.
+  useEffect(() => {
+    if (restStartedAt == null) return;
+    setRestElapsed(Math.floor((Date.now() - restStartedAt) / 1000));
+    const id = setInterval(() => {
+      const start = restStartedRef.current;
+      if (start != null) setRestElapsed(Math.floor((Date.now() - start) / 1000));
+    }, 1000);
+    return () => clearInterval(id);
+  }, [restStartedAt]);
+
+  function toggleRest() {
+    if (restStartedAt == null) {
+      setPendingRest(null);
+      setRestStartedAt(Date.now());
+      return;
+    }
+    setPendingRest(Math.max(0, Math.floor((Date.now() - restStartedAt) / 1000)));
+    setRestStartedAt(null);
+  }
   // How this movement is logged: load x reps, reps only, or a timed hold.
   const kind = sessionExercise.exercise?.tracking_type ?? 'weight_reps';
   const isTimed = kind === 'time' || sessionExercise.target_duration_seconds != null;
@@ -86,7 +116,14 @@ export function ActiveExerciseCard({
     Keyboard.dismiss();
     setSaving(true);
     try {
-      await onAddSet(input);
+      // A rest still running when the set is logged counts up to this moment.
+      const rest =
+        restStartedAt != null
+          ? Math.max(0, Math.floor((Date.now() - restStartedAt) / 1000))
+          : pendingRest;
+      await onAddSet(rest != null ? { ...input, rest_seconds: rest } : input);
+      setRestStartedAt(null);
+      setPendingRest(null);
       setReps('');
       setWeight('');
       setRpe('');
@@ -250,6 +287,11 @@ export function ActiveExerciseCard({
                   <Ionicons name="close" size={17} color="#ef4444" />
                 </Pressable>
               </View>
+              {s.rest_seconds != null ? (
+                <Text variant="caption" className="mt-1 pl-10 text-iron-500">
+                  {formatClock(s.rest_seconds)} rest before
+                </Text>
+              ) : null}
               {s.notes ? (
                 <Text variant="caption" className="mt-1 pl-10 text-iron-400" numberOfLines={2}>
                   {s.notes}
@@ -334,6 +376,33 @@ export function ActiveExerciseCard({
           <Text className="font-bold text-iron-950">Log set</Text>
         </Pressable>
       </View>
+
+      {/* rest timer — counts up; tap to start, tap again to stop. The result
+          is saved with the next set logged. */}
+      <Pressable
+        onPress={toggleRest}
+        accessibilityLabel={restStartedAt != null ? 'Stop rest timer' : 'Start rest timer'}
+        className={`mt-2 min-h-[44px] flex-row items-center justify-center rounded-lg border px-3 py-2 active:opacity-70 ${
+          restStartedAt != null
+            ? 'border-brand bg-brand/15'
+            : 'border-iron-700 bg-iron-950'
+        }`}>
+        <Ionicons
+          name={restStartedAt != null ? 'stop-circle-outline' : 'timer-outline'}
+          size={16}
+          color={restStartedAt != null ? '#818cf8' : '#94a3b8'}
+        />
+        <Text
+          className={`ml-1.5 text-sm font-bold ${
+            restStartedAt != null ? 'text-brand' : 'text-iron-300'
+          }`}>
+          {restStartedAt != null
+            ? `Resting ${formatClock(restElapsed)} — tap to stop`
+            : pendingRest != null
+              ? `Rested ${formatClock(pendingRest)} — saves with next set`
+              : 'Start rest'}
+        </Text>
+      </Pressable>
 
       {/* optional per-set note */}
       <TextInput

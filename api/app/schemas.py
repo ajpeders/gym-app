@@ -234,6 +234,7 @@ class SetOut(BaseModel):
     rpe: Optional[float] = None
     set_type: str
     duration_seconds: Optional[int] = None
+    rest_seconds: Optional[int] = None
     completed: bool
     completed_at: Optional[datetime] = None
     notes: Optional[str] = None
@@ -245,6 +246,8 @@ class SetCreate(BaseModel):
     rpe: Optional[float] = None
     set_type: str = "working"
     duration_seconds: Optional[int] = None
+    # Seconds rested before this set (see SetEntry.rest_seconds).
+    rest_seconds: Optional[int] = None
     completed: bool = True
     set_number: Optional[int] = None
     notes: Optional[str] = None
@@ -260,6 +263,7 @@ class SetUpdate(BaseModel):
     rpe: Optional[float] = None
     set_type: Optional[str] = None
     duration_seconds: Optional[int] = None
+    rest_seconds: Optional[int] = None
     completed: Optional[bool] = None
     set_number: Optional[int] = None
     notes: Optional[str] = None

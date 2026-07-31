@@ -274,6 +274,10 @@ class SetEntry(Base):
     set_type: Mapped[str] = mapped_column(String, default="working")
     # Held/timed efforts record duration instead of reps+weight.
     duration_seconds: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    # Rest taken BEFORE this set, in seconds. Recorded on the following set (not
+    # the preceding one) so a set logged offline carries it in a single write —
+    # a queued set has no server id to PATCH until it syncs.
+    rest_seconds: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     completed: Mapped[bool] = mapped_column(Boolean, default=True)
     completed_at: Mapped[Optional[datetime]] = mapped_column(DateTime, default=utcnow)
     # Free-text note on an individual set ("left shoulder tight", "easy", …).

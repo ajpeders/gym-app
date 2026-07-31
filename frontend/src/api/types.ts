@@ -149,6 +149,8 @@ export interface SessionSet {
   notes?: string | null;
   /** Seconds held, for timed movements. */
   duration_seconds?: number | null;
+  /** Seconds rested before this set. */
+  rest_seconds?: number | null;
   /** When the set was performed. */
   completed_at?: string | null;
   /** Client-only: logged locally, not yet pushed to the server. */
@@ -196,6 +198,9 @@ export interface SetInput {
   completed_at?: string;
   /** Seconds held, for timed movements (plank, dead hang). */
   duration_seconds?: number | null;
+  /** Seconds rested BEFORE this set — recorded on the set that follows the
+   * rest, so an offline-queued set carries it in a single write. */
+  rest_seconds?: number | null;
 }
 
 export interface Metric {
