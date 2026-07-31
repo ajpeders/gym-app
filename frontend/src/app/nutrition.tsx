@@ -1,5 +1,13 @@
 import { useCallback, useMemo, useState } from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, TextInput, View } from 'react-native';
+import {
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  Pressable,
+  ScrollView,
+  TextInput,
+  View,
+} from 'react-native';
 import { Stack, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -11,6 +19,7 @@ import { Text } from '@/components/ui/Text';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Loading, ErrorState } from '@/components/ui/Feedback';
+import { parseServerDate } from '@/lib/format';
 
 const INPUT =
   'rounded-lg border border-iron-700 bg-iron-900 px-3 py-2.5 text-base text-iron-50';
@@ -18,7 +27,7 @@ const INPUT =
 /** Local calendar day key (YYYY-MM-DD). Grouping happens here, not on the
  * server, which stores UTC and knows nothing about the user's timezone. */
 function dayKey(iso: string): string {
-  const d = new Date(iso);
+  const d = parseServerDate(iso);
   const pad = (n: number) => String(n).padStart(2, '0');
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
@@ -37,8 +46,32 @@ function dayLabel(key: string): string {
   });
 }
 
+/** Local YYYY-MM-DD and HH:MM for the editable time controls. */
+function localParts(iso: string): { date: string; time: string } {
+  const d = parseServerDate(iso);
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return {
+    date: `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`,
+    time: `${pad(d.getHours())}:${pad(d.getMinutes())}`,
+  };
+}
+
+/** Build an ISO instant from local date + time text. Null when either is not a
+ * real value, so a typo can't silently move an entry to 1970. */
+function isoFromParts(date: string, time: string): string | null {
+  const dm = date.trim().match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  const tm = time.trim().match(/^(\d{1,2}):(\d{2})$/);
+  if (!dm || !tm) return null;
+  const [y, mo, da] = [Number(dm[1]), Number(dm[2]), Number(dm[3])];
+  const [h, mi] = [Number(tm[1]), Number(tm[2])];
+  if (h > 23 || mi > 59) return null;
+  const d = new Date(y, mo - 1, da, h, mi, 0, 0);
+  if (d.getFullYear() !== y || d.getMonth() !== mo - 1 || d.getDate() !== da) return null;
+  return d.toISOString();
+}
+
 function timeLabel(iso: string): string {
-  return new Date(iso).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+  return parseServerDate(iso).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
 }
 
 function sum(entries: NutritionEntry[], field: 'calories' | 'protein'): number {
@@ -96,6 +129,13 @@ export default function NutritionScreen() {
   const [busy, setBusy] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const [proposal, setProposal] = useState<ParsedNutritionItem[] | null>(null);
+  // The entry being edited, plus its editable fields as text.
+  const [editing, setEditing] = useState<NutritionEntry | null>(null);
+  const [editLabel, setEditLabel] = useState('');
+  const [editCalories, setEditCalories] = useState('');
+  const [editProtein, setEditProtein] = useState('');
+  const [editDate, setEditDate] = useState('');
+  const [editTime, setEditTime] = useState('');
 
   const fetchAll = useCallback(async () => {
     setLoading(true);
@@ -191,6 +231,42 @@ export default function NutritionScreen() {
       await fetchAll();
     } catch (e) {
       setActionError(e instanceof Error ? e.message : 'Could not save those entries');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function openEdit(entry: NutritionEntry) {
+    const parts = localParts(entry.eaten_at);
+    setEditing(entry);
+    setEditLabel(entry.label ?? '');
+    setEditCalories(entry.calories != null ? String(entry.calories) : '');
+    setEditProtein(entry.protein != null ? String(entry.protein) : '');
+    setEditDate(parts.date);
+    setEditTime(parts.time);
+    setActionError(null);
+  }
+
+  async function saveEdit() {
+    if (!editing) return;
+    const eaten = isoFromParts(editDate, editTime);
+    if (!eaten) {
+      setActionError('Enter the date as YYYY-MM-DD and the time as HH:MM.');
+      return;
+    }
+    setBusy(true);
+    setActionError(null);
+    try {
+      await api.updateNutrition(String(editing.id), {
+        label: editLabel.trim() || null,
+        calories: editCalories.trim() ? parseInt(editCalories, 10) : null,
+        protein: editProtein.trim() ? parseFloat(editProtein) : null,
+        eaten_at: eaten,
+      });
+      setEditing(null);
+      await fetchAll();
+    } catch (e) {
+      setActionError(e instanceof Error ? e.message : 'Could not save that entry');
     } finally {
       setBusy(false);
     }
@@ -391,7 +467,11 @@ export default function NutritionScreen() {
                   {[...dayEntries]
                     .sort((a, b) => (a.eaten_at < b.eaten_at ? 1 : -1))
                     .map((e) => (
-                      <View key={e.id} className="flex-row items-center px-2 py-2">
+                      <Pressable
+                        key={e.id}
+                        onPress={() => openEdit(e)}
+                        accessibilityLabel={`Edit ${e.label ?? 'entry'}`}
+                        className="flex-row items-center rounded-lg px-2 py-2 active:bg-iron-800">
                         <Text variant="caption" className="w-16 text-iron-500">
                           {timeLabel(e.eaten_at)}
                         </Text>
@@ -413,7 +493,7 @@ export default function NutritionScreen() {
                           className="w-7 items-center active:opacity-60">
                           <Ionicons name="close" size={16} color="#ef4444" />
                         </Pressable>
-                      </View>
+                      </Pressable>
                     ))}
                 </Card>
               </View>
@@ -421,6 +501,97 @@ export default function NutritionScreen() {
           )}
         </ScrollView>
       </KeyboardAvoidingView>
+
+      <Modal
+        visible={editing != null}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setEditing(null)}>
+        <KeyboardAvoidingView
+          className="flex-1 justify-end bg-black/60"
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+          <View className="rounded-t-2xl border-t border-iron-700 bg-iron-950 px-4 pb-8 pt-4">
+            <View className="mb-3 flex-row items-center justify-between">
+              <Text variant="heading">Edit entry</Text>
+              <Pressable onPress={() => setEditing(null)} hitSlop={8}>
+                <Text className="font-bold text-brand">Cancel</Text>
+              </Pressable>
+            </View>
+            <TextInput
+              value={editLabel}
+              onChangeText={setEditLabel}
+              placeholder="What did you eat?"
+              placeholderTextColor="#64748b"
+              selectionColor="#818cf8"
+              className={INPUT}
+            />
+            <View className="mt-2 flex-row gap-2">
+              <View className="flex-1">
+                <Text variant="caption" className="mb-1 text-iron-400">
+                  Calories
+                </Text>
+                <TextInput
+                  value={editCalories}
+                  onChangeText={setEditCalories}
+                  keyboardType="number-pad"
+                  placeholder="0"
+                  placeholderTextColor="#64748b"
+                  selectionColor="#818cf8"
+                  className={INPUT}
+                />
+              </View>
+              <View className="flex-1">
+                <Text variant="caption" className="mb-1 text-iron-400">
+                  Protein (g)
+                </Text>
+                <TextInput
+                  value={editProtein}
+                  onChangeText={setEditProtein}
+                  keyboardType="decimal-pad"
+                  placeholder="0"
+                  placeholderTextColor="#64748b"
+                  selectionColor="#818cf8"
+                  className={INPUT}
+                />
+              </View>
+            </View>
+            <View className="mt-2 flex-row gap-2">
+              <View className="flex-1">
+                <Text variant="caption" className="mb-1 text-iron-400">
+                  Day
+                </Text>
+                <TextInput
+                  value={editDate}
+                  onChangeText={setEditDate}
+                  placeholder="YYYY-MM-DD"
+                  placeholderTextColor="#64748b"
+                  selectionColor="#818cf8"
+                  autoCapitalize="none"
+                  className={INPUT}
+                />
+              </View>
+              <View className="flex-1">
+                <Text variant="caption" className="mb-1 text-iron-400">
+                  Time
+                </Text>
+                <TextInput
+                  value={editTime}
+                  onChangeText={setEditTime}
+                  placeholder="HH:MM"
+                  placeholderTextColor="#64748b"
+                  selectionColor="#818cf8"
+                  autoCapitalize="none"
+                  className={INPUT}
+                />
+              </View>
+            </View>
+            {actionError ? (
+              <Text className="mt-2 text-sm text-red-400">{actionError}</Text>
+            ) : null}
+            <Button title="Save changes" className="mt-3" loading={busy} onPress={() => void saveEdit()} />
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </Screen>
   );
 }

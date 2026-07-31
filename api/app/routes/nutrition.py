@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session as SASession
 
 from ..db import get_db
 from ..models import NutritionEntry, User
-from ..schemas import NutritionEntryCreate, NutritionEntryOut
+from ..schemas import NutritionEntryCreate, NutritionEntryOut, NutritionEntryUpdate
 from ..security import get_current_user
 
 router = APIRouter(prefix="/nutrition", tags=["nutrition"])
@@ -64,12 +64,7 @@ def create_entry(
     return NutritionEntryOut.model_validate(entry)
 
 
-@router.delete("/{entry_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_entry(
-    entry_id: int,
-    db: SASession = Depends(get_db),
-    user: User = Depends(get_current_user),
-):
+def _owned(db: SASession, entry_id: int, user: User) -> NutritionEntry:
     entry = db.scalar(
         select(NutritionEntry).where(
             NutritionEntry.id == entry_id, NutritionEntry.owner_id == user.id
@@ -78,5 +73,33 @@ def delete_entry(
     # 404 rather than 403 for someone else's entry — don't confirm it exists.
     if entry is None:
         raise HTTPException(status_code=404, detail="Entry not found")
+    return entry
+
+
+@router.patch("/{entry_id}", response_model=NutritionEntryOut)
+def update_entry(
+    entry_id: int,
+    payload: NutritionEntryUpdate,
+    db: SASession = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> NutritionEntryOut:
+    entry = _owned(db, entry_id, user)
+    fields = payload.model_dump(exclude_unset=True)
+    if "eaten_at" in fields and fields["eaten_at"] is not None:
+        fields["eaten_at"] = _resolve_eaten_at(fields["eaten_at"])
+    for key, value in fields.items():
+        setattr(entry, key, value)
+    db.commit()
+    db.refresh(entry)
+    return NutritionEntryOut.model_validate(entry)
+
+
+@router.delete("/{entry_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_entry(
+    entry_id: int,
+    db: SASession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    entry = _owned(db, entry_id, user)
     db.delete(entry)
     db.commit()

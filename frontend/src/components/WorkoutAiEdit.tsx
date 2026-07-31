@@ -71,18 +71,23 @@ export function WorkoutAiEdit({ visible, units, initialWorking, onApply, onClose
   const [error, setError] = useState<string | null>(null);
   const scrollRef = useRef<ScrollView | null>(null);
 
-  // Reset the session each time the sheet opens so it always starts from the
-  // workout's current saved state.
+  // Reset each time the sheet OPENS so it starts from the workout's saved
+  // state. Keyed on `visible` alone and read through a ref: the parent rebuilds
+  // initialWorking every render (WorkoutEditor passes aiWorking()), so
+  // depending on its identity re-ran this on every render and wiped the
+  // proposal the moment it arrived.
+  const latestInitial = useRef(initialWorking);
+  latestInitial.current = initialWorking;
   useEffect(() => {
     if (visible) {
-      setWorking(initialWorking);
+      setWorking(latestInitial.current);
       setTurns([]);
       setProposal(null);
       setInput('');
       setError(null);
       setReceived(0);
     }
-  }, [visible, initialWorking]);
+  }, [visible]);
 
   const unmatched = proposal?.exercises.filter((e) => e.exercise_id == null) ?? [];
 

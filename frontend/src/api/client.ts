@@ -642,6 +642,8 @@ export const api = {
   nutrition: (days = 14) => request<NutritionEntry[]>('/nutrition', { query: { days } }),
   createNutrition: (input: NutritionEntryInput) =>
     request<NutritionEntry>('/nutrition', { method: 'POST', body: input }),
+  updateNutrition: (id: string, input: NutritionEntryInput) =>
+    request<NutritionEntry>(`/nutrition/${id}`, { method: 'PATCH', body: input }),
   deleteNutrition: (id: string) => request<void>(`/nutrition/${id}`, { method: 'DELETE' }),
   parseNutrition: (text: string) =>
     request<ParsedNutritionResult>('/ai/parse-nutrition', { method: 'POST', body: { text } }),

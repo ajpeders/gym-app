@@ -7,10 +7,11 @@ import { api } from '@/api/client';
 import type { NutritionEntry } from '@/api/types';
 import { Text } from '@/components/ui/Text';
 import { Card } from '@/components/ui/Card';
+import { parseServerDate } from '@/lib/format';
 
 /** Local calendar day key — the server stores UTC and has no user timezone. */
 function dayKey(iso: string): string {
-  const d = new Date(iso);
+  const d = parseServerDate(iso);
   const pad = (n: number) => String(n).padStart(2, '0');
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }

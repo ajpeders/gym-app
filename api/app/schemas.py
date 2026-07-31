@@ -466,3 +466,12 @@ class NutritionEntryCreate(BaseModel):
     protein: Optional[float] = None
     # When it was eaten. Omitted -> now, so logging as you go is one step.
     eaten_at: Optional[datetime] = None
+
+
+class NutritionEntryUpdate(BaseModel):
+    """Partial edit. Unset fields are left alone; an explicit null clears."""
+
+    label: Optional[str] = None
+    calories: Optional[int] = None
+    protein: Optional[float] = None
+    eaten_at: Optional[datetime] = None

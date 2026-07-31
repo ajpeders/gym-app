@@ -124,6 +124,9 @@ def _norm(s: str) -> list[str]:
 # ('Lateral Raises' -> 'Lateral Raise - With Bands'). Whole-name keys can't
 # accidentally rewrite parts of longer, more specific names.
 _NAME_SYNONYMS = {
+    # Terse shorthand. Token overlap alone prefers the catalog name closest in
+    # length, so a bare "bench" lands on "Bench Dips" — a triceps movement.
+    "bench": "barbell bench press",
     "flat dumbbell press": "dumbbell bench press",
     "flat dumbbell bench press": "dumbbell bench press",
     "cable fly": "cable crossover",

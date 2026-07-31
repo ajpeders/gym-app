@@ -105,3 +105,54 @@ def test_daily_targets_round_trip_on_profile(client, auth):
     fetched = client.get("/api/profile", headers=headers).json()
     assert fetched["calorie_target"] == 2400
     assert fetched["protein_target"] == 180
+
+
+def test_update_entry(client, auth):
+    """Entries are editable after the fact — a wrong number or time is common."""
+    headers, _, _ = auth
+    entry_id = client.post(
+        "/api/nutrition", headers=headers, json={"label": "Guess", "calories": 500}
+    ).json()["id"]
+
+    patched = client.patch(
+        f"/api/nutrition/{entry_id}",
+        headers=headers,
+        json={"label": "Actually measured", "calories": 620, "protein": 45},
+    )
+    assert patched.status_code == 200, patched.text
+    body = patched.json()
+    assert body["label"] == "Actually measured"
+    assert body["calories"] == 620
+    assert body["protein"] == 45
+
+
+def test_update_can_move_an_entry_in_time(client, auth):
+    headers, _, _ = auth
+    entry_id = client.post(
+        "/api/nutrition", headers=headers, json={"label": "Late log", "calories": 300}
+    ).json()["id"]
+    when = (datetime.now(timezone.utc) - timedelta(hours=5)).replace(microsecond=0)
+
+    patched = client.patch(
+        f"/api/nutrition/{entry_id}", headers=headers, json={"eaten_at": when.isoformat()}
+    )
+    assert patched.status_code == 200, patched.text
+    assert patched.json()["eaten_at"].startswith(when.strftime("%Y-%m-%dT%H:%M"))
+    # Untouched fields survive a partial update.
+    assert patched.json()["calories"] == 300
+
+
+def test_cannot_update_another_users_entry(client, auth):
+    headers, _, _ = auth
+    other = client.post(
+        "/api/auth/register",
+        json={"email": "nutri3@example.com", "password": "secret123", "display_name": "Other"},
+    ).json()
+    other_headers = {"Authorization": f"Bearer {other['token']}"}
+    entry_id = client.post(
+        "/api/nutrition", headers=other_headers, json={"label": "Theirs", "calories": 5}
+    ).json()["id"]
+
+    assert client.patch(
+        f"/api/nutrition/{entry_id}", headers=headers, json={"calories": 1}
+    ).status_code == 404

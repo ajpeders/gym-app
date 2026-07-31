@@ -1,5 +1,16 @@
 import type { Units } from '@/api/types';
 
+/** Parse an API timestamp.
+ *
+ * The backend stores UTC and serializes it WITHOUT a timezone designator
+ * ("2026-07-31T01:45:00"). JavaScript reads such a string as *local* time, so
+ * every absolute time would be off by the UTC offset — times of day wrong, and
+ * entries grouped under the wrong calendar day. Assume UTC when no designator
+ * is present. */
+export function parseServerDate(iso: string): Date {
+  return new Date(/(?:Z|[+-]\d{2}:?\d{2})$/.test(iso) ? iso : `${iso}Z`);
+}
+
 export function formatWeight(weight: number | null | undefined, units: Units): string {
   if (weight === null || weight === undefined) return '—';
   const rounded = Math.round(weight * 100) / 100;
@@ -8,14 +19,14 @@ export function formatWeight(weight: number | null | undefined, units: Units): s
 
 export function formatDate(iso: string | null | undefined): string {
   if (!iso) return '';
-  const d = new Date(iso);
+  const d = parseServerDate(iso);
   if (Number.isNaN(d.getTime())) return '';
   return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
 export function formatDateTime(iso: string | null | undefined): string {
   if (!iso) return '';
-  const d = new Date(iso);
+  const d = parseServerDate(iso);
   if (Number.isNaN(d.getTime())) return '';
   return d.toLocaleString(undefined, {
     month: 'short',
@@ -27,7 +38,7 @@ export function formatDateTime(iso: string | null | undefined): string {
 
 export function relativeTime(iso: string | null | undefined): string {
   if (!iso) return '';
-  const d = new Date(iso).getTime();
+  const d = parseServerDate(iso).getTime();
   if (Number.isNaN(d)) return '';
   const diff = Date.now() - d;
   const mins = Math.round(diff / 60000);
@@ -40,10 +51,15 @@ export function relativeTime(iso: string | null | undefined): string {
   return formatDate(iso);
 }
 
+/** Wall-clock span. With no `end` it counts up from `start` to now (a live
+ * session). A finished session with no measurable span never actually ran on
+ * the clock — a retroactively logged one gets finished_at = started_at — so it
+ * reads "—" rather than claiming "0m". */
 export function formatDuration(start: string, end?: string | null): string {
-  const s = new Date(start).getTime();
-  const e = end ? new Date(end).getTime() : Date.now();
+  const s = parseServerDate(start).getTime();
+  const e = end ? parseServerDate(end).getTime() : Date.now();
   const secs = Math.max(0, Math.round((e - s) / 1000));
+  if (end && secs < 60) return '—';
   const h = Math.floor(secs / 3600);
   const m = Math.floor((secs % 3600) / 60);
   if (h > 0) return `${h}h ${m}m`;
@@ -91,7 +107,7 @@ export function formatLoad(weight: number | null | undefined, units: string): st
 /** Wall-clock time a set was logged, e.g. "6:42 PM". Empty when unknown. */
 export function formatTimeOfDay(iso: string | null | undefined): string {
   if (!iso) return '';
-  const d = new Date(iso);
+  const d = parseServerDate(iso);
   if (Number.isNaN(d.getTime())) return '';
   return d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
 }

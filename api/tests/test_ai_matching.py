@@ -14,6 +14,10 @@ from app.ai.service import _match, _norm, _primary_exercise
 # matcher's tie-break prefers lower ids, so keep plausible decoys early).
 _CATALOG_NAMES = [
     "Arnold Dumbbell Press",
+    "Barbell Bench Press",
+    "Barbell Deadlift",
+    "Barbell Squat",
+    "Bench Dips",
     "Ball Leg Curl",
     "Band Assisted Pull-Up",
     "Cable Crossover",
@@ -89,6 +93,26 @@ def test_slash_alternatives_match_first_option(query, expected):
     assert "/" not in primary
     assert notes and "Alternative:" in notes
     assert resolve(primary) == expected
+
+
+@pytest.mark.parametrize(
+    ("query", "expected"),
+    [
+        # Terse gym shorthand. Plain token overlap prefers the catalog name
+        # closest in length, which sends "bench" to "Bench Dips" — a triceps
+        # movement, not what anyone typing "bench" means.
+        ("bench", "Barbell Bench Press"),
+        ("squat", "Barbell Squat"),
+        ("deadlift", "Barbell Deadlift"),
+    ],
+)
+def test_terse_shorthand_resolves_to_the_obvious_lift(query, expected):
+    assert resolve(query) == expected
+
+
+def test_dips_still_reachable_by_name():
+    """The synonym must not make the decoy unreachable when actually asked for."""
+    assert resolve("Bench Dips") == "Bench Dips"
 
 
 def test_unknown_name_stays_unmatched():
