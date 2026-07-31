@@ -1,15 +1,17 @@
 import { useCallback, useState } from 'react';
-import { Pressable, ScrollView, View } from 'react-native';
+import { Alert, Platform, Pressable, ScrollView, View } from 'react-native';
 import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
 import { api } from '@/api/client';
-import type { Split, TodayWorkout, Workout } from '@/api/types';
+import type { Split, SplitInput, TodayWorkout, Workout } from '@/api/types';
 import { useActiveWorkout } from '@/state/active-workout';
 import { Screen } from '@/components/ui/Screen';
 import { Text } from '@/components/ui/Text';
 import { Card } from '@/components/ui/Card';
+import { Button } from '@/components/ui/Button';
 import { Loading, ErrorState } from '@/components/ui/Feedback';
+import { SplitEditor } from '@/components/SplitEditor';
 
 const DOW = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
@@ -21,6 +23,9 @@ export default function SplitDetailScreen() {
   const [today, setToday] = useState<TodayWorkout[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   const fetch = useCallback(async () => {
     if (!id) return;
@@ -46,6 +51,44 @@ export default function SplitDetailScreen() {
     }, [fetch]),
   );
 
+  async function persist(input: SplitInput) {
+    if (!id) return;
+    setSaving(true);
+    setActionError(null);
+    try {
+      setSplit(await api.updateSplit(id, input));
+      setEditing(false);
+    } catch (e) {
+      setActionError(e instanceof Error ? e.message : 'Could not save the split');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  function onDelete() {
+    if (!id) return;
+    const doDelete = async () => {
+      setActionError(null);
+      try {
+        await api.deleteSplit(id);
+        router.replace('/(tabs)/workouts');
+      } catch (e) {
+        setActionError(e instanceof Error ? e.message : 'Could not delete the split');
+      }
+    };
+    const message = 'Its workouts are kept as standalone days.';
+    if (Platform.OS === 'web') {
+      if (typeof window !== 'undefined' && window.confirm(`Delete this split? ${message}`)) {
+        void doDelete();
+      }
+      return;
+    }
+    Alert.alert('Delete split?', message, [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Delete', style: 'destructive', onPress: () => void doDelete() },
+    ]);
+  }
+
   const todayDow = new Date().getDay();
   // Ids of today's workouts already logged this week (from GET /splits/today).
   const doneToday = new Set(today.filter((w) => w.done_this_week).map((w) => w.id));
@@ -67,12 +110,37 @@ export default function SplitDetailScreen() {
 
   return (
     <Screen scroll={false} padded={false}>
-      <Stack.Screen options={{ headerShown: true, title: split.name }} />
+      <Stack.Screen
+        options={{
+          headerShown: true,
+          title: split.name,
+          headerRight: () => (
+            <Pressable onPress={() => setEditing(true)} hitSlop={8} className="active:opacity-70">
+              <Text className="font-bold text-brand">Edit</Text>
+            </Pressable>
+          ),
+        }}
+      />
       <ScrollView className="flex-1" contentContainerClassName="px-4 pt-3 pb-28">
-        <Text variant="title">{split.name}</Text>
+        <View className="flex-row items-center">
+          <Text variant="title" className="flex-1">
+            {split.name}
+          </Text>
+          {split.is_active ? (
+            <View className="ml-2 rounded-full bg-brand/15 px-2.5 py-1">
+              <Text variant="caption" className="font-bold text-brand">
+                Active
+              </Text>
+            </View>
+          ) : null}
+        </View>
         <Text variant="muted" className="mt-0.5">
           {ordered.length} {ordered.length === 1 ? 'workout' : 'workouts'} · weekly plan
         </Text>
+
+        {actionError ? (
+          <Text className="mt-2 text-sm text-red-400">{actionError}</Text>
+        ) : null}
 
         {/* Weekly schedule */}
         <Text variant="heading" className="mb-2 mt-5">
@@ -208,7 +276,31 @@ export default function SplitDetailScreen() {
             </View>
           </Card>
         ))}
+
+        {/* Split-level management */}
+        <Text variant="heading" className="mb-2 mt-6">
+          Manage
+        </Text>
+        {!split.is_active ? (
+          <Button
+            title="Make this my active split"
+            variant="secondary"
+            icon="checkmark-circle-outline"
+            loading={saving}
+            onPress={() => void persist({ is_active: true })}
+            className="mb-3"
+          />
+        ) : null}
+        <Button title="Delete split" variant="danger" icon="trash-outline" onPress={onDelete} />
       </ScrollView>
+
+      <SplitEditor
+        visible={editing}
+        split={split}
+        saving={saving}
+        onSave={persist}
+        onClose={() => setEditing(false)}
+      />
     </Screen>
   );
 }
