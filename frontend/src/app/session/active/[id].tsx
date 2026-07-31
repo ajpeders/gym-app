@@ -12,7 +12,6 @@ import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Loading } from '@/components/ui/Feedback';
 import { ActiveExerciseCard } from '@/components/workout/ActiveExerciseCard';
-import { NaturalLanguageLog } from '@/components/workout/NaturalLanguageLog';
 import { formatDuration } from '@/lib/format';
 
 function confirm(title: string, message: string, onConfirm: () => void, destructive = false) {
@@ -163,8 +162,22 @@ export default function ActiveWorkoutScreen() {
           </Pressable>
         ) : null}
 
-        {/* natural-language set logging */}
-        <NaturalLanguageLog sessionId={workout.id} units={settings.units} onApplied={refresh} />
+        {/* natural-language set logging — now its own chat screen, so it can
+            also be used with no session running */}
+        <Pressable
+          onPress={() => router.push(`/log-chat?sessionId=${workout.id}`)}
+          className="mb-3 flex-row items-center rounded-2xl border border-brand/40 bg-brand/10 px-3.5 py-3 active:opacity-70">
+          <Ionicons name="chatbubble-ellipses-outline" size={18} color="#818cf8" />
+          <View className="ml-2.5 flex-1">
+            <Text variant="label" className="text-brand">
+              Log by sentence
+            </Text>
+            <Text variant="caption" className="text-iron-400">
+              Type a set in plain English and let AI fill it in.
+            </Text>
+          </View>
+          <Ionicons name="chevron-forward" size={16} color="#475569" />
+        </Pressable>
 
         {/* in-set AI prompt stub */}
         {settings.feature_flags.in_set_prompts ? (

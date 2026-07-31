@@ -233,6 +233,14 @@ export default function HistoryScreen() {
               onPress={startBlank}
             />
             <Button
+              title="Log by sentence"
+              variant="secondary"
+              icon="chatbubble-ellipses-outline"
+              className="mt-2"
+              disabled={busy}
+              onPress={() => router.push('/log-chat')}
+            />
+            <Button
               title="Add a past session"
               variant="secondary"
               icon="create-outline"

@@ -68,6 +68,7 @@ function RootNavigator() {
       <Stack.Screen name="split/[id]" />
       <Stack.Screen name="profile" />
       <Stack.Screen name="workout-import" />
+      <Stack.Screen name="log-chat" />
       <Stack.Screen name="progress" />
     </Stack>
   );
