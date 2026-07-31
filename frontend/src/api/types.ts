@@ -472,3 +472,25 @@ export interface ExerciseStats {
   set_count: number;
   last_performed_at: string | null;
 }
+
+/** A day inside a split, as sent to the AI split editor. The id is echoed back
+ * so a proposal can be matched to real workout rows. */
+export interface SplitEditWorkingDay {
+  id: number | null;
+  name: string;
+  weekdays: number[];
+  floating: boolean;
+}
+
+/** Proposed split shape from POST /ai/edit-split/stream. Nothing is saved
+ * until the client PATCHes the split and its workouts. */
+export interface SplitEditProposal {
+  provider: string;
+  model: string;
+  latency_ms: number;
+  reply: string;
+  name: string;
+  notes: string | null;
+  rules: string[];
+  days: SplitEditWorkingDay[];
+}

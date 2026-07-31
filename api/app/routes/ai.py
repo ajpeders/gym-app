@@ -47,6 +47,23 @@ class EditWorkoutRequest(BaseModel):
     exercises: list[EditWorkoutExercise] = []
 
 
+class EditSplitDay(BaseModel):
+    id: int | None = None
+    name: str = ""
+    weekdays: list[int] = []
+    floating: bool = False
+
+
+class EditSplitRequest(BaseModel):
+    instruction: str
+    # The split as it currently stands on the client, so follow-up edits build
+    # on the last proposal rather than the saved version.
+    name: str = ""
+    notes: str | None = None
+    rules: list[str] = []
+    days: list[EditSplitDay] = []
+
+
 class CheckinRequest(BaseModel):
     text: str
 
@@ -176,6 +193,50 @@ async def edit_workout_stream(
     async def event_stream():
         try:
             async for ev in service.edit_workout_stream(db, user, working, instruction):
+                if ev.get("type") == "progress":
+                    yield _sse("progress", {"received": ev.get("received", 0)})
+                else:
+                    payload = {k: v for k, v in ev.items() if k != "type"}
+                    yield _sse("result", payload)
+        except AIError as exc:
+            yield _sse("error", {"detail": str(exc)})
+        except Exception:  # noqa: BLE001
+            yield _sse("error", {"detail": "The AI request failed unexpectedly."})
+
+    return StreamingResponse(
+        event_stream(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",  # disable proxy buffering (nginx/Traefik)
+        },
+    )
+
+
+@router.post("/edit-split/stream")
+async def edit_split_stream(
+    body: EditSplitRequest,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> StreamingResponse:
+    """SSE conversational edit of one split's shape (name, notes, progression
+    rules, and each day's weekday scheduling). Persists nothing — the client
+    reviews and saves via PATCH /splits/{id} and PATCH /workouts/{id}."""
+    instruction = (body.instruction or "").strip()
+    if not instruction:
+        raise HTTPException(status_code=400, detail="instruction is required")
+
+    working = {
+        "name": body.name,
+        "notes": body.notes,
+        "rules": body.rules,
+        "days": [d.model_dump() for d in body.days],
+    }
+
+    async def event_stream():
+        try:
+            async for ev in service.edit_split_stream(db, user, working, instruction):
                 if ev.get("type") == "progress":
                     yield _sse("progress", {"received": ev.get("received", 0)})
                 else:

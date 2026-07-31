@@ -110,6 +110,37 @@ def edit_workout_user_prompt(workout_json: str, instruction: str) -> str:
     return f"Current workout:\n{workout_json}\n\nInstruction:\n{instruction}"
 
 
+_EDIT_SPLIT_RULES = (
+    "You are editing ONE weekly training SPLIT — its name, notes, progression rules, and "
+    "which days sit on which weekdays. You get the CURRENT split as JSON and one instruction. "
+    "Return the COMPLETE updated split (every day, not just changed ones).\n"
+    "Rules:\n"
+    "- Keep everything the instruction does NOT mention exactly as-is.\n"
+    "- Each day has an id. ECHO THE ID BACK UNCHANGED for every day you keep — that is how "
+    "the app matches your answer to real workouts. Use id null ONLY for a genuinely new day.\n"
+    "- To remove a day, drop it from the list. To move a day, change its weekdays.\n"
+    "- Weekdays are integers: Sunday=0, Monday=1, Tuesday=2, Wednesday=3, Thursday=4, "
+    "Friday=5, Saturday=6. A day on two candidate weekdays (e.g. 'Friday or Saturday') "
+    "keeps both, e.g. [5,6].\n"
+    "- floating true means the day is not pinned to a weekday; its weekdays must then be empty.\n"
+    "- There is no rest-day flag: a weekday with no day scheduled on it IS a rest day. To give "
+    "the user a rest day, make sure no day claims that weekday — never invent an empty 'Rest' day.\n"
+    "- Two training days may share a weekday only if the user asks for that.\n"
+    "- You CANNOT change the exercises inside a day here — if asked, say so in the reply and "
+    "leave the days alone.\n"
+    "- 'reply' is ONE short sentence describing what you changed, e.g. 'Moved leg day to "
+    "Wednesday and added a rest day on Sunday.'"
+)
+
+
+def edit_split_system_prompt() -> str:
+    return _EDIT_SPLIT_RULES
+
+
+def edit_split_user_prompt(split_json: str, instruction: str) -> str:
+    return f"Current split:\n{split_json}\n\nInstruction:\n{instruction}"
+
+
 _CHECKIN_SYSTEM = (
     "You maintain a strength athlete's persistent training profile for a coaching app. "
     "Given the current profile (JSON) and a new check-in message, return the UPDATED profile.\n"

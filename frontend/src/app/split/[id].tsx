@@ -4,14 +4,16 @@ import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-rou
 import { Ionicons } from '@expo/vector-icons';
 
 import { api } from '@/api/client';
-import type { Split, SplitInput, TodayWorkout, Workout } from '@/api/types';
+import type { Split, SplitEditProposal, SplitInput, TodayWorkout, Workout } from '@/api/types';
 import { useActiveWorkout } from '@/state/active-workout';
+import { useAiStatus } from '@/hooks/use-ai-status';
 import { Screen } from '@/components/ui/Screen';
 import { Text } from '@/components/ui/Text';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Loading, ErrorState } from '@/components/ui/Feedback';
 import { SplitEditor } from '@/components/SplitEditor';
+import { SplitAiEdit, type SplitAiWorking } from '@/components/SplitAiEdit';
 
 const DOW = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
@@ -24,8 +26,10 @@ export default function SplitDetailScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
+  const [aiOpen, setAiOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
+  const { configured: aiConfigured } = useAiStatus();
 
   const fetch = useCallback(async () => {
     if (!id) return;
@@ -60,6 +64,65 @@ export default function SplitDetailScreen() {
       setEditing(false);
     } catch (e) {
       setActionError(e instanceof Error ? e.message : 'Could not save the split');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  function aiWorking(current: Split): SplitAiWorking {
+    return {
+      name: current.name,
+      notes: current.notes,
+      rules: current.rules,
+      days: [...current.workouts]
+        .sort((a, b) => a.order - b.order)
+        .map((w) => ({
+          id: Number(w.id),
+          name: w.name,
+          weekdays: w.weekdays,
+          floating: w.floating,
+        })),
+    };
+  }
+
+  /** Persist an AI proposal: split fields, then each day's name/schedule.
+   * Days the proposal dropped are detached from the split rather than deleted,
+   * so a bad suggestion can't destroy a workout's exercises. New days are
+   * created empty for the user to fill in. */
+  async function applyProposal(p: SplitEditProposal) {
+    if (!id || !split) return;
+    setSaving(true);
+    setActionError(null);
+    try {
+      await api.updateSplit(id, { name: p.name, notes: p.notes, rules: p.rules });
+      const keptIds = new Set(p.days.filter((d) => d.id != null).map((d) => d.id));
+
+      for (const [index, day] of p.days.entries()) {
+        const shape = {
+          name: day.name,
+          weekdays: day.floating ? [] : day.weekdays,
+          floating: day.floating,
+          order: index,
+        };
+        if (day.id == null) {
+          await api.createWorkout({ ...shape, split_id: Number(id), exercises: [] });
+        } else {
+          await api.updateWorkout(String(day.id), shape);
+        }
+      }
+
+      for (const existing of split.workouts) {
+        if (!keptIds.has(Number(existing.id))) {
+          await api.updateWorkout(String(existing.id), { split_id: null });
+        }
+      }
+
+      setAiOpen(false);
+      await fetch();
+    } catch (e) {
+      setActionError(
+        e instanceof Error ? e.message : 'Could not apply the changes — nothing may have saved',
+      );
     } finally {
       setSaving(false);
     }
@@ -291,6 +354,15 @@ export default function SplitDetailScreen() {
             className="mb-3"
           />
         ) : null}
+        {aiConfigured ? (
+          <Button
+            title="Edit with AI"
+            variant="secondary"
+            icon="sparkles"
+            onPress={() => setAiOpen(true)}
+            className="mb-3"
+          />
+        ) : null}
         <Button title="Delete split" variant="danger" icon="trash-outline" onPress={onDelete} />
       </ScrollView>
 
@@ -300,6 +372,13 @@ export default function SplitDetailScreen() {
         saving={saving}
         onSave={persist}
         onClose={() => setEditing(false)}
+      />
+
+      <SplitAiEdit
+        visible={aiOpen}
+        initialWorking={aiWorking(split)}
+        onApply={applyProposal}
+        onClose={() => setAiOpen(false)}
       />
     </Screen>
   );

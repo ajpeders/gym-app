@@ -24,11 +24,13 @@ from ..models import (
 from . import prompts
 from .base import (
     CHECKIN_SCHEMA,
+    EDIT_SPLIT_SCHEMA,
     EDIT_WORKOUT_SCHEMA,
     PARSE_SCHEMA,
     PROGRAM_SCHEMA,
     AIError,
     CheckinResult,
+    EditedSplit,
     EditedWorkout,
     ParsedProgram,
     ParsedSession,
@@ -673,6 +675,75 @@ async def edit_workout_stream(
     }
 
 
+async def edit_split_stream(
+    db: Session, user: User, working: dict, instruction: str
+) -> AsyncIterator[dict]:
+    """Conversationally edit ONE split's shape: name, notes, progression rules,
+    and which day sits on which weekday.
+
+    ``working`` carries each day with its real workout id so the proposal can be
+    matched back to rows; the model is told to echo ids unchanged. Exercises
+    inside a day are out of scope here — :func:`edit_workout_stream` owns those.
+    Nothing is persisted; the client reviews and saves via the normal routes.
+    """
+    provider, _units = _resolve(db, user)
+    split_json = json.dumps(working, ensure_ascii=False)
+    system = prompts.edit_split_system_prompt()
+    user_prompt = prompts.edit_split_user_prompt(split_json, instruction)
+    t0 = time.monotonic()
+
+    data: dict | None = None
+    stream = getattr(provider, "stream_json", None)
+    if stream is not None:
+        async for ev in stream(system=system, user=user_prompt, schema=EDIT_SPLIT_SCHEMA):
+            if ev.get("type") == "progress":
+                yield ev
+            elif ev.get("type") == "result":
+                data = ev.get("data")
+    else:
+        data = await provider.complete_json(
+            system=system, user=user_prompt, schema=EDIT_SPLIT_SCHEMA
+        )
+
+    if data is None:
+        raise AIError("The AI returned no result.")
+
+    try:
+        edited = EditedSplit.model_validate(data)
+    except Exception as exc:  # noqa: BLE001
+        raise AIError(f"Model output did not match the expected shape: {exc}") from exc
+
+    known_ids = {d.get("id") for d in (working.get("days") or []) if d.get("id") is not None}
+    days = []
+    for d in edited.days:
+        # A floating day isn't pinned anywhere; drop weekdays the model left on
+        # it so the two fields can't contradict each other.
+        weekdays = [] if d.floating else sorted({w for w in d.weekdays if 0 <= w <= 6})
+        days.append(
+            {
+                # An id the split doesn't own (a hallucinated one) is treated as
+                # a new day rather than silently retargeting someone's workout.
+                "id": d.id if d.id in known_ids else None,
+                "name": d.name,
+                "weekdays": weekdays,
+                "floating": d.floating,
+            }
+        )
+
+    latency_ms = int((time.monotonic() - t0) * 1000)
+    yield {
+        "type": "result",
+        "provider": provider.name,
+        "model": provider.model,
+        "latency_ms": latency_ms,
+        "reply": edited.reply,
+        "name": edited.name,
+        "notes": edited.notes,
+        "rules": edited.rules,
+        "days": days,
+    }
+
+
 # --- Athlete memory ---
 
 _PROFILE_FIELDS = (
@@ -848,6 +919,7 @@ __all__ = [
     "parse_sets",
     "parse_workout",
     "edit_workout_stream",
+    "edit_split_stream",
     "match_exercise",
     "get_or_create_profile",
     "profile_dict",

@@ -195,6 +195,54 @@ EDIT_WORKOUT_SCHEMA: dict = {
 }
 
 
+# --- Split-level conversational edit (name/notes/rules + day scheduling) ---
+
+
+class EditedSplitDay(BaseModel):
+    id: Optional[int] = None  # echoes an existing workout id; null = a new day
+    name: str
+    weekdays: list[int] = Field(default_factory=list)
+    floating: bool = False
+
+
+class EditedSplit(BaseModel):
+    reply: str = ""
+    name: str
+    notes: Optional[str] = None
+    rules: list[str] = Field(default_factory=list)
+    days: list[EditedSplitDay] = Field(default_factory=list)
+
+
+EDIT_SPLIT_SCHEMA: dict = {
+    "type": "object",
+    "additionalProperties": False,
+    "properties": {
+        "reply": {"type": "string"},
+        "name": {"type": "string"},
+        "notes": {"anyOf": [{"type": "string"}, {"type": "null"}]},
+        "rules": {"type": "array", "items": {"type": "string"}},
+        "days": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "additionalProperties": False,
+                "properties": {
+                    "id": {"anyOf": [{"type": "integer"}, {"type": "null"}]},
+                    "name": {"type": "string"},
+                    "weekdays": {
+                        "type": "array",
+                        "items": {"type": "integer", "minimum": 0, "maximum": 6},
+                    },
+                    "floating": {"type": "boolean"},
+                },
+                "required": ["id", "name", "weekdays", "floating"],
+            },
+        },
+    },
+    "required": ["reply", "name", "notes", "rules", "days"],
+}
+
+
 # --- Athlete-memory check-in (AI updates the persistent profile) ---
 
 

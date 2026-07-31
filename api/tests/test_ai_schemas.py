@@ -10,7 +10,13 @@ from __future__ import annotations
 
 import pytest
 
-from app.ai.base import CHECKIN_SCHEMA, EDIT_WORKOUT_SCHEMA, PARSE_SCHEMA, PROGRAM_SCHEMA
+from app.ai.base import (
+    CHECKIN_SCHEMA,
+    EDIT_SPLIT_SCHEMA,
+    EDIT_WORKOUT_SCHEMA,
+    PARSE_SCHEMA,
+    PROGRAM_SCHEMA,
+)
 
 
 def _object_nodes(node, path="$"):
@@ -27,8 +33,8 @@ def _object_nodes(node, path="$"):
 
 @pytest.mark.parametrize(
     "schema",
-    [PARSE_SCHEMA, PROGRAM_SCHEMA, EDIT_WORKOUT_SCHEMA, CHECKIN_SCHEMA],
-    ids=["parse", "program", "edit_workout", "checkin"],
+    [PARSE_SCHEMA, PROGRAM_SCHEMA, EDIT_WORKOUT_SCHEMA, EDIT_SPLIT_SCHEMA, CHECKIN_SCHEMA],
+    ids=["parse", "program", "edit_workout", "edit_split", "checkin"],
 )
 def test_required_keys_are_declared_properties(schema):
     for path, node in _object_nodes(schema):

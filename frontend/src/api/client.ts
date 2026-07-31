@@ -32,6 +32,8 @@ import type {
   TodayWorkout,
   User,
   Workout,
+  SplitEditProposal,
+  SplitEditWorkingDay,
   WorkoutEditProposal,
   WorkoutEditWorkingExercise,
   WorkoutInput,
@@ -274,14 +276,14 @@ export interface WorkoutEditInput {
   exercises: WorkoutEditWorkingExercise[];
 }
 
-// Conversationally edit ONE plan workout over SSE. Mirrors parseWorkoutStream:
-// the model can take 10–30s on a local model, so streaming keeps a mobile
-// connection alive and reports progress. Returns the proposed workout; nothing
-// is saved until the caller PATCHes the workout.
-async function editWorkoutStream(
-  input: WorkoutEditInput,
+// Shared SSE POST used by the conversational AI editors. The model can take
+// 10-30s locally, so streaming keeps a mobile connection alive and reports
+// progress. Returns the proposal; nothing is saved until the caller PATCHes.
+async function postSseStream<T>(
+  path: string,
+  input: unknown,
   onProgress?: (info: ParseProgressInfo) => void,
-): Promise<WorkoutEditProposal> {
+): Promise<T> {
   const headers: Record<string, string> = {
     Accept: 'text/event-stream',
     'Content-Type': 'application/json',
@@ -295,7 +297,7 @@ async function editWorkoutStream(
   try {
     let res: Awaited<ReturnType<typeof expoFetch>>;
     try {
-      res = await expoFetch(`${API_BASE}/ai/edit-workout/stream`, {
+      res = await expoFetch(`${API_BASE}${path}`, {
         method: 'POST',
         headers,
         body: JSON.stringify(input),
@@ -313,7 +315,7 @@ async function editWorkoutStream(
       throw new ApiError(res.status, `Request failed (${res.status})`, body);
     }
 
-    let result: WorkoutEditProposal | null = null;
+    let result: T | null = null;
     let errorDetail: string | null = null;
 
     const handleBlock = (raw: string) => {
@@ -322,7 +324,7 @@ async function editWorkoutStream(
       if (parsed.event === 'progress') {
         onProgress?.({ received: (parsed.data as ParseProgressInfo).received ?? 0 });
       } else if (parsed.event === 'result') {
-        result = parsed.data as WorkoutEditProposal;
+        result = parsed.data as T;
       } else if (parsed.event === 'error') {
         errorDetail = (parsed.data as { detail?: string }).detail ?? 'Failed to edit.';
       }
@@ -358,6 +360,32 @@ async function editWorkoutStream(
   } finally {
     clearTimeout(timer);
   }
+}
+
+// Conversationally edit ONE plan workout (its exercises and targets).
+function editWorkoutStream(
+  input: WorkoutEditInput,
+  onProgress?: (info: ParseProgressInfo) => void,
+): Promise<WorkoutEditProposal> {
+  return postSseStream<WorkoutEditProposal>('/ai/edit-workout/stream', input, onProgress);
+}
+
+export interface SplitEditInput {
+  instruction: string;
+  name: string;
+  notes: string | null;
+  rules: string[];
+  days: SplitEditWorkingDay[];
+}
+
+// Conversationally edit ONE split's shape: name, notes, progression rules, and
+// which day sits on which weekday. Exercises inside a day stay with
+// editWorkoutStream.
+function editSplitStream(
+  input: SplitEditInput,
+  onProgress?: (info: ParseProgressInfo) => void,
+): Promise<SplitEditProposal> {
+  return postSseStream<SplitEditProposal>('/ai/edit-split/stream', input, onProgress);
 }
 
 export interface ProgressPhotoUpload {
@@ -517,6 +545,7 @@ export const api = {
   request,
   parseWorkoutStream,
   editWorkoutStream,
+  editSplitStream,
   companionChat,
 
   // ---- auth ----
