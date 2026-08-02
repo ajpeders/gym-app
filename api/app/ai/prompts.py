@@ -14,7 +14,16 @@ _RULES = (
     "otherwise working.\n"
     "- Expand 'N sets of M reps' into N set objects (repeat reps/weight) unless the user gives per-set values.\n"
     "- Put subjective comments ('felt easy', 'left shoulder tweaked') into notes. Never invent numbers.\n"
-    "- Use the exact exercise name the user said, kept concise (e.g. 'Barbell Bench Press')."
+    "- Use the exact exercise name the user said, kept concise (e.g. 'Barbell Bench Press').\n"
+    "- The input may be a whole day pasted from a notes app: one exercise per line, "
+    "possibly bulleted or with a dash before the numbers. Read every line.\n"
+    "- A leading line that names the day or split ('Push', 'Leg Day', 'Monday') is a header, "
+    "not an exercise. Skip it. So is a table header row like 'Exercise Weight Reps'.\n"
+    "- A comma-separated list of bare number PAIRS after an exercise is one set per pair, "
+    "weight first then reps. '95 10, 90 11, 85 12' is three sets: 95 for 10, 90 for 11, 85 for 12. "
+    "Do not read it as a weight range or as one set.\n"
+    "- This is a LOG of what was actually done, not a plan. If a line carries both a planned "
+    "target and what was performed, output the performed sets."
 )
 
 # Literal JSON example — never passed through .format() (its braces would break it).
@@ -31,9 +40,28 @@ _EXAMPLE = (
     '{"reps":12,"weight":10,"rpe":null,"set_type":"working"}],"notes":null}]}'
 )
 
+# A second example in the shape of a day pasted from a notes app: header line,
+# one exercise per line, and per-set "weight reps" pairs.
+_DAY_EXAMPLE = (
+    "Example input:\n"
+    "Pull\n"
+    "Lat pulldown - 100 12, 100 10\n"
+    "Seated row 3x10 @ 70, back felt strong\n"
+    "Example output: "
+    '{"exercises":['
+    '{"exercise":"Lat Pulldown","sets":['
+    '{"reps":12,"weight":100,"rpe":null,"set_type":"working"},'
+    '{"reps":10,"weight":100,"rpe":null,"set_type":"working"}],"notes":null},'
+    '{"exercise":"Seated Row","sets":['
+    '{"reps":10,"weight":70,"rpe":null,"set_type":"working"},'
+    '{"reps":10,"weight":70,"rpe":null,"set_type":"working"},'
+    '{"reps":10,"weight":70,"rpe":null,"set_type":"working"}],'
+    '"notes":"back felt strong"}]}'
+)
+
 
 def system_prompt(units: str) -> str:
-    return _RULES.format(units=units) + "\n\n" + _EXAMPLE
+    return _RULES.format(units=units) + "\n\n" + _EXAMPLE + "\n\n" + _DAY_EXAMPLE
 
 
 _WORKOUT_RULES = (

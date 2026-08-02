@@ -13,14 +13,15 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { ExerciseBrowser } from '@/components/ExerciseBrowser';
 import { ExerciseThumb } from '@/components/ExerciseThumb';
+import { NotesToSets } from '@/components/NotesToSets';
 import { titleCase } from '@/lib/format';
 
-interface DraftSet {
+export interface DraftSet {
   reps: string;
   weight: string;
 }
 
-interface DraftLoggedExercise {
+export interface DraftLoggedExercise {
   exercise_id: string;
   name: string;
   image?: string | null;
@@ -188,7 +189,7 @@ export default function LogSessionScreen() {
         contentContainerClassName="px-4 pt-3 pb-28"
         keyboardShouldPersistTaps="handled">
         <Text variant="muted" className="mb-3">
-          Record a session you already did — enter the sets, no live timer.
+          Record a session you already did — paste your notes or enter the sets, no live timer.
         </Text>
 
         <Input label="Name" value={name} onChangeText={setName} placeholder="e.g. Leg day" />
@@ -252,6 +253,8 @@ export default function LogSessionScreen() {
         <Text variant="heading" className="mb-2 mt-5">
           Exercises
         </Text>
+
+        <NotesToSets onAdd={(rows) => setExercises((prev) => [...prev, ...rows])} />
 
         {exercises.length === 0 ? (
           <Card className="mb-3">
