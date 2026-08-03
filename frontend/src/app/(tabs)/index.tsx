@@ -21,6 +21,7 @@ import type {
   WorkoutInput,
 } from '@/api/types';
 import { useActiveWorkout } from '@/state/active-workout';
+import { useStartSession } from '@/hooks/use-start-session';
 import { useSettings } from '@/state/settings';
 import { Screen, ScreenHeader, SectionHeader } from '@/components/ui/Screen';
 import { Text } from '@/components/ui/Text';
@@ -216,7 +217,7 @@ function findPreviousExercise(workout: Workout, exerciseId: string, fallbackName
 
 export default function HomeScreen() {
   const router = useRouter();
-  const { workout: active, start } = useActiveWorkout();
+  const { workout: active } = useActiveWorkout();
   const { settings } = useSettings();
 
   // All plan workouts (the pool for the picker + preview + AI edit).
@@ -227,7 +228,7 @@ export default function HomeScreen() {
   const [pickedId, setPickedId] = useState<string | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  const [starting, setStarting] = useState(false);
+  const { startSession, starting } = useStartSession();
   const [aiOpen, setAiOpen] = useState(false);
   const [aiPrompt, setAiPrompt] = useState('');
   const [aiSaving, setAiSaving] = useState(false);
@@ -255,13 +256,8 @@ export default function HomeScreen() {
   );
 
   async function onStartWorkout(workout: Workout) {
-    setStarting(true);
-    try {
-      const s = await start({ workout_id: String(workout.id) });
-      router.push(`/session/active/${s.id}`);
-    } finally {
-      setStarting(false);
-    }
+    // Guarded: resumes instead of stacking a second session. See use-start-session.
+    await startSession({ workout_id: String(workout.id) });
   }
 
   async function onAiEdit(workout: Workout) {

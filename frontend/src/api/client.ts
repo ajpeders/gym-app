@@ -601,6 +601,8 @@ export const api = {
   sessions: (query?: { limit?: number; offset?: number }) =>
     request<Paginated<Session>>('/sessions', { query }),
   session: (id: string) => request<Session>(`/sessions/${id}`),
+  // The session in progress, or null. Finds one this device doesn't remember.
+  activeSession: () => request<Session | null>('/sessions/active'),
   startSession: (input: { workout_id?: string; name?: string; started_at?: string }) =>
     request<Session>('/sessions/start', { method: 'POST', body: input }),
   logSession: (input: SessionLogInput) =>

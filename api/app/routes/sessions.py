@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import func, select
@@ -97,12 +98,51 @@ def _resolve_started_at(value: datetime | None) -> datetime:
     return value if value.tzinfo is not None else value.replace(tzinfo=timezone.utc)
 
 
+def _close_open_sessions(db: SASession, user: User) -> None:
+    """Finish any session still in progress — at most one may be live.
+
+    Every start path used to create a session unconditionally, so a stray tap
+    left the previous one open forever. Enforced here rather than in the client
+    because there are several start paths and the device only remembers the
+    newest session id.
+
+    Finished, never deleted: the offline set queue drops a set permanently on a
+    4xx, so removing a session another device is still syncing to would lose
+    that work. An empty leftover is clutter; a lost set is data.
+    """
+    for stale in db.scalars(
+        select(Session).where(Session.owner_id == user.id, Session.finished_at.is_(None))
+    ).all():
+        # Its own last set is a truer end than "now" for a session abandoned days ago.
+        last_set = db.scalar(
+            select(func.max(SetEntry.completed_at))
+            .join(SessionExercise, SessionExercise.id == SetEntry.session_exercise_id)
+            .where(SessionExercise.session_id == stale.id)
+        )
+        stale.finished_at = last_set or stale.started_at
+
+
+@router.get("/active", response_model=Optional[SessionOut])
+def active_session(
+    db: SASession = Depends(get_db), user: User = Depends(get_current_user)
+) -> Optional[SessionOut]:
+    """The session in progress, or null. Lets a client find one it doesn't
+    remember — localStorage only ever holds the newest id."""
+    row = db.scalar(
+        select(Session)
+        .where(Session.owner_id == user.id, Session.finished_at.is_(None))
+        .order_by(Session.started_at.desc())
+    )
+    return SessionOut.model_validate(row) if row else None
+
+
 @router.post("/start", response_model=SessionOut, status_code=status.HTTP_201_CREATED)
 def start_session(
     payload: SessionStart,
     db: SASession = Depends(get_db),
     user: User = Depends(get_current_user),
 ) -> SessionOut:
+    _close_open_sessions(db, user)
     session = Session(
         owner_id=user.id,
         name=payload.name,

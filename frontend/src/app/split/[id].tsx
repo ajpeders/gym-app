@@ -5,7 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { api } from '@/api/client';
 import type { Split, SplitEditProposal, SplitInput, TodayWorkout, Workout } from '@/api/types';
-import { useActiveWorkout } from '@/state/active-workout';
+import { useStartSession } from '@/hooks/use-start-session';
 import { useAiStatus } from '@/hooks/use-ai-status';
 import { Screen } from '@/components/ui/Screen';
 import { Text } from '@/components/ui/Text';
@@ -21,7 +21,7 @@ const DOW = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', '
 export default function SplitDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  const { start } = useActiveWorkout();
+  const { startSession } = useStartSession();
   const [split, setSplit] = useState<Split | null>(null);
   const [today, setToday] = useState<TodayWorkout[]>([]);
   const [loading, setLoading] = useState(true);
@@ -305,10 +305,7 @@ export default function SplitDetailScreen() {
                 </Text>
               </View>
               <Pressable
-                onPress={async () => {
-                  const s = await start({ workout_id: w.id, name: w.name });
-                  router.push(`/session/active/${s.id}`);
-                }}
+                onPress={() => void startSession({ workout_id: w.id, name: w.name })}
                 className="mr-2 flex-row items-center rounded-lg bg-brand px-3 py-2 active:bg-brand-600">
                 <Ionicons name="play" size={13} color="#070b12" />
                 <Text variant="caption" className="ml-1 font-bold text-iron-950">

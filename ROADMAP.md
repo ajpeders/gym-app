@@ -208,9 +208,14 @@ Found while actually training with the app. Ordered by how much they hurt.
       created as that user's custom exercises instead of altering the shared
       third-party catalog. Include a review step before saving and make imports
       safe to retry without creating duplicates.
-- [ ] **Duplicate in-progress workouts** — starting a workout doesn't detect or
-      resume an already-active one, so taps pile up sessions (3 were open during
-      testing). Resume-or-prompt on start, and clean up the strays.
+- [x] **Duplicate in-progress workouts** — *resolved 2026-08-03.* At most one
+      session may be open: `POST /sessions/start` finishes any stray (stamping it
+      with its own last set, not "now"), and `GET /sessions/active` lets a client
+      find one it doesn't remember. Strays are finished, never deleted — the
+      offline queue drops a set permanently on a 4xx, so deleting a session another
+      device is still syncing to would lose that work. The `useStartSession` hook
+      guards every Start button: same day already running resumes silently, a
+      different one asks before closing.
 - [x] **Terminology cleanup** — *resolved 2026-07-26.* Settled naming shipped
       across backend + frontend: **Split** = the week, **Workout** = one plan-day
       (with `weekdays`/`floating` scheduling), **Session** = a logged bout. The old
