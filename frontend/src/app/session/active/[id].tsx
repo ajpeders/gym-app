@@ -10,6 +10,7 @@ import { useSettings } from '@/state/settings';
 import { Text } from '@/components/ui/Text';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
+import { BottomAction } from '@/components/ui/BottomAction';
 import { Loading } from '@/components/ui/Feedback';
 import { ActiveExerciseCard } from '@/components/workout/ActiveExerciseCard';
 import { formatDuration } from '@/lib/format';
@@ -239,10 +240,9 @@ export default function ActiveWorkoutScreen() {
         />
       </ScrollView>
 
-      {/* finish bar */}
-      <View className="absolute bottom-0 left-0 right-0 border-t border-iron-800 bg-iron-950/95 px-4 pb-6 pt-3">
+      <BottomAction>
         <Button title="Finish session" size="lg" icon="checkmark" loading={finishing} onPress={onFinish} />
-      </View>
+      </BottomAction>
     </SafeAreaView>
   );
 }

@@ -2,15 +2,11 @@ import { useEffect, useRef, useState } from 'react';
 import {
   Animated,
   Easing,
-  KeyboardAvoidingView,
-  Modal,
-  Platform,
   Pressable,
   ScrollView,
   TextInput,
   View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
 import { api, ApiError } from '@/api/client';
@@ -19,6 +15,8 @@ import { aiParseErrorMessage } from '@/api/errors';
 import { formatRepRange, titleCase } from '@/lib/format';
 import { Text } from '@/components/ui/Text';
 import { Button } from '@/components/ui/Button';
+import { BottomAction } from '@/components/ui/BottomAction';
+import { ModalSheet } from '@/components/ui/ModalSheet';
 
 export interface WorkoutAiWorking {
   name: string;
@@ -122,48 +120,67 @@ export function WorkoutAiEdit({ visible, units, initialWorking, onApply, onClose
   }
 
   return (
-    <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
-      <SafeAreaView edges={['top', 'left', 'right']} className="flex-1 bg-iron-950">
-        <View className="flex-row items-center justify-between border-b border-iron-800 px-4 py-3">
-          <View className="flex-row items-center">
-            <Ionicons name="sparkles" size={18} color="#818cf8" />
-            <Text variant="heading" className="ml-2">
-              Edit with AI
-            </Text>
-          </View>
-          <Pressable onPress={onClose} hitSlop={8}>
-            <Text className="font-bold text-brand">Close</Text>
-          </Pressable>
-        </View>
-
-        <KeyboardAvoidingView
-          className="flex-1"
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          keyboardVerticalOffset={Platform.OS === 'ios' ? 40 : 0}>
-          <ScrollView
-            ref={scrollRef}
-            className="flex-1"
-            contentContainerClassName="px-4 pt-3 pb-4"
-            keyboardShouldPersistTaps="handled"
-            onContentSizeChange={() => scrollRef.current?.scrollToEnd({ animated: true })}>
-            {turns.length === 0 && !sending ? (
-              <View className="py-4">
-                <Text variant="muted" className="mb-3">
-                  Tell the AI how to change this workout. It proposes an update; nothing is saved
-                  until you tap Apply.
+    <ModalSheet
+      visible={visible}
+      title="Edit with AI"
+      icon="sparkles"
+      onClose={onClose}
+      scrollRef={scrollRef}
+      onContentSizeChange={() => scrollRef.current?.scrollToEnd({ animated: true })}
+      footer={
+        <BottomAction className="px-3 pt-2.5">
+          {proposal && !sending ? (
+            <View className="mb-2">
+              {unmatched.length > 0 ? (
+                <Text variant="caption" className="mb-2 text-amber-400">
+                  {unmatched.length} exercise{unmatched.length > 1 ? 's' : ''} not in your catalog
+                  will be skipped on apply.
                 </Text>
-                {SUGGESTIONS.map((s) => (
-                  <Pressable
-                    key={s}
-                    onPress={() => setInput(s)}
-                    className="mb-2 self-start rounded-full border border-iron-700 bg-iron-900/90 px-3.5 py-2 active:opacity-70">
-                    <Text variant="caption" className="text-iron-100">
-                      {s}
-                    </Text>
-                  </Pressable>
-                ))}
-              </View>
-            ) : null}
+              ) : null}
+              <Button title="Apply changes" onPress={() => onApply(proposal)} />
+            </View>
+          ) : null}
+          <View className="flex-row items-end">
+            <TextInput
+              value={input}
+              onChangeText={setInput}
+              placeholder="e.g. add a 4th set to bench"
+              placeholderTextColor="#64748b"
+              selectionColor="#818cf8"
+              multiline
+              editable={!sending}
+              className="max-h-32 min-h-[44px] flex-1 rounded-lg border border-iron-700 bg-iron-900 px-4 py-2.5 text-base text-iron-50"
+              style={{ textAlignVertical: 'center' }}
+            />
+            <Pressable
+              onPress={() => void send(input)}
+              disabled={!input.trim() || sending}
+              className={`ml-2 h-11 w-11 items-center justify-center rounded-lg ${
+                input.trim() && !sending ? 'bg-brand active:bg-brand-600' : 'bg-iron-800 opacity-50'
+              }`}>
+              <Ionicons name="arrow-up" size={20} color="#070b12" />
+            </Pressable>
+          </View>
+        </BottomAction>
+      }>
+      {turns.length === 0 && !sending ? (
+        <View className="py-4">
+          <Text variant="muted" className="mb-3">
+            Tell the AI how to change this workout. It proposes an update; nothing is saved
+            until you tap Apply.
+          </Text>
+          {SUGGESTIONS.map((s) => (
+            <Pressable
+              key={s}
+              onPress={() => setInput(s)}
+              className="mb-2 self-start rounded-full border border-iron-700 bg-iron-900/90 px-3.5 py-2 active:opacity-70">
+              <Text variant="caption" className="text-iron-100">
+                {s}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
+      ) : null}
 
             {turns.map((t, i) =>
               t.role === 'user' ? (
@@ -192,50 +209,7 @@ export function WorkoutAiEdit({ visible, units, initialWorking, onApply, onClose
             ) : null}
 
             {error ? <Text className="mt-2 text-sm text-red-400">{error}</Text> : null}
-          </ScrollView>
-
-          {proposal && !sending ? (
-            <View className="border-t border-iron-800 px-4 pt-2.5">
-              {unmatched.length > 0 ? (
-                <Text variant="caption" className="mb-2 text-amber-400">
-                  {unmatched.length} exercise{unmatched.length > 1 ? 's' : ''} not in your catalog
-                  will be skipped on apply.
-                </Text>
-              ) : null}
-              <Button
-                title="Apply changes"
-                onPress={() => onApply(proposal)}
-                className="mb-1"
-              />
-            </View>
-          ) : null}
-
-          <View className="border-t border-iron-800 bg-iron-950 px-3 pb-6 pt-2.5">
-            <View className="flex-row items-end">
-              <TextInput
-                value={input}
-                onChangeText={setInput}
-                placeholder="e.g. add a 4th set to bench"
-                placeholderTextColor="#64748b"
-                selectionColor="#818cf8"
-                multiline
-                editable={!sending}
-                className="max-h-32 min-h-[44px] flex-1 rounded-lg border border-iron-700 bg-iron-900 px-4 py-2.5 text-base text-iron-50"
-                style={{ textAlignVertical: 'center' }}
-              />
-              <Pressable
-                onPress={() => void send(input)}
-                disabled={!input.trim() || sending}
-                className={`ml-2 h-11 w-11 items-center justify-center rounded-lg ${
-                  input.trim() && !sending ? 'bg-brand active:bg-brand-600' : 'bg-iron-800 opacity-50'
-                }`}>
-                <Ionicons name="arrow-up" size={20} color="#070b12" />
-              </Pressable>
-            </View>
-          </View>
-        </KeyboardAvoidingView>
-      </SafeAreaView>
-    </Modal>
+    </ModalSheet>
   );
 }
 

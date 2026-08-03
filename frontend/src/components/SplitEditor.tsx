@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
-import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, TextInput, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { Pressable, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import type { Split, SplitInput } from '@/api/types';
 import { Text } from '@/components/ui/Text';
 import { Button } from '@/components/ui/Button';
+import { FormField } from '@/components/ui/FormField';
+import { ModalSheet } from '@/components/ui/ModalSheet';
 
 interface Props {
   visible: boolean;
@@ -14,9 +15,6 @@ interface Props {
   onSave: (input: SplitInput) => void;
   onClose: () => void;
 }
-
-const INPUT_CLASS =
-  'rounded-lg border border-iron-700 bg-iron-900 px-4 py-2.5 text-base text-iron-50';
 
 /** Hand-editing for a split's own fields: name, notes, and progression rules.
  * The days inside it stay editable on their own screens. */
@@ -46,107 +44,70 @@ export function SplitEditor({ visible, split, saving = false, onSave, onClose }:
   }
 
   return (
-    <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
-      <SafeAreaView edges={['top', 'left', 'right', 'bottom']} className="flex-1 bg-iron-950">
-        <View className="border-b border-iron-800">
-          <View className="w-full max-w-[760px] self-center flex-row items-center justify-between px-4 py-3">
-            <Text variant="heading">Edit split</Text>
-            <Pressable onPress={onClose} hitSlop={8} accessibilityRole="button">
-              <Text className="font-bold text-brand">Close</Text>
+    <ModalSheet visible={visible} title="Edit split" onClose={onClose}>
+      <FormField
+        label="Name"
+        value={name}
+        onChangeText={setName}
+        placeholder="e.g. Push / Pull / Legs"
+      />
+
+      <FormField
+        label="Notes"
+        value={notes}
+        onChangeText={setNotes}
+        placeholder="Anything to remember about this split"
+        multiline
+        containerClassName="mt-5"
+      />
+
+      <View className="mb-1.5 mt-5 flex-row items-center justify-between">
+        <Text variant="caption" className="text-iron-400">
+          Progression rules
+        </Text>
+        <Pressable
+          onPress={() => setRules((prev) => [...prev, ''])}
+          hitSlop={8}
+          accessibilityRole="button"
+          className="flex-row items-center active:opacity-70">
+          <Ionicons name="add" size={16} color="#818cf8" />
+          <Text variant="caption" className="ml-0.5 font-bold text-brand">
+            Add rule
+          </Text>
+        </Pressable>
+      </View>
+
+      {rules.length === 0 ? (
+        <Text variant="muted" className="mb-1">
+          No rules yet — add how you want to progress this split.
+        </Text>
+      ) : (
+        rules.map((rule, i) => (
+          <View key={i} className="mb-2 flex-row items-center">
+            <FormField
+              label={`Rule ${i + 1}`}
+              value={rule}
+              onChangeText={(text) =>
+                setRules((prev) => prev.map((r, j) => (j === i ? text : r)))
+              }
+              placeholder="e.g. add weight when you hit the top of the range"
+              multiline
+              containerClassName="flex-1"
+            />
+            <Pressable
+              onPress={() => setRules((prev) => prev.filter((_, j) => j !== i))}
+              hitSlop={8}
+              accessibilityLabel={`Remove rule ${i + 1}`}
+              className="ml-2 mt-6 h-9 w-9 items-center justify-center rounded-lg active:bg-iron-800">
+              <Ionicons name="close" size={18} color="#94a3b8" />
             </Pressable>
           </View>
-        </View>
+        ))
+      )}
 
-        <KeyboardAvoidingView
-          className="flex-1"
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          keyboardVerticalOffset={Platform.OS === 'ios' ? 40 : 0}>
-          <ScrollView
-            className="flex-1"
-            contentContainerClassName="w-full max-w-[760px] self-center px-4 pt-4 pb-10"
-            keyboardShouldPersistTaps="handled">
-            <Text variant="caption" className="mb-1.5 text-iron-400">
-              Name
-            </Text>
-            <TextInput
-              value={name}
-              onChangeText={setName}
-              placeholder="e.g. Push / Pull / Legs"
-              placeholderTextColor="#64748b"
-              selectionColor="#818cf8"
-              className={INPUT_CLASS}
-            />
-
-            <Text variant="caption" className="mb-1.5 mt-5 text-iron-400">
-              Notes
-            </Text>
-            <TextInput
-              value={notes}
-              onChangeText={setNotes}
-              placeholder="Anything to remember about this split"
-              placeholderTextColor="#64748b"
-              selectionColor="#818cf8"
-              multiline
-              className={`${INPUT_CLASS} min-h-[80px]`}
-              style={{ textAlignVertical: 'top' }}
-            />
-
-            <View className="mb-1.5 mt-5 flex-row items-center justify-between">
-              <Text variant="caption" className="text-iron-400">
-                Progression rules
-              </Text>
-              <Pressable
-                onPress={() => setRules((prev) => [...prev, ''])}
-                hitSlop={8}
-                className="flex-row items-center active:opacity-70">
-                <Ionicons name="add" size={16} color="#818cf8" />
-                <Text variant="caption" className="ml-0.5 font-bold text-brand">
-                  Add rule
-                </Text>
-              </Pressable>
-            </View>
-
-            {rules.length === 0 ? (
-              <Text variant="muted" className="mb-1">
-                No rules yet — add how you want to progress this split.
-              </Text>
-            ) : (
-              rules.map((rule, i) => (
-                <View key={i} className="mb-2 flex-row items-center">
-                  <TextInput
-                    value={rule}
-                    onChangeText={(text) =>
-                      setRules((prev) => prev.map((r, j) => (j === i ? text : r)))
-                    }
-                    placeholder="e.g. add weight when you hit the top of the range"
-                    placeholderTextColor="#64748b"
-                    selectionColor="#818cf8"
-                    multiline
-                    className={`${INPUT_CLASS} flex-1`}
-                    style={{ textAlignVertical: 'top' }}
-                  />
-                  <Pressable
-                    onPress={() => setRules((prev) => prev.filter((_, j) => j !== i))}
-                    hitSlop={8}
-                    accessibilityLabel={`Remove rule ${i + 1}`}
-                    className="ml-2 h-9 w-9 items-center justify-center rounded-lg active:bg-iron-800">
-                    <Ionicons name="close" size={18} color="#94a3b8" />
-                  </Pressable>
-                </View>
-              ))
-            )}
-
-            <View className="mt-5 border-t border-iron-800 pt-4">
-              <Button
-                title="Save changes"
-                onPress={save}
-                loading={saving}
-                disabled={!trimmedName}
-              />
-            </View>
-          </ScrollView>
-        </KeyboardAvoidingView>
-      </SafeAreaView>
-    </Modal>
+      <View className="mt-5 border-t border-iron-800 pt-4">
+        <Button title="Save changes" onPress={save} loading={saving} disabled={!trimmedName} />
+      </View>
+    </ModalSheet>
   );
 }

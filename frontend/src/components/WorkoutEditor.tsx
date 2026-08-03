@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Modal, Pressable, ScrollView, TextInput, View } from 'react-native';
+import { Pressable, ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -10,7 +10,9 @@ import { useAiStatus } from '@/hooks/use-ai-status';
 import { Text } from '@/components/ui/Text';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
+import { BottomAction } from '@/components/ui/BottomAction';
+import { FormField } from '@/components/ui/FormField';
+import { ModalSheet } from '@/components/ui/ModalSheet';
 import { ExerciseBrowser } from '@/components/ExerciseBrowser';
 import { ExerciseThumb } from '@/components/ExerciseThumb';
 import { WeekdayPicker } from '@/components/WeekdayPicker';
@@ -43,9 +45,6 @@ interface WorkoutEditorProps {
   /** When set, a share button appears in the header (export the saved workout). */
   onExport?: () => void;
 }
-
-const smallInput =
-  'rounded-md border border-iron-700 bg-iron-950 px-2 py-2 text-center text-base text-iron-50';
 
 function formatNumberRange(low: number | null | undefined, high: number | null | undefined) {
   if (low == null) return '';
@@ -235,16 +234,15 @@ export function WorkoutEditor({
             : undefined,
         }}
       />
-      <ScrollView className="flex-1" contentContainerClassName="px-4 pt-3 pb-28" keyboardShouldPersistTaps="handled">
-        <Input label="Name" value={name} onChangeText={setName} placeholder="e.g. Push Day" />
-        <Input
+      <ScrollView className="flex-1" contentContainerClassName="px-4 pt-3 pb-40" keyboardShouldPersistTaps="handled">
+        <FormField label="Name" value={name} onChangeText={setName} placeholder="e.g. Push Day" />
+        <FormField
           label="Notes"
           value={notes}
           onChangeText={setNotes}
           placeholder="Optional"
           multiline
           containerClassName="mt-3"
-          className="h-20"
         />
 
         {aiConfigured ? (
@@ -343,16 +341,14 @@ export function WorkoutEditor({
                 />
               </View>
 
-              <Text variant="caption" className="mb-1 mt-3 text-iron-400">
-                Exercise notes
-              </Text>
-              <TextInput
+              <FormField
+                label="Exercise notes"
                 value={e.notes}
                 onChangeText={(value) => update(idx, { notes: value })}
                 placeholder="Cues, setup, tempo, substitutions..."
-                placeholderTextColor="#64748b"
                 multiline
-                className="min-h-[64px] rounded-lg border border-iron-700 bg-iron-950 px-3 py-2.5 text-base text-iron-50"
+                containerClassName="mt-3"
+                inputClassName="bg-iron-950"
               />
             </Card>
           ))
@@ -398,28 +394,24 @@ export function WorkoutEditor({
         )}
 
         {error ? <Text className="text-red-500 text-sm mt-3">{error}</Text> : null}
-
-        <Button title="Save workout" size="lg" className="mt-4" loading={saving} onPress={save} />
-
-        {onDelete ? (
-          <Button title="Delete workout" variant="danger" className="mt-3" onPress={onDelete} />
-        ) : null}
       </ScrollView>
 
-      <Modal visible={picking} animationType="slide" onRequestClose={() => setPicking(false)}>
-        <SafeAreaView edges={['top', 'left', 'right']} className="flex-1 bg-iron-950">
-          <View className="flex-row items-center justify-between px-4 py-3">
-            <Text variant="heading">Add exercise</Text>
-            <Pressable onPress={() => setPicking(false)} hitSlop={8}>
-              <Text className="text-brand font-bold">Close</Text>
-            </Pressable>
-          </View>
-          <ExerciseBrowser
-            onSelect={addExercise}
-            renderTrailing={() => <Text className="text-xl font-black text-brand">ADD</Text>}
-          />
-        </SafeAreaView>
-      </Modal>
+      <BottomAction contentClassName={onDelete ? 'gap-2' : undefined}>
+        <Button title="Save workout" size="lg" loading={saving} onPress={save} />
+        {onDelete ? <Button title="Delete workout" variant="danger" onPress={onDelete} /> : null}
+      </BottomAction>
+
+      <ModalSheet
+        visible={picking}
+        title="Add exercise"
+        onClose={() => setPicking(false)}
+        scroll={false}
+        contentClassName="px-0">
+        <ExerciseBrowser
+          onSelect={addExercise}
+          renderTrailing={() => <Text className="text-xl font-black text-brand">ADD</Text>}
+        />
+      </ModalSheet>
 
       <WorkoutAiEdit
         visible={aiOpen}
@@ -448,18 +440,14 @@ function Field({
 }) {
   const keyboardType = range ? 'default' : decimal ? 'decimal-pad' : 'number-pad';
   return (
-    <View className="min-w-[46%] flex-1">
-      <Text variant="caption" className="mb-1">
-        {label}
-      </Text>
-      <TextInput
-        value={value}
-        onChangeText={onChangeText}
-        keyboardType={keyboardType}
-        placeholder={range ? '8-12' : '-'}
-        placeholderTextColor="#64748b"
-        className={smallInput}
-      />
-    </View>
+    <FormField
+      label={label}
+      value={value}
+      onChangeText={onChangeText}
+      keyboardType={keyboardType}
+      placeholder={range ? '8-12' : '-'}
+      containerClassName="min-w-[46%] flex-1"
+      inputClassName="bg-iron-950 px-2 py-2 text-center"
+    />
   );
 }

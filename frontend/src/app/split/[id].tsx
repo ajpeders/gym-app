@@ -12,6 +12,7 @@ import { Text } from '@/components/ui/Text';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Loading, ErrorState } from '@/components/ui/Feedback';
+import { ActionRow } from '@/components/ui/ActionRow';
 import { SplitEditor } from '@/components/SplitEditor';
 import { SplitAiEdit, type SplitAiWorking } from '@/components/SplitAiEdit';
 
@@ -217,48 +218,29 @@ export default function SplitDetailScreen() {
             const primary = dayWorkouts[0];
             const isDone = isToday && dayWorkouts.some((w) => doneToday.has(w.id));
             return (
-              <Pressable
+              <ActionRow
                 key={dayName}
                 disabled={!primary}
                 onPress={() => primary && router.push(`/workout/${primary.id}`)}
-                className={`flex-row items-center rounded-2xl px-3 py-3 ${
-                  isToday ? 'bg-brand/10' : ''
-                } ${primary ? 'active:opacity-70' : ''}`}>
-                <View className="w-32">
-                  <Text
-                    variant="subheading"
-                    numberOfLines={1}
-                    className={isToday ? 'text-brand' : undefined}>
-                    {dayName}
-                  </Text>
-                  {isToday ? (
-                    <Text variant="caption" className="text-brand">
-                      Today
-                    </Text>
-                  ) : null}
-                </View>
-                <Text
-                  variant="body"
-                  numberOfLines={1}
-                  className={`flex-1 ${isRest ? 'text-iron-500' : 'text-iron-100'}`}>
-                  {isRest
-                    ? 'Rest'
-                    : dayWorkouts.map((w) => w.name).join(', ')}
-                </Text>
-                {isDone ? (
-                  <View className="mr-2 flex-row items-center rounded-full bg-brand/15 px-2 py-1">
-                    <Ionicons name="checkmark-circle" size={13} color="#818cf8" />
-                    <Text variant="caption" className="ml-1 font-bold text-brand">
-                      Done
-                    </Text>
-                  </View>
-                ) : null}
-                {primary ? (
-                  <Ionicons name="chevron-forward" size={16} color="#475569" />
-                ) : (
-                  <Ionicons name="bed-outline" size={15} color="#475569" />
-                )}
-              </Pressable>
+                selected={isToday}
+                title={dayName}
+                subtitle={isToday ? 'Today' : undefined}
+                meta={isRest ? 'Rest' : dayWorkouts.map((w) => w.name).join(', ')}
+                trailing={
+                  isDone ? (
+                    <View className="ml-2 flex-row items-center rounded-full bg-brand/15 px-2 py-1">
+                      <Ionicons name="checkmark-circle" size={13} color="#818cf8" />
+                      <Text variant="caption" className="ml-1 font-bold text-brand">
+                        Done
+                      </Text>
+                    </View>
+                  ) : primary ? (
+                    <Ionicons name="chevron-forward" size={16} color="#475569" />
+                  ) : (
+                    <Ionicons name="bed-outline" size={15} color="#475569" />
+                  )
+                }
+              />
             );
           })}
         </Card>
@@ -271,15 +253,13 @@ export default function SplitDetailScreen() {
             </Text>
             <Card className="mb-1 rounded-lg p-2">
               {floating.map((w) => (
-                <Pressable
+                <ActionRow
                   key={w.id}
                   onPress={() => router.push(`/workout/${w.id}`)}
-                  className="flex-row items-center rounded-2xl px-3 py-3 active:opacity-70">
-                  <Text variant="body" numberOfLines={1} className="flex-1 text-iron-100">
-                    {w.name}
-                  </Text>
-                  <Ionicons name="chevron-forward" size={16} color="#475569" />
-                </Pressable>
+                  title={w.name}
+                  subtitle={`${w.exercises.length} exercises`}
+                  meta="Anytime"
+                />
               ))}
             </Card>
           </>

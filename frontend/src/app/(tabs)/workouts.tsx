@@ -10,6 +10,8 @@ import { Text } from '@/components/ui/Text';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Loading, EmptyState } from '@/components/ui/Feedback';
+import { ActionRow } from '@/components/ui/ActionRow';
+import { WeekCalendar, type WeekCalendarItem } from '@/components/ui/WeekCalendar';
 
 const WEEK_DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
@@ -184,31 +186,12 @@ export default function WorkoutsScreen() {
                     </View>
                   ) : null}
 
-                  <View className="mb-3 flex-row items-center justify-between px-1">
-                    <Text variant="subheading">
-                      {dates[0].date.toLocaleDateString(undefined, {
-                        month: 'long',
-                        year: 'numeric',
-                      })}
-                    </Text>
-                    <View className="flex-row items-center gap-3">
-                      <View className="flex-row items-center">
-                        <View className="mr-1.5 h-2 w-2 rounded-full bg-brand" />
-                        <Text variant="caption" className="text-iron-400">
-                          Train
-                        </Text>
-                      </View>
-                      <View className="flex-row items-center">
-                        <View className="mr-1.5 h-2 w-2 rounded-full bg-iron-700" />
-                        <Text variant="caption" className="text-iron-400">
-                          Rest
-                        </Text>
-                      </View>
-                    </View>
-                  </View>
-
-                  <View className="flex-row gap-1">
-                    {dates.map(({ day, date, weekday }) => {
+                  <WeekCalendar
+                    monthLabel={dates[0].date.toLocaleDateString(undefined, {
+                      month: 'long',
+                      year: 'numeric',
+                    })}
+                    items={dates.map(({ day, date, weekday }) => {
                       const dayWorkouts = activePlan.workouts.filter(
                         (workout) => !workout.floating && workout.weekdays.includes(weekday),
                       );
@@ -222,61 +205,43 @@ export default function WorkoutsScreen() {
                       const key = dateKey(date);
                       const hasPhoto = progressPhotos.some((photo) => photo.taken_at.slice(0, 10) === key);
 
-                      return (
-                        <Pressable
-                          key={day}
-                          accessibilityRole={isPastOrToday || primary ? 'button' : undefined}
-                          accessibilityLabel={`${day}, ${isRest ? 'Rest' : dayWorkouts.map((w) => w.name).join(', ')}${
-                            hasPhoto ? ', has progress photos' : ''
-                          }`}
-                          disabled={!isPastOrToday && !primary}
-                          onPress={() => {
+                      return {
+                        key: day,
+                        label: day.slice(0, 1),
+                        value: String(date.getDate()),
+                        isToday,
+                        isRest,
+                        hasPhoto,
+                        disabled: !isPastOrToday && !primary,
+                        accessibilityLabel: `${day}, ${isRest ? 'Rest' : dayWorkouts.map((w) => w.name).join(', ')}${
+                          hasPhoto ? ', has progress photos' : ''
+                        }`,
+                        onPress:
+                          isPastOrToday || primary
+                            ? () => {
                             if (isPastOrToday) {
                               router.push({ pathname: '/progress', params: { date: key } });
                             } else if (primary) {
                               router.push(`/workout/${primary.id}`);
                             }
-                          }}
-                          className={`min-w-0 flex-1 items-center rounded-lg px-0.5 py-2.5 ${
-                            isToday ? 'border border-brand/50 bg-brand/10' : 'border border-transparent'
-                          } ${primary || isPastOrToday ? 'active:bg-brand/15' : ''}`}>
-                          <Text
-                            variant="caption"
-                            className={`font-bold ${isToday ? 'text-brand' : 'text-iron-400'}`}>
-                            {day.slice(0, 1)}
-                          </Text>
-                          <Text
-                            variant="subheading"
-                            className={`mt-1 ${isToday ? 'text-brand' : 'text-iron-100'}`}>
-                            {date.getDate()}
-                          </Text>
-                          {hasPhoto ? (
-                            <Ionicons name="camera" size={11} color="#2dd4bf" style={{ marginTop: 6 }} />
-                          ) : (
-                            <View className={`mt-2 h-2 w-2 rounded-full ${isRest ? 'bg-iron-700' : 'bg-brand'}`} />
-                          )}
-                        </Pressable>
-                      );
+                          }
+                            : undefined,
+                      } satisfies WeekCalendarItem;
                     })}
-                  </View>
+                  />
 
                   <View className="mt-3 border-t border-iron-800 px-1 pt-3">
                     {activePlan.workouts
                       .filter((workout) => !workout.floating)
                       .sort((a, b) => a.order - b.order)
                       .map((workout) => (
-                        <Pressable
+                        <ActionRow
                           key={workout.id}
                           onPress={() => router.push(`/workout/${workout.id}`)}
-                          className="mb-1 flex-row items-center rounded-lg px-2 py-2 active:bg-brand/10 last:mb-0">
-                          <Text variant="caption" className="w-16 font-bold text-iron-400">
-                            {workout.weekdays.map((day) => WEEK_DAYS[day]?.slice(0, 3)).join('/')}
-                          </Text>
-                          <Text variant="body" numberOfLines={1} className="flex-1 text-iron-200">
-                            {workout.name}
-                          </Text>
-                          <Ionicons name="chevron-forward" size={16} color="#475569" />
-                        </Pressable>
+                          title={workout.name}
+                          subtitle={`${workout.exercises.length} exercises`}
+                          meta={workout.weekdays.map((day) => WEEK_DAYS[day]?.slice(0, 3)).join('/')}
+                        />
                       ))}
                   </View>
                 </Card>

@@ -3,7 +3,6 @@ import {
   Animated,
   Easing,
   KeyboardAvoidingView,
-  Modal,
   Platform,
   Pressable,
   ScrollView,
@@ -27,6 +26,9 @@ import { Screen } from '@/components/ui/Screen';
 import { Text } from '@/components/ui/Text';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
+import { BottomAction } from '@/components/ui/BottomAction';
+import { FormField } from '@/components/ui/FormField';
+import { ModalSheet } from '@/components/ui/ModalSheet';
 import { FormError } from '@/components/ui/Feedback';
 import { ExerciseBrowser } from '@/components/ExerciseBrowser';
 import { WeekdayPicker } from '@/components/WeekdayPicker';
@@ -545,7 +547,7 @@ export default function WorkoutImportScreen() {
           onSave={saveCustom}
         />
 
-        <View className="border-t border-iron-800 bg-iron-950 px-4 pb-8 pt-3">
+        <BottomAction>
           {saving ? (
             <Text variant="caption" className="mb-2 text-center">
               Saving workout {saveCurrent} of {saveTotal}…
@@ -575,7 +577,7 @@ export default function WorkoutImportScreen() {
               />
             </View>
           </View>
-        </View>
+        </BottomAction>
       </Screen>
     );
   }
@@ -617,9 +619,9 @@ export default function WorkoutImportScreen() {
           ) : null}
 
         </ScrollView>
-        <View className="border-t border-iron-800 bg-iron-950 px-4 pb-8 pt-3">
+        <BottomAction>
           <Button title="Parse" size="lg" disabled={!text.trim()} onPress={onParse} />
-        </View>
+        </BottomAction>
       </KeyboardAvoidingView>
     </Screen>
   );
@@ -1117,34 +1119,24 @@ function ExercisePickerModal({
   onSelect: (exercise: Exercise) => void;
 }) {
   return (
-    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet">
-      <View className="flex-1 bg-iron-950 pt-5">
-        <View className="mb-3 flex-row items-center justify-between px-4">
-          <View className="flex-1 pr-3">
-            <Text variant="heading">Swap exercise</Text>
-            <Text variant="muted" className="mt-1">
-              Pick the database exercise that should replace the AI match.
+    <ModalSheet
+      visible={visible}
+      title="Swap exercise"
+      subtitle="Pick the database exercise that should replace the AI match."
+      onClose={onClose}
+      scroll={false}
+      contentClassName="px-0">
+      <ExerciseBrowser
+        onSelect={onSelect}
+        renderTrailing={() => (
+          <View className="rounded-full bg-brand px-3 py-1">
+            <Text variant="caption" className="font-bold text-iron-950">
+              Use
             </Text>
           </View>
-          <Pressable
-            accessibilityRole="button"
-            onPress={onClose}
-            className="h-10 w-10 items-center justify-center rounded-full bg-iron-900 active:opacity-70">
-            <Ionicons name="close" size={22} color="#e2e8f0" />
-          </Pressable>
-        </View>
-        <ExerciseBrowser
-          onSelect={onSelect}
-          renderTrailing={() => (
-            <View className="rounded-full bg-brand px-3 py-1">
-              <Text variant="caption" className="font-bold text-iron-950">
-                Use
-              </Text>
-            </View>
-          )}
-        />
-      </View>
-    </Modal>
+        )}
+      />
+    </ModalSheet>
   );
 }
 
@@ -1162,32 +1154,26 @@ function CustomExerciseModal({
   onSave: () => void;
 }) {
   return (
-    <Modal visible={visible} transparent animationType="fade">
-      <View className="flex-1 justify-end bg-black/70 px-4 pb-8">
-        <Card className="rounded-lg p-4">
-          <Text variant="heading">Create custom exercise</Text>
-          <Text variant="muted" className="mt-1">
-            Use this when the database does not have the right movement, nickname, or variation.
-          </Text>
-          <TextInput
-            value={value}
-            onChangeText={onChange}
-            autoFocus
-            placeholder="Exercise name"
-            placeholderTextColor="#64748b"
-            selectionColor="#818cf8"
-            className="mt-4 min-h-[52px] rounded-lg border border-iron-700 bg-iron-950 px-4 text-base text-iron-50"
-          />
-          <View className="mt-4 flex-row gap-2">
-            <View className="flex-1">
-              <Button title="Cancel" variant="secondary" onPress={onCancel} />
-            </View>
-            <View className="flex-1">
-              <Button title="Create" disabled={!value.trim()} onPress={onSave} />
-            </View>
-          </View>
-        </Card>
+    <ModalSheet
+      visible={visible}
+      title="Create custom exercise"
+      subtitle="Use this when the database does not have the right movement, nickname, or variation."
+      onClose={onCancel}>
+      <FormField
+        label="Exercise name"
+        value={value}
+        onChangeText={onChange}
+        autoFocus
+        placeholder="Exercise name"
+      />
+      <View className="mt-4 flex-row gap-2">
+        <View className="flex-1">
+          <Button title="Cancel" variant="secondary" onPress={onCancel} />
+        </View>
+        <View className="flex-1">
+          <Button title="Create" disabled={!value.trim()} onPress={onSave} />
+        </View>
       </View>
-    </Modal>
+    </ModalSheet>
   );
 }
