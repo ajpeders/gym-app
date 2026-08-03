@@ -1,23 +1,37 @@
 import { useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Stack, useRouter } from 'expo-router';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 
 import type { Exercise } from '@/api/types';
 import { useActiveWorkout } from '@/state/active-workout';
 import { Text } from '@/components/ui/Text';
 import { ExerciseBrowser } from '@/components/ExerciseBrowser';
 
+/**
+ * Exercise picker for the live session.
+ *
+ * With a `swapId` param it repoints that logged row instead of appending a new
+ * one — same picker, because "which exercise?" is the same question whether the
+ * machine was free or taken.
+ */
 export default function AddExerciseScreen() {
   const router = useRouter();
-  const { addExercise } = useActiveWorkout();
+  const { addExercise, swapExercise } = useActiveWorkout();
+  const { swapId, swapName } = useLocalSearchParams<{ swapId?: string; swapName?: string }>();
   const [addingId, setAddingId] = useState<string | null>(null);
+
+  const swapping = Boolean(swapId);
 
   async function onSelect(ex: Exercise) {
     if (addingId) return;
     setAddingId(ex.id);
     try {
-      await addExercise(ex.id);
+      if (swapId) {
+        await swapExercise(String(swapId), ex.id);
+      } else {
+        await addExercise(ex.id);
+      }
       router.back();
     } finally {
       setAddingId(null);
@@ -26,9 +40,15 @@ export default function AddExerciseScreen() {
 
   return (
     <SafeAreaView edges={['top', 'left', 'right']} className="flex-1 bg-iron-950">
-      <Stack.Screen options={{ headerShown: true, title: 'Add exercise' }} />
+      <Stack.Screen
+        options={{ headerShown: true, title: swapping ? 'Swap exercise' : 'Add exercise' }}
+      />
       <View className="px-4 pt-2 pb-1">
-        <Text variant="muted">Tap an exercise to add it to your session</Text>
+        <Text variant="muted">
+          {swapping
+            ? `Pick what you did instead${swapName ? ` of ${swapName}` : ''} — your logged sets stay.`
+            : 'Tap an exercise to add it to your session'}
+        </Text>
       </View>
       <ExerciseBrowser
         onSelect={onSelect}
@@ -36,7 +56,7 @@ export default function AddExerciseScreen() {
           addingId === ex.id ? (
             <ActivityIndicator color="#818cf8" />
           ) : (
-            <Text className="text-xl font-black text-brand">ADD</Text>
+            <Text className="text-xl font-black text-brand">{swapping ? 'SWAP' : 'ADD'}</Text>
           )
         }
       />

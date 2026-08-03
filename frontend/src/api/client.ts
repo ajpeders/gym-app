@@ -615,6 +615,13 @@ export const api = {
     request<SessionExercise>(`/sessions/${id}/exercises`, { method: 'POST', body: input }),
   deleteSessionExercise: (id: string, weId: string) =>
     request<void>(`/sessions/${id}/exercises/${weId}`, { method: 'DELETE' }),
+  // Swap which movement a logged row is for, keeping its sets — the machine
+  // was taken, the work still happened.
+  swapSessionExercise: (id: string, weId: string, exerciseId: string) =>
+    request<SessionExercise>(`/sessions/${id}/exercises/${weId}`, {
+      method: 'PATCH',
+      body: { exercise_id: exerciseId },
+    }),
   addSet: (id: string, weId: string, input: SetInput) =>
     request<SessionSet>(`/sessions/${id}/exercises/${weId}/sets`, {
       method: 'POST',

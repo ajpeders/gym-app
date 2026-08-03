@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Alert, Platform, Pressable, ScrollView, View } from 'react-native';
+import { Pressable, ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -14,18 +14,7 @@ import { BottomAction } from '@/components/ui/BottomAction';
 import { Loading } from '@/components/ui/Feedback';
 import { ActiveExerciseCard } from '@/components/workout/ActiveExerciseCard';
 import { formatDuration } from '@/lib/format';
-
-function confirm(title: string, message: string, onConfirm: () => void, destructive = false) {
-  if (Platform.OS === 'web') {
-    // eslint-disable-next-line no-alert
-    if (typeof window !== 'undefined' && window.confirm(`${title}\n\n${message}`)) onConfirm();
-    return;
-  }
-  Alert.alert(title, message, [
-    { text: 'Cancel', style: 'cancel' },
-    { text: 'OK', style: destructive ? 'destructive' : 'default', onPress: onConfirm },
-  ]);
-}
+import { confirm } from '@/lib/confirm';
 
 export default function ActiveWorkoutScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -224,6 +213,13 @@ export default function ActiveWorkoutScreen() {
                     'This removes the exercise and its sets from this session.',
                     () => void removeExercise(we.id),
                     true,
+                  )
+                }
+                onSwapExercise={() =>
+                  router.push(
+                    `/session/add-exercise?swapId=${we.id}&swapName=${encodeURIComponent(
+                      we.exercise?.name ?? '',
+                    )}`,
                   )
                 }
               />

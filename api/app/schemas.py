@@ -322,6 +322,12 @@ class SessionExerciseCreate(BaseModel):
     order: Optional[int] = None
 
 
+class SessionExerciseUpdate(BaseModel):
+    """Swap which movement a logged row is for, keeping its sets."""
+
+    exercise_id: int
+
+
 class SessionOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

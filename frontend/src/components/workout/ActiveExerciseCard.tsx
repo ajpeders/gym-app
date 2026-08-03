@@ -23,6 +23,8 @@ interface Props {
   onAddSet: (input: SetInput) => Promise<void>;
   onRemoveSet: (setId: string) => Promise<void>;
   onRemoveExercise: () => void;
+  /** Swap the movement, keeping the sets. Omitted where swapping makes no sense. */
+  onSwapExercise?: () => void;
 }
 
 const numInput =
@@ -35,6 +37,7 @@ export function ActiveExerciseCard({
   onAddSet,
   onRemoveSet,
   onRemoveExercise,
+  onSwapExercise,
 }: Props) {
   const router = useRouter();
   const sets = sessionExercise.sets ?? [];
@@ -207,6 +210,16 @@ export function ActiveExerciseCard({
           ) : null}
           </View>
         </Pressable>
+        {onSwapExercise ? (
+          <Pressable
+            onPress={onSwapExercise}
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel="Swap exercise"
+            className="ml-2 h-9 w-9 items-center justify-center rounded-lg bg-brand/10 active:opacity-60">
+            <Ionicons name="swap-horizontal" size={17} color="#818cf8" />
+          </Pressable>
+        ) : null}
         <Pressable
           onPress={onRemoveExercise}
           hitSlop={8}

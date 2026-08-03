@@ -20,6 +20,7 @@ from ..models import (
 from ..schemas import (
     SessionCreate,
     SessionExerciseCreate,
+    SessionExerciseUpdate,
     SessionExerciseOut,
     SessionListOut,
     SessionLog,
@@ -286,6 +287,32 @@ def add_session_exercise(
         session_id=session.id, exercise_id=payload.exercise_id, order=order
     )
     db.add(se)
+    db.commit()
+    db.refresh(se)
+    return SessionExerciseOut.model_validate(se)
+
+
+@router.patch(
+    "/{session_id}/exercises/{se_id}", response_model=SessionExerciseOut
+)
+def swap_session_exercise(
+    session_id: int,
+    se_id: int,
+    payload: SessionExerciseUpdate,
+    db: SASession = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> SessionExerciseOut:
+    """Point a logged row at a different movement, keeping its sets.
+
+    The everyday case is a machine being occupied: the work happened, just on
+    another exercise. Deleting and re-adding was the only way before, and it
+    discarded the sets. Order and snapshotted targets stay put — the row keeps
+    its place in the session and what it was standing in for.
+    """
+    session = _get_session(db, session_id, user)
+    se = _get_session_exercise(db, session, se_id)
+    _validate_exercise(db, payload.exercise_id, user)
+    se.exercise_id = payload.exercise_id
     db.commit()
     db.refresh(se)
     return SessionExerciseOut.model_validate(se)

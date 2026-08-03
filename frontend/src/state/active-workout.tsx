@@ -30,6 +30,8 @@ interface ActiveWorkoutContextValue {
   refresh: () => Promise<void>;
   addExercise: (exerciseId: string) => Promise<void>;
   removeExercise: (weId: string) => Promise<void>;
+  /** Swap the movement on a logged row, keeping its sets. */
+  swapExercise: (weId: string, exerciseId: string) => Promise<void>;
   addSet: (weId: string, input: SetInput) => Promise<void>;
   updateSet: (weId: string, setId: string, input: Partial<SetInput>) => Promise<void>;
   removeSet: (weId: string, setId: string) => Promise<void>;
@@ -197,6 +199,15 @@ export function ActiveWorkoutProvider({ children }: { children: React.ReactNode 
     [activeId, refresh],
   );
 
+  const swapExercise = useCallback(
+    async (weId: string, exerciseId: string) => {
+      if (!activeId) return;
+      await api.swapSessionExercise(activeId, weId, exerciseId);
+      await refresh();
+    },
+    [activeId, refresh],
+  );
+
   const sync = useCallback(async () => {
     if (syncing.current) return;
     syncing.current = true;
@@ -307,6 +318,7 @@ export function ActiveWorkoutProvider({ children }: { children: React.ReactNode 
       refresh,
       addExercise,
       removeExercise,
+      swapExercise,
       addSet,
       updateSet,
       removeSet,
@@ -324,6 +336,7 @@ export function ActiveWorkoutProvider({ children }: { children: React.ReactNode 
       refresh,
       addExercise,
       removeExercise,
+      swapExercise,
       addSet,
       updateSet,
       removeSet,
