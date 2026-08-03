@@ -167,12 +167,23 @@ def log_session(
     recording a session you already did. Created already-finished at the given
     date, with all exercises and their sets, atomically."""
     started = _resolve_started_at(payload.started_at)
+    if payload.source_workout_id is not None:
+        owned = db.scalar(
+            select(Workout).where(
+                Workout.id == payload.source_workout_id, Workout.owner_id == user.id
+            )
+        )
+        if owned is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="Workout not found"
+            )
     session = Session(
         owner_id=user.id,
         name=payload.name,
         started_at=started,
         finished_at=started,  # already done → completed
         notes=payload.notes,
+        source_workout_id=payload.source_workout_id,
     )
     for i, ex in enumerate(payload.exercises):
         _validate_exercise(db, ex.exercise_id, user)

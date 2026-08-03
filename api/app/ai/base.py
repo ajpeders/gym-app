@@ -75,6 +75,49 @@ PARSE_SCHEMA: dict = {
 }
 
 
+# --- Multi-day catch-up (several already-trained days pasted at once) ---
+
+
+class ParsedDay(BaseModel):
+    """One already-trained day lifted out of a multi-day paste.
+
+    ``day`` is the header verbatim ("Thursday", "Jul 30", "Mon - Push"). The
+    server deliberately does NOT resolve it to a date: only the client knows
+    the device's local calendar, and resolving here would repeat the UTC-day
+    bug that timestamps in this app have hit before.
+    """
+
+    day: Optional[str] = None
+    exercises: list[ParsedExercise] = Field(default_factory=list)
+
+
+class ParsedDays(BaseModel):
+    days: list[ParsedDay] = Field(default_factory=list)
+
+
+_PARSED_EXERCISE_SCHEMA: dict = PARSE_SCHEMA["properties"]["exercises"]
+
+PARSE_DAYS_SCHEMA: dict = {
+    "type": "object",
+    "additionalProperties": False,
+    "properties": {
+        "days": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "additionalProperties": False,
+                "properties": {
+                    "day": {"anyOf": [{"type": "string"}, {"type": "null"}]},
+                    "exercises": _PARSED_EXERCISE_SCHEMA,
+                },
+                "required": ["day", "exercises"],
+            },
+        }
+    },
+    "required": ["days"],
+}
+
+
 # --- Workout/program import (multi-day plan from a notes app) ---
 
 

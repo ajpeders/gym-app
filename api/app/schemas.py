@@ -194,6 +194,31 @@ class TodayWorkout(BaseModel):
     missed: bool = False
 
 
+class CatchupWorkout(BaseModel):
+    """A plan day the schedule put on this date."""
+
+    id: int
+    name: str
+
+
+class CatchupSession(BaseModel):
+    """A bout actually logged on this date."""
+
+    id: int
+    name: Optional[str] = None
+    exercise_count: int = 0
+
+
+class CatchupDay(BaseModel):
+    """One calendar day of the recent past, in the client's local time."""
+
+    date: str  # YYYY-MM-DD, local to the caller
+    weekday: int  # 0=Sun..6=Sat
+    scheduled: list[CatchupWorkout] = []
+    sessions: list[CatchupSession] = []
+    logged: bool = False
+
+
 # ---------------------------------------------------------------------------
 # Split (weekly plan owning workouts + rules)
 # ---------------------------------------------------------------------------
@@ -351,6 +376,10 @@ class SessionLog(BaseModel):
     name: Optional[str] = None
     started_at: Optional[datetime] = None
     notes: Optional[str] = None
+    # Links a backfilled session to the plan day it makes up. Without it, a day
+    # caught up after the fact stays "missed" on /splits/today forever.
+    # int like SessionStart.workout_id, so it lands in the FK column as one.
+    source_workout_id: Optional[int] = None
     exercises: list[LoggedExerciseIn] = []
 
 

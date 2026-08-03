@@ -9,7 +9,15 @@ from sqlalchemy.orm import Session as SASession
 
 from ..db import get_db
 from ..models import Session, Split, User, Workout
-from ..schemas import SplitCreate, SplitOut, SplitUpdate, TodayWorkout
+from ..schemas import (
+    CatchupDay,
+    CatchupSession,
+    CatchupWorkout,
+    SplitCreate,
+    SplitOut,
+    SplitUpdate,
+    TodayWorkout,
+)
 from ..security import get_current_user
 
 router = APIRouter(prefix="/splits", tags=["splits"])
@@ -116,6 +124,75 @@ def today(db: SASession = Depends(get_db), user: User = Depends(get_current_user
             )
         )
     return rows
+
+
+@router.get("/catchup", response_model=list[CatchupDay])
+def catchup(
+    days: int = 14,
+    tz_offset: int = 0,
+    db: SASession = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> list[CatchupDay]:
+    """The recent past day by day, so an unlogged backlog is visible.
+
+    ``/today`` answers "what now"; this answers "what did I miss". Each day
+    carries what the active split scheduled for that weekday and any sessions
+    actually logged, most recent first.
+
+    ``tz_offset`` follows JS ``getTimezoneOffset()`` — minutes to ADD to local
+    time to reach UTC (UTC-6 sends 360). Sessions are stored naive UTC, so
+    bucketing them by UTC date would file an evening session under the next
+    day for anyone west of UTC.
+    """
+    days = max(1, min(days, 60))
+    shift = timedelta(minutes=tz_offset)
+    now_local = datetime.now(timezone.utc).replace(tzinfo=None) - shift
+    today_local = now_local.date()
+    oldest_local = today_local - timedelta(days=days - 1)
+
+    # Widen the fetch by a day on each side: a local day straddles two UTC ones.
+    rows = db.scalars(
+        select(Session)
+        .where(
+            Session.owner_id == user.id,
+            Session.started_at >= datetime.combine(oldest_local, datetime.min.time()) + shift - timedelta(days=1),
+            Session.started_at < datetime.combine(today_local, datetime.min.time()) + shift + timedelta(days=2),
+        )
+        .order_by(Session.started_at)
+    ).all()
+
+    by_date: dict[str, list[CatchupSession]] = {}
+    for s in rows:
+        local_day = (s.started_at - shift).date().isoformat()
+        by_date.setdefault(local_day, []).append(
+            CatchupSession(id=s.id, name=s.name, exercise_count=len(s.exercises))
+        )
+
+    active = db.scalar(select(Split).where(Split.owner_id == user.id, Split.is_active.is_(True)))
+    scheduled_by_weekday: dict[int, list[CatchupWorkout]] = {}
+    if active is not None:
+        for w in active.workouts:
+            for wd in w.weekdays or []:
+                scheduled_by_weekday.setdefault(wd, []).append(
+                    CatchupWorkout(id=w.id, name=w.name)
+                )
+
+    out: list[CatchupDay] = []
+    for i in range(days):
+        d = today_local - timedelta(days=i)
+        key = d.isoformat()
+        weekday = (d.weekday() + 1) % 7  # 0=Sun..6=Sat
+        sessions = by_date.get(key, [])
+        out.append(
+            CatchupDay(
+                date=key,
+                weekday=weekday,
+                scheduled=scheduled_by_weekday.get(weekday, []),
+                sessions=sessions,
+                logged=bool(sessions),
+            )
+        )
+    return out
 
 
 @router.get("/{split_id}", response_model=SplitOut)

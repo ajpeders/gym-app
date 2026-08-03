@@ -248,6 +248,14 @@ export default function HistoryScreen() {
               disabled={busy}
               onPress={() => router.push('/session/log')}
             />
+            <Button
+              title="Catch up on missed days"
+              variant="secondary"
+              icon="calendar-outline"
+              className="mt-2"
+              disabled={busy}
+              onPress={() => router.push('/catch-up')}
+            />
           </Card>
         )}
 

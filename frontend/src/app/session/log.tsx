@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Modal, Pressable, ScrollView, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Stack, useRouter } from 'expo-router';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
 import { api } from '@/api/client';
@@ -82,14 +82,59 @@ const smallInput =
 export default function LogSessionScreen() {
   const router = useRouter();
   const { settings } = useSettings();
-  const [name, setName] = useState('');
-  const [dateStr, setDateStr] = useState(() => dateStrForDaysBack(0));
+  // Arriving from Catch up: which day to log, and which plan day it makes up.
+  const params = useLocalSearchParams<{
+    date?: string;
+    workoutId?: string;
+    workoutName?: string;
+  }>();
+  const [name, setName] = useState(params.workoutName ?? '');
+  const [dateStr, setDateStr] = useState(
+    // Trust the param only if it is a real date; otherwise fall back to today.
+    () => (params.date && parseDateStr(params.date) ? params.date : dateStrForDaysBack(0)),
+  );
   const [pickingDate, setPickingDate] = useState(false);
   const [notes, setNotes] = useState('');
   const [exercises, setExercises] = useState<DraftLoggedExercise[]>([]);
   const [picking, setPicking] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [prefilling, setPrefilling] = useState(Boolean(params.workoutId));
+
+  const workoutId = params.workoutId;
+  useEffect(() => {
+    // Prefill from the plan day so a makeup is mostly confirming numbers. Keyed
+    // on the id alone — `params` is a fresh object each render, so depending on
+    // it would refetch forever and stomp edits.
+    if (!workoutId) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const w = await api.workout(String(workoutId));
+        if (cancelled) return;
+        setExercises(
+          w.exercises.map((we) => ({
+            exercise_id: String(we.exercise_id),
+            name: we.exercise?.name ?? 'Exercise',
+            image: we.exercise?.images?.[0] ?? null,
+            // Targets are a starting guess to edit, not a claim about what was
+            // done — one row per planned set, prefilled with the target.
+            sets: Array.from({ length: Math.max(1, we.target_sets ?? 1) }, () => ({
+              reps: we.target_reps != null ? String(we.target_reps) : '',
+              weight: we.target_weight != null ? String(we.target_weight) : '',
+            })),
+          })),
+        );
+      } catch {
+        // A failed prefill still leaves a usable blank form.
+      } finally {
+        if (!cancelled) setPrefilling(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [workoutId]);
 
   function addExercise(ex: Exercise) {
     setExercises((prev) => [
@@ -154,6 +199,8 @@ export default function LogSessionScreen() {
       name: name.trim() || null,
       started_at: when.toISOString(),
       notes: notes.trim() || null,
+      // Retires the "missed" flag on /splits/today for the day being made up.
+      source_workout_id: workoutId ? String(workoutId) : null,
       exercises: exercises.map((e) => ({
         exercise_id: e.exercise_id,
         // Keep only sets with at least reps entered; drop blank trailing rows.
@@ -256,7 +303,11 @@ export default function LogSessionScreen() {
 
         <NotesToSets onAdd={(rows) => setExercises((prev) => [...prev, ...rows])} />
 
-        {exercises.length === 0 ? (
+        {prefilling ? (
+          <Card className="mb-3">
+            <Text variant="muted">Loading that day's plan…</Text>
+          </Card>
+        ) : exercises.length === 0 ? (
           <Card className="mb-3">
             <Text variant="muted">No exercises yet. Add some below.</Text>
           </Card>

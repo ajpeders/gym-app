@@ -7,6 +7,7 @@ import type {
   AiTestResult,
   AthleteProfile,
   AuthResponse,
+  CatchupDay,
   CheckinResult,
   CoachMessage,
   CoachReply,
@@ -15,6 +16,7 @@ import type {
   Metric,
   MetricInput,
   Paginated,
+  ParseDaysResult,
   ParseResult,
   ParseWorkoutResult,
   ProgressPhoto,
@@ -573,6 +575,12 @@ export const api = {
   splits: () => request<Split[]>('/splits'),
   split: (id: string) => request<Split>(`/splits/${id}`),
   splitToday: () => request<TodayWorkout[]>('/splits/today'),
+  // tz_offset lets the server bucket sessions by *this device's* calendar day;
+  // it stores naive UTC and tracks no per-user timezone.
+  splitCatchup: (days = 14) =>
+    request<CatchupDay[]>('/splits/catchup', {
+      query: { days, tz_offset: new Date().getTimezoneOffset() },
+    }),
   createSplit: (input: SplitInput) =>
     request<Split>('/splits', { method: 'POST', body: input }),
   updateSplit: (id: string, input: SplitInput) =>
@@ -668,6 +676,13 @@ export const api = {
       method: 'POST',
       body: input,
       timeoutMs: 90_000,
+    }),
+  // Multi-day paste for catching up: one group of sets per trained day.
+  parseDays: (text: string) =>
+    request<ParseDaysResult>('/ai/parse-days', {
+      method: 'POST',
+      body: { text },
+      timeoutMs: 180_000,
     }),
   parseWorkout: (text: string): Promise<ParseWorkoutResult> =>
     request<ParseWorkoutResult>('/ai/parse-workout', {

@@ -27,12 +27,14 @@ from .base import (
     EDIT_SPLIT_SCHEMA,
     EDIT_WORKOUT_SCHEMA,
     NUTRITION_SCHEMA,
+    PARSE_DAYS_SCHEMA,
     PARSE_SCHEMA,
     PROGRAM_SCHEMA,
     AIError,
     CheckinResult,
     EditedSplit,
     EditedWorkout,
+    ParsedDays,
     ParsedNutrition,
     ParsedProgram,
     ParsedSession,
@@ -365,8 +367,20 @@ async def parse_sets(db: Session, user: User, text: str, workout_id: int | None 
         raise AIError(f"Model output did not match the expected shape: {exc}") from exc
 
     catalog = _load_catalog(db, user.id)
+    items = _match_items(parsed.exercises, catalog)
+    return {
+        "provider": provider.name,
+        "model": provider.model,
+        "units": units,
+        "latency_ms": latency_ms,
+        "items": items,
+    }
+
+
+def _match_items(exercises, catalog) -> list[dict]:
+    """Resolve parsed exercise names against the catalog, preserving order."""
     items = []
-    for ex in parsed.exercises:
+    for ex in exercises:
         ex_id, match, matched_name = _match(ex.exercise, catalog)
         items.append(
             {
@@ -378,12 +392,43 @@ async def parse_sets(db: Session, user: User, text: str, workout_id: int | None 
                 "notes": ex.notes,
             }
         )
+    return items
+
+
+async def parse_days(db: Session, user: User, text: str) -> dict:
+    """Split a multi-day paste into one group of matched sets per day.
+
+    Day labels come back verbatim ("Thu - Push", "Jul 30"); resolving them to
+    real dates is the client's job, since only it knows the device's calendar.
+    """
+    provider, units = _resolve(db, user)
+
+    t0 = time.monotonic()
+    data = await provider.complete_json(
+        system=prompts.days_system_prompt(units),
+        user=prompts.days_user_prompt(text),
+        schema=PARSE_DAYS_SCHEMA,
+    )
+    latency_ms = int((time.monotonic() - t0) * 1000)
+
+    try:
+        parsed = ParsedDays.model_validate(data)
+    except Exception as exc:  # noqa: BLE001
+        raise AIError(f"Model output did not match the expected shape: {exc}") from exc
+
+    catalog = _load_catalog(db, user.id)
+    days = [
+        {"day": d.day, "items": _match_items(d.exercises, catalog)}
+        for d in parsed.days
+        # A day the model split out but found no exercises in is noise.
+        if d.exercises
+    ]
     return {
         "provider": provider.name,
         "model": provider.model,
         "units": units,
         "latency_ms": latency_ms,
-        "items": items,
+        "days": days,
     }
 
 

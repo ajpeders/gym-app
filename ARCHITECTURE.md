@@ -111,8 +111,8 @@ Two distinct coaching surfaces share one **provider seam** (the `companion`
 package, extracted from this app):
 
 1. **Structured parse endpoints** (`ai/service.py`, `routes/ai.py`) —
-   `parse-sets`, `parse-workout` (+stream), `edit-workout/stream`, `check-in`,
-   `coach`. Each calls a provider's `complete_json` with a JSON schema, validates
+   `parse-sets`, `parse-days`, `parse-workout` (+stream), `edit-workout/stream`,
+   `check-in`, `coach`. Each calls a provider's `complete_json` with a JSON schema, validates
    the output with Pydantic, then resolves free-text exercise names to catalog
    IDs via a bespoke **token-overlap matcher** (`_match`/`_stem`): stemming,
    stop-word removal, abbreviation + phrase-synonym expansion, and a conservative
@@ -146,6 +146,19 @@ falling back. Keys are write-only — accepted by PATCH `/settings`, never retur
   (`frontend/src/lib/offline.ts`); the backend stays a plain REST API.
 - **companion over SSH** — the private dependency is fetched with an SSH deploy
   key across local/CI/Docker (see HOWTO), not an HTTPS token.
+- **Times are naive UTC on the server; calendar days belong to the client.** No
+  per-user timezone is stored anywhere, and the API serializes timestamps with no
+  `Z` designator. Three consequences, each of which has already caused a bug:
+  1. The app must parse API timestamps through `parseServerDate()`
+     (`frontend/src/lib/format.ts`) — a bare `new Date(iso)` reads them as *local*
+     and shifts every displayed time by the UTC offset.
+  2. Endpoints that bucket rows into days take a `tz_offset` query param
+     (JS `getTimezoneOffset()`, minutes to add to local to reach UTC), e.g.
+     `/splits/catchup`. Bucketing by UTC date files an evening session under the
+     next day for anyone west of UTC.
+  3. The AI never resolves a date. `parse-days` echoes the day header verbatim
+     ("Thu - Push") and the client resolves it against the device calendar
+     (`frontend/src/lib/day-label.ts`).
 
 ## Frontend (brief)
 

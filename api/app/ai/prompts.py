@@ -64,6 +64,63 @@ def system_prompt(units: str) -> str:
     return _RULES.format(units=units) + "\n\n" + _EXAMPLE + "\n\n" + _DAY_EXAMPLE
 
 
+# --- Multi-day catch-up: several already-trained days in one paste ---
+
+_DAYS_RULES = (
+    "You split a user's pasted training notes into the SEPARATE DAYS they already "
+    "trained, and extract the sets for each. Return JSON matching the schema.\n"
+    "Day-splitting rules:\n"
+    "- A new day starts at a header line: a weekday ('Thursday', 'Thu'), a date "
+    "('Jul 30', '7/30'), or either combined with a split name ('Mon - Push').\n"
+    "- A bare split name on its own line ('Push', 'Leg Day') also starts a new day.\n"
+    "- Copy that header into the day's 'day' field VERBATIM. Never invent, resolve or "
+    "reformat a date — the app resolves it against the user's own calendar.\n"
+    "- If the notes carry no headers at all, return a single day with 'day' set to null.\n"
+    "- Every exercise line belongs to the nearest header above it.\n"
+    "- Two days may share a split name; 'Push' appearing twice is two separate days."
+)
+
+_DAYS_EXAMPLE = (
+    "Example input:\n"
+    "Thu - Push\n"
+    "Bench 95 10, 90 11\n"
+    "Sat\n"
+    "Lat pulldown 3x10 @100\n"
+    "Example output: "
+    '{"days":['
+    '{"day":"Thu - Push","exercises":['
+    '{"exercise":"Bench","sets":['
+    '{"reps":10,"weight":95,"rpe":null,"set_type":"working"},'
+    '{"reps":11,"weight":90,"rpe":null,"set_type":"working"}],"notes":null}]},'
+    '{"day":"Sat","exercises":['
+    '{"exercise":"Lat Pulldown","sets":['
+    '{"reps":10,"weight":100,"rpe":null,"set_type":"working"},'
+    '{"reps":10,"weight":100,"rpe":null,"set_type":"working"},'
+    '{"reps":10,"weight":100,"rpe":null,"set_type":"working"}],"notes":null}]}]}'
+)
+
+
+def days_system_prompt(units: str) -> str:
+    """Day-splitting rules first, then the same set-extraction rules as one day."""
+    return (
+        _DAYS_RULES
+        + "\n\nWithin each day, extract sets by these rules:\n"
+        + _RULES.format(units=units)
+        + "\n\n"
+        + _DAYS_EXAMPLE
+        # Repeated last because it is the rule that degrades first once the
+        # day-splitting instructions make this prompt long: 3x12 came back as a
+        # single set while the same line expanded correctly in the shorter
+        # single-day prompt.
+        + "\n\nBefore answering, check every exercise again: 'NxM' MUST become N "
+        "separate set objects. '3x12 @50' is THREE sets of 12 at 50, not one."
+    )
+
+
+def days_user_prompt(text: str) -> str:
+    return "Split these notes into the days I trained:\n\n" + text
+
+
 _WORKOUT_RULES = (
     "You convert a multi-day workout PROGRAM (pasted from a notes app) into structured "
     "workouts. Each training day becomes one workout; keep the day's heading as the workout name.\n"

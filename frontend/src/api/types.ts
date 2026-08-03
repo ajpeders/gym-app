@@ -114,6 +114,30 @@ export interface TodayWorkout {
   missed: boolean;
 }
 
+/** One plan day the schedule put on a catch-up date. */
+export interface CatchupWorkout {
+  id: string;
+  name: string;
+}
+
+/** One bout actually logged on a catch-up date. */
+export interface CatchupSession {
+  id: string;
+  name: string | null;
+  exercise_count: number;
+}
+
+/** A day of the recent past, bucketed in the client's local timezone. */
+export interface CatchupDay {
+  /** YYYY-MM-DD, local to this device. */
+  date: string;
+  /** 0=Sun..6=Sat. */
+  weekday: number;
+  scheduled: CatchupWorkout[];
+  sessions: CatchupSession[];
+  logged: boolean;
+}
+
 export interface WorkoutExerciseInput {
   exercise_id: string;
   order: number;
@@ -318,6 +342,22 @@ export interface ParseResult {
   items: ParsedItem[];
 }
 
+/** One already-trained day lifted out of a multi-day paste. */
+export interface ParsedDay {
+  /** The header verbatim ("Thu - Push", "Jul 30"); null when the notes had none.
+   *  Resolving it to a date is the client's job — see lib/day-label.ts. */
+  day: string | null;
+  items: ParsedItem[];
+}
+
+export interface ParseDaysResult {
+  provider: string;
+  model: string;
+  units: string;
+  latency_ms: number;
+  days: ParsedDay[];
+}
+
 // ---- AI workout import (parse a pasted plan into structured workouts) ----
 
 export interface ParsedWorkoutExercise {
@@ -374,6 +414,8 @@ export interface SessionLogInput {
   name?: string | null;
   started_at?: string;
   notes?: string | null;
+  /** The plan day this makes up — without it the day stays "missed" forever. */
+  source_workout_id?: string | null;
   exercises: LoggedExerciseInput[];
 }
 
