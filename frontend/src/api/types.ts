@@ -199,6 +199,12 @@ export interface SessionExercise {
   target_weight_max?: number | null;
   target_duration_seconds?: number | null;
   target_duration_seconds_max?: number | null;
+  /**
+   * Server-derived: every working set reached the top of the planned rep
+   * range, so the plan's own rule says add weight next time. Recomputed on
+   * each response — do not cache it alongside offline sets.
+   */
+  cleared_rep_range?: boolean;
   sets: SessionSet[];
 }
 

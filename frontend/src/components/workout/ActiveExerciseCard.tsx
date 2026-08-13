@@ -7,6 +7,7 @@ import type { SessionExercise, SetInput, Units } from '@/api/types';
 import { Text } from '@/components/ui/Text';
 import { Card } from '@/components/ui/Card';
 import { ExerciseThumb } from '@/components/ExerciseThumb';
+import { ProgressionNudge } from '@/components/workout/ProgressionNudge';
 import {
   formatClock,
   formatDurationSeconds,
@@ -318,6 +319,8 @@ export function ActiveExerciseCard({
           No sets logged yet.
         </Text>
       )}
+
+      <ProgressionNudge show={sessionExercise.cleared_rep_range} />
 
       {/* input row */}
       <View className="mt-3 flex-row items-end gap-2">

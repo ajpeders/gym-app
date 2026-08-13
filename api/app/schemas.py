@@ -4,7 +4,16 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any, Optional
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    EmailStr,
+    Field,
+    computed_field,
+    field_validator,
+)
+
+from .progression import cleared_rep_range
 
 
 # ---------------------------------------------------------------------------
@@ -315,6 +324,13 @@ class SessionExerciseOut(BaseModel):
     target_duration_seconds_max: Optional[int] = None
     exercise: Optional[ExerciseOut] = None
     sets: list[SetOut] = []
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def cleared_rep_range(self) -> bool:
+        """Did this earn a weight increase next time? Derived, never stored —
+        it changes the instant a set is logged, and history keeps the sets."""
+        return cleared_rep_range(self.target_sets, self.target_reps_max, self.sets)
 
 
 class SessionExerciseCreate(BaseModel):

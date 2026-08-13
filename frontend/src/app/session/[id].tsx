@@ -13,6 +13,7 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Loading, ErrorState } from '@/components/ui/Feedback';
 import { ExerciseBrowser } from '@/components/ExerciseBrowser';
+import { ProgressionNudge } from '@/components/workout/ProgressionNudge';
 import { formatDateTime, formatDuration, formatLoad, titleCase } from '@/lib/format';
 import { promptExport, sessionToJson, sessionToText } from '@/lib/export';
 import { confirm } from '@/lib/confirm';
@@ -244,6 +245,7 @@ export default function SessionDetailScreen() {
                     ))
                   )}
                 </View>
+                <ProgressionNudge show={we.cleared_rep_range} />
               </Card>
             ))}
 

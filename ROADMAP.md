@@ -231,9 +231,18 @@ Found while actually training with the app. Ordered by how much they hurt.
       across backend + frontend: **Split** = the week, **Workout** = one plan-day
       (with `weekdays`/`floating` scheduling), **Session** = a logged bout. The old
       routine/schedule_day vocabulary is gone.
-- [ ] **Progression nudge** — the plan's own rule is "hit the top of the rep
-      range for all sets → add weight next time". The app has the targets and
-      the logged reps but says nothing. Flag it when you clear the range.
+- [x] **Progression nudge** — *shipped 2026-08-13.* The plan's own rule ("hit the
+      top of the rep range for all sets → add weight next time") is now said out
+      loud. `app/progression.py` holds it as a pure function and
+      `SessionExerciseOut` exposes it as a derived `cleared_rep_range` — a
+      Pydantic computed field, so every surface that already returns a session
+      (live screen, past session, history) gets it without a route change, and
+      nothing new is stored. Deliberately strict: every working set must reach
+      the top and the planned set count must actually be done, because a nudge
+      that fires when you didn't earn it teaches you to ignore it. Warmups, drop
+      sets and a set taken to failure don't count against you. Rendered by
+      `components/workout/ProgressionNudge.tsx`. Known edge: it is computed on
+      the server copy, so a set logged offline surfaces the nudge on sync.
 - [ ] **Exercise images** — ~44% of the wger catalog has no image (free-exercise-db
       backfill got coverage to ~56%). Options: let users upload/replace an image
       per exercise (also fixes "that Plank photo looks wrong"), or license real
