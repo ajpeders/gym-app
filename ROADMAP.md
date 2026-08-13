@@ -194,20 +194,31 @@ gym-app/
 
 Found while actually training with the app. Ordered by how much they hurt.
 
-- [ ] **Import quality** — the AI routine import drops data: `Sets` are lost on
-      almost every exercise, some exercises vanish entirely (Cable Fly, Face
-      Pulls, Leg Extension, Rear-Delt Fly), abs work collapses to "Plank", and
-      variants get swapped (seated *dumbbell* → *cable* press, *standing* →
-      *donkey* calf raise). Rep-ranges + matcher v2 landed since, so a re-import
-      would improve — but the dropped-sets and missing-exercise bugs are
-      prompt/parse issues that remain. Highest-value fix before anyone else
-      imports a plan.
-- [ ] **Import your own workout** — let each user bring in a personal workout or
-      full split from pasted text, CSV/JSON, or a supported app export. Imported
-      plans become user-owned, fully editable routines; unmatched movements are
-      created as that user's custom exercises instead of altering the shared
-      third-party catalog. Include a review step before saving and make imports
-      safe to retry without creating duplicates.
+- [x] **Import quality** — *resolved 2026-08-13.* Re-verified by re-importing the
+      same real 7-day plan live against local qwen3:8b. The parse half was
+      already fixed by the 2026-07-30 schema/prompt work: sets survive on all 38
+      exercises, nothing vanishes, abs no longer collapse to "Plank", and all 10
+      progression rules come through. The *matching* half was still broken, and
+      is now fixed in `_match`: a `_contradicts` guard rejects a candidate that
+      names a conflicting angle (flat vs decline), equipment (dumbbell vs
+      machine), movement (extension vs crunch) or body part (bench vs shoulder);
+      unrequested equipment demotes a candidate; and overlap is scored as a
+      fraction of both names, so a one-token subset ("Row") no longer beats a
+      strong partial ("One Arm Bent Row"). Held movements also get their seconds
+      moved out of the rep fields deterministically. Pinned by
+      `tests/test_ai_matching_wger.py` — note `test_ai_matching.py` pins the
+      *free-exercise-db* names, which is why it stayed green while live imports
+      drifted; the served catalog is wger.
+      **Left over, and not a matcher bug:** wger has no cable face pull and no
+      unqualified lat pulldown, so those two land on the nearest variant. That's
+      a catalog gap — the custom-exercise path below is the answer.
+- [~] **Import your own workout** — the pasted-text path is **built**:
+      `workout-import.tsx` parses, shows a review step with per-day and
+      per-exercise checkboxes plus editable set/rep/weight drafts, and creates
+      user-owned custom exercises (deduped by name within a run) for anything
+      unmatched, so the shared catalog is never altered. **Still to do:**
+      CSV/JSON and app-export (Hevy/Strong) input, and making a retry safe —
+      re-running an import today creates a second split rather than reconciling.
 - [x] **Duplicate in-progress workouts** — *resolved 2026-08-03.* At most one
       session may be open: `POST /sessions/start` finishes any stray (stamping it
       with its own last set, not "now"), and `GET /sessions/active` lets a client

@@ -12,6 +12,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from ..config import get_settings
+from ..seed.tracking import TIME, infer_tracking_type
 from ..models import (
     AthleteProfile,
     CoachMessage,
@@ -63,6 +64,7 @@ def _stem(tok: str) -> str:
 # itself is inconsistent ("Pullups" vs "Chin-Up" vs "Weighted Pull Ups") and
 # {pull, up} shares nothing with {pullup}.
 _FUSED_PAIRS = {
+    ("cross", "over"): "crossover",  # wger "Cable Cross-over" vs "Cable Crossover"
     ("pull", "up"): "pullup",
     ("pull", "ups"): "pullup",  # 'ups' is too short for the plural stemmer
     ("chin", "up"): "chinup",
@@ -129,11 +131,14 @@ _NAME_SYNONYMS = {
     # Terse shorthand. Token overlap alone prefers the catalog name closest in
     # length, so a bare "bench" lands on "Bench Dips" — a triceps movement.
     "bench": "barbell bench press",
+    "squat": "barbell squat",
     "flat dumbbell press": "dumbbell bench press",
     "flat dumbbell bench press": "dumbbell bench press",
     "cable fly": "cable crossover",
     "lateral raise": "side lateral raise",
-    "dumbbell lateral raise": "side lateral raise",
+    # Keeps 'dumbbell', so the equipment guard can reject a machine variant.
+    # Rewriting it away used to send this straight to "Machine Side Lateral Raises".
+    "dumbbell lateral raise": "dumbbell side lateral raise",
     "lat pulldown": "wide grip lat pulldown",
     "leg curl machine": "seated leg curl",
     "leg curl": "seated leg curl",
@@ -160,6 +165,50 @@ def _norm_query(s: str) -> list[str]:
     if canonical is not None:
         toks = _norm(canonical)
     return toks
+
+
+# Tokens that *contradict* rather than merely qualify. Overlap scoring treats a
+# missing word as a small penalty, which is wrong for these: a decline press is
+# not a flat one and a crunch is not a back extension. All entries are already
+# stemmed (`raises` -> `raise`, `extensions` -> `extension`).
+_EQUIPMENT = frozenset(
+    {
+        "dumbbell", "barbell", "cable", "machine", "band", "smith", "kettlebell",
+        "bodyweight", "lever", "leverage", "trx", "sled", "ezbar",
+    }
+)
+_ANGLE = frozenset({"flat", "incline", "decline"})
+# What the movement is done to (or on). Without this, "Dumbbell Bench Press"
+# and "Shoulder Press, Dumbbells" look like near-neighbours: both press, both
+# dumbbell, differing only in a word overlap scoring is happy to forgive.
+_TARGETS = frozenset(
+    {
+        "bench", "shoulder", "chest", "leg", "calf", "tricep", "bicep", "back",
+        "lat", "ab", "glute", "hamstring", "quad", "forearm", "wrist", "neck",
+        "hip", "trap", "delt",
+    }
+)
+_MOVEMENTS = frozenset(
+    {
+        "press", "curl", "row", "raise", "fly", "crossover", "crunch", "extension",
+        "squat", "deadlift", "pulldown", "pullover", "lunge", "dip", "pushup",
+        "pullup", "chinup", "shrug", "plank", "thrust", "pushdown", "situp",
+        "bridge", "kickback",
+    }
+)
+
+
+def _contradicts(target: frozenset[str], toks: frozenset[str]) -> bool:
+    """True when a candidate names something the query rules out."""
+    # An angle is never optional: matching "Flat Dumbbell Press" to a decline
+    # press is worse than offering to create it as a custom exercise.
+    if (toks & _ANGLE) - target:
+        return True
+    for group in (_EQUIPMENT, _MOVEMENTS, _TARGETS):
+        mine, theirs = target & group, toks & group
+        if mine and theirs and not (mine & theirs):
+            return True
+    return False
 
 
 def _user_settings(db: Session, user_id: int) -> Settings | None:
@@ -301,36 +350,33 @@ def _match(
     best_key: tuple = ()
     best_id: int | None = None
     best_name: str | None = None
-    fb_key: tuple = ()
-    fb_id: int | None = None
-    fb_name: str | None = None
     for ex_id, ex_name, toks in catalog:
         if toks == target:
             return ex_id, "exact", ex_name
-        if not toks:
+        if not toks or _contradicts(target, toks):
             continue
         inter = len(target & toks)
         if inter == 0:
             continue
-        subset = target <= toks or toks <= target
-        if subset:
-            # deterministic ranking: most overlap, closest size, shortest, lowest id
-            key = (inter, -abs(len(toks) - len(target)), -len(toks), -ex_id)
-            if best_id is None or key > best_key:
-                best_key, best_id, best_name = key, ex_id, ex_name
-        else:
-            # Conservative fuzzy fallback: strong two-sided overlap even when
-            # neither name fully contains the other (e.g. an extra qualifier on
-            # each side). Requires >=2 shared tokens covering most of the
-            # shorter name, so unrelated moves don't collide.
+        if not (target <= toks or toks <= target):
+            # Neither name contains the other (an extra qualifier on each side).
+            # Require >=2 shared tokens covering most of the shorter name, so
+            # unrelated movements don't collide.
             shorter = min(len(target), len(toks))
-            if inter >= 2 and inter >= shorter - 1:
-                key = (inter, -abs(len(toks) - len(target)), -len(toks), -ex_id)
-                if fb_id is None or key > fb_key:
-                    fb_key, fb_id, fb_name = key, ex_id, ex_name
-    if best_id is not None:
-        return best_id, "fuzzy", best_name
-    return (fb_id, "fuzzy", fb_name) if fb_id is not None else (None, "none", None)
+            if not (inter >= 2 and inter >= shorter - 1):
+                continue
+        # Equipment nobody asked for is the strongest demotion: for a plain
+        # "Lateral Raises", "Machine Side Lateral Raises" shares more tokens but
+        # is the wrong exercise, so it must lose to bare "Lateral Raises".
+        unasked_equipment = len((toks & _EQUIPMENT) - target)
+        # Then overlap as a *fraction* of the two names combined, so a subset
+        # match on one token stops beating a strong partial one — bare "Row"
+        # used to win over "One Arm Bent Row" for "One-Arm Dumbbell Row".
+        similarity = inter / len(target | toks)
+        key = (-unasked_equipment, similarity, inter, -len(toks), -ex_id)
+        if best_id is None or key > best_key:
+            best_key, best_id, best_name = key, ex_id, ex_name
+    return (best_id, "fuzzy", best_name) if best_id is not None else (None, "none", None)
 
 
 def match_exercise(db: Session, user_id: int, name: str) -> tuple[int | None, str]:
@@ -484,6 +530,30 @@ def _primary_exercise(name: str, notes: str | None) -> tuple[str, str | None]:
     return primary, f"{alternative_note}\n{existing}".strip()
 
 
+def _repair_timed_targets(
+    name: str,
+    reps_lo: int | None,
+    reps_hi: int | None,
+    dur_lo: float | None,
+    dur_hi: float | None,
+) -> tuple[int | None, int | None, float | None, float | None]:
+    """Move a held movement's seconds out of the rep fields.
+
+    A plan row reads "Dead Hang | 2 | 20-60 seconds"; the model fills the reps
+    column because that is the column it is in, and no amount of prompting has
+    reliably fixed it. We already infer that a dead hang is timed, so repair it
+    deterministically. Only fires when the duration fields are empty — an
+    explicit duration is never overwritten.
+    """
+    if dur_lo is not None or dur_hi is not None:
+        return reps_lo, reps_hi, dur_lo, dur_hi
+    if reps_lo is None and reps_hi is None:
+        return reps_lo, reps_hi, dur_lo, dur_hi
+    if infer_tracking_type(name) != TIME:
+        return reps_lo, reps_hi, dur_lo, dur_hi
+    return None, None, reps_lo, reps_hi
+
+
 def _build_workout_result(
     db: Session,
     user_id: int,
@@ -511,6 +581,9 @@ def _build_workout_result(
             )
             duration_lo, duration_hi = _normalize_number_range(
                 e.target_duration_seconds, e.target_duration_seconds_max
+            )
+            reps_lo, reps_hi, duration_lo, duration_hi = _repair_timed_targets(
+                exercise_name, reps_lo, reps_hi, duration_lo, duration_hi
             )
             exercises.append(
                 {
