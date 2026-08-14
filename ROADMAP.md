@@ -176,6 +176,28 @@ gym-app/
       dependency — and note this is the first thing in the app that would let
       one account read another's data, so scope it deliberately: aggregate and
       operational data, not other people's training logs.
+- [ ] **Rolling / cycle-based splits** — scheduling assumes a *calendar week*:
+      a workout claims weekdays, "done" is measured per week, and catch-up
+      builds its scheduled column from those weekdays. Someone training a
+      rotation (Push/Pull/Legs, repeat, rest whenever they need it) has no fixed
+      weekdays at all.
+      Marking every workout `floating` gets you halfway — floating days are
+      offered every day rather than dropped — but three things break:
+      1. **No cycle position.** All floating days are offered equally; nothing
+         knows Pull follows Push. Needs a notion of "next in rotation", derived
+         from the last logged session's `source_workout_id` and the workouts'
+         `order`, rather than from the calendar.
+      2. **`_done_this_week` is the wrong question.** A cycle drifts across week
+         boundaries by design, so a weekly reset makes the flag meaningless.
+         Wants "done since the cycle last came round".
+      3. **Catch-up shows nothing scheduled** (`/splits/catchup` reads
+         `w.weekdays`, which floating days don't have), so gap detection
+         silently has nothing to compare against — the failure mode is an empty
+         column rather than an error.
+      Probably a `split.mode` of `weekly | rolling` rather than more flags, since
+      it changes what "today", "missed" and "done" each mean.
+      *Raised 2026-08-14 by Alex moving to a rolling split because his rest days
+      are unpredictable — the common case, not an edge one.*
 - [ ] **Preset splits (well-known programs) as a shared library** — ship a set of
       established programs (PPL, Upper/Lower, Full Body 3x, 5/3/1, Starting
       Strength, GZCLP, nSuns, Arnold, Bro split) as first-class presets, stored
