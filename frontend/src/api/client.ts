@@ -694,6 +694,10 @@ export const api = {
     request<Metric>('/metrics', { method: 'POST', body: input }),
   deleteMetric: (id: string) => request<void>(`/metrics/${id}`, { method: 'DELETE' }),
 
+  // ---- account ----
+  /** Everything this account owns, as one JSON document. */
+  exportAccount: () => request<Record<string, unknown>>('/auth/me/export'),
+
   // ---- settings ----
   settings: () => request<Settings>('/settings'),
   updateSettings: (input: SettingsUpdate) =>

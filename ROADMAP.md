@@ -275,8 +275,20 @@ Found while actually training with the app. Ordered by how much they hurt.
       real one — worth doing deliberately, and worth having frontend tests first.
 - [ ] **UI/UX pass** — a deliberate visual + flow review of every screen before
       launch (in progress).
-- [ ] **Launch checklist** — accounts/onboarding for a non-homelab user, EAS
+- [~] **Launch checklist** — accounts/onboarding for a non-homelab user, EAS
       build + distribution, error reporting, and a data-export/delete story.
+  - [x] **Data export / delete** *(2026-08-13)* — `DELETE /auth/me` already
+        cascaded; `GET /auth/me/export` is the other half. One JSON document
+        with splits, workouts, every session and set, body metrics, nutrition,
+        athlete profile, custom exercises and a progress-photo manifest, built
+        from the same `*Out` schemas the API already serves so a new field can't
+        be silently left behind. The shared catalog is excluded (828 rows nobody
+        owns is noise) and nothing secret leaves — no password hash is on any
+        `Out` schema and `SettingsOut` omits the Claude key. Settings → Your data.
+  - [ ] **Error reporting** — nothing exists anywhere today.
+  - [ ] **Accounts / onboarding** — first-run flow for someone who isn't Alex.
+  - [ ] **EAS build + distribution** — needed anyway for Siri/App Intents and
+        on-device AI.
 
 ### Phase 4 — AI insights & coaching (started)
 - [~] **Progress analysis**: `/stats/summary` ships streak, weekly volume, and recent PRs (+ a `progress` screen); **plateaus, per-muscle volume, frequency still to do**

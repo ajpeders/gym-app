@@ -8,15 +8,32 @@ from sqlalchemy.orm import Session
 from ..db import get_db
 from ..models import (
     AthleteProfile,
+    BodyMetric,
     CoachMessage,
     Exercise,
+    NutritionEntry,
     ProgressPhoto,
+    Session as TrainingSession,
     Settings,
     Split,
     User,
     Workout,
+    utcnow,
 )
-from ..schemas import LoginIn, RegisterIn, TokenOut, UserOut
+from ..schemas import (
+    BodyMetricOut,
+    ExerciseOut,
+    LoginIn,
+    NutritionEntryOut,
+    ProgressPhotoOut,
+    RegisterIn,
+    SessionOut,
+    SettingsOut,
+    SplitOut,
+    TokenOut,
+    UserOut,
+    WorkoutOut,
+)
 from ..security import create_token, get_current_user, hash_password, verify_password
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -94,3 +111,77 @@ def delete_me(
         db.delete(row)
     db.delete(current)
     db.commit()
+
+
+# The export is checked against the same list `delete_me` sweeps: anything the
+# account owns, you can take with you. Deleting an account you can't export
+# first is a one-way door.
+_EXPORT_FORMAT_VERSION = 1
+
+
+@router.get("/me/export")
+def export_me(
+    current: User = Depends(get_current_user), db: Session = Depends(get_db)
+) -> dict:
+    """Everything this account owns, as one JSON document.
+
+    Deliberately built from the same `*Out` schemas the API already serves, so
+    an export reads like the API rather than like the database — and so a new
+    field shows up here automatically instead of being silently left behind.
+
+    The shared exercise catalog is *not* included: 828 rows nobody owns is
+    noise. Custom exercises are. Progress photos come as a manifest — the image
+    bytes are fetched per photo from their existing endpoint.
+    """
+    uid = current.id
+
+    def owned(model, column):
+        return db.scalars(select(model).where(column == uid)).all()
+
+    settings = db.scalar(select(Settings).where(Settings.user_id == uid))
+    profile = db.scalar(select(AthleteProfile).where(AthleteProfile.user_id == uid))
+
+    return {
+        "format_version": _EXPORT_FORMAT_VERSION,
+        "exported_at": utcnow().isoformat(),
+        "user": UserOut.model_validate(current).model_dump(),
+        # SettingsOut already omits claude_api_key (write-only), and no password
+        # hash is on any Out schema — nothing secret leaves in here.
+        "settings": SettingsOut.model_validate(settings).model_dump() if settings else None,
+        "athlete_profile": (
+            {
+                c.name: getattr(profile, c.name)
+                for c in AthleteProfile.__table__.columns
+                if c.name not in ("id", "user_id")
+            }
+            if profile
+            else None
+        ),
+        "splits": [SplitOut.model_validate(r).model_dump() for r in owned(Split, Split.owner_id)],
+        "workouts": [
+            WorkoutOut.model_validate(r).model_dump() for r in owned(Workout, Workout.owner_id)
+        ],
+        "sessions": [
+            SessionOut.model_validate(r).model_dump()
+            for r in owned(TrainingSession, TrainingSession.owner_id)
+        ],
+        "body_metrics": [
+            BodyMetricOut.model_validate(r).model_dump()
+            for r in owned(BodyMetric, BodyMetric.owner_id)
+        ],
+        "nutrition": [
+            NutritionEntryOut.model_validate(r).model_dump()
+            for r in owned(NutritionEntry, NutritionEntry.owner_id)
+        ],
+        "custom_exercises": [
+            ExerciseOut.model_validate(r).model_dump() for r in owned(Exercise, Exercise.owner_id)
+        ],
+        "progress_photos": [
+            ProgressPhotoOut.model_validate(r).model_dump()
+            for r in owned(ProgressPhoto, ProgressPhoto.owner_id)
+        ],
+        "coach_messages": [
+            {"role": r.role, "content": r.content, "created_at": r.created_at}
+            for r in owned(CoachMessage, CoachMessage.user_id)
+        ],
+    }

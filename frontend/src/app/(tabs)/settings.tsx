@@ -11,6 +11,7 @@ import { Screen, ScreenHeader, SectionHeader } from '@/components/ui/Screen';
 import { Text } from '@/components/ui/Text';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
+import { shareText } from '@/lib/export';
 
 function Segmented<T extends string>({
   options,
@@ -81,6 +82,24 @@ export default function SettingsScreen() {
   const { settings, update } = useSettings();
   const router = useRouter();
   const [saving, setSaving] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [exportError, setExportError] = useState<string | null>(null);
+
+  // Shared as text through the native sheet, the same way a split or a session
+  // already exports — no new file-handling to maintain, and it lands wherever
+  // the user keeps things (Files, mail, a note).
+  const onExport = useCallback(async () => {
+    setExporting(true);
+    setExportError(null);
+    try {
+      const data = await api.exportAccount();
+      await shareText('gym-app export', JSON.stringify(data, null, 2));
+    } catch (err) {
+      setExportError(err instanceof Error ? err.message : 'Export failed');
+    } finally {
+      setExporting(false);
+    }
+  }, []);
 
   async function patch(fn: () => Promise<void>) {
     setSaving(true);
@@ -162,6 +181,27 @@ export default function SettingsScreen() {
 
       <SectionHeader title="AI Provider" />
       <AiProviderControl patch={patch} />
+
+      <SectionHeader title="Your data" />
+      <Card className="mb-3">
+        <Text variant="body">
+          Take everything with you: splits, every logged session and set, body
+          metrics, your athlete profile and your custom exercises, as one JSON
+          file.
+        </Text>
+        <Button
+          title="Export my data"
+          variant="secondary"
+          className="mt-3"
+          loading={exporting}
+          onPress={onExport}
+        />
+        {exportError ? (
+          <Text variant="caption" className="mt-2 text-red-400">
+            {exportError}
+          </Text>
+        ) : null}
+      </Card>
 
       <Button title="Log out" variant="danger" onPress={() => void logout()} />
 
