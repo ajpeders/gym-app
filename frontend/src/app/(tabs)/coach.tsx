@@ -56,6 +56,20 @@ function humanize(name: string): string {
     .trim();
 }
 
+// The verb is the one word "Preparing to ___" needs, and humanize() strips it —
+// which is how a workout write rendered as "Preparing to workouts…".
+const TOOL_VERBS: Record<string, string> = {
+  post: 'create',
+  patch: 'update',
+  put: 'update',
+  delete: 'delete',
+};
+
+function describeWrite(name: string): string {
+  const verb = TOOL_VERBS[name.split('_')[0]] ?? 'change';
+  return `${verb} ${humanize(name)}`;
+}
+
 const markdownStyles = {
   body: { color: '#f8fafc', fontSize: 16, lineHeight: 23 },
   paragraph: { marginTop: 0, marginBottom: 8 },
@@ -304,7 +318,7 @@ export default function CoachScreen() {
                   label:
                     ev.access === 'read'
                       ? `Checking ${humanize(ev.name)}…`
-                      : `Preparing to ${humanize(ev.name)}…`,
+                      : `Preparing to ${describeWrite(ev.name)}…`,
                 });
                 break;
               case 'confirm':

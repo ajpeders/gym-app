@@ -27,6 +27,13 @@ EXPOSE = [
     "GET /api/splits", "GET /api/splits/*",
     "GET /api/stats/*",
     "POST /api/workouts", "POST /api/workouts/*",
+    # Splits were readable but not creatable, so "make me a new split" had no
+    # tool behind it. Rather than saying so, the model reached for
+    # POST /api/workouts, padded the payload with exercise_id 1 ("Step Jack"),
+    # left split_id null so the workout was orphaned, and reported it back as a
+    # created split. A missing capability is worse than a refused one.
+    "POST /api/splits", "PATCH /api/splits/*",
+    "PATCH /api/workouts/*",
     "POST /api/sessions", "POST /api/sessions/*",
     "PATCH /api/sessions/*",
     "POST /api/exercises",

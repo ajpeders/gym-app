@@ -67,3 +67,25 @@ def test_the_athlete_profile_is_still_injected() -> None:
 
 def test_recent_training_is_still_injected() -> None:
     assert "Squat 3x5" in coach_system_prompt("Alex", "", "Squat 3x5")
+
+
+def test_it_may_not_invent_tool_arguments() -> None:
+    """The failure this exists for: asked to make a split, the model had no
+    split-creation tool, reached for create-workout instead, and padded the
+    payload with exercise_id 1 — 'Step Jack', literally the first row of the
+    catalog. The user had named no exercise at all."""
+    lowered = PROMPT.lower()
+    assert "do not invent" in lowered
+    assert "did not name" in lowered
+
+
+def test_it_must_say_when_it_cannot_do_something() -> None:
+    """Silently substituting a different action is worse than refusing."""
+    lowered = PROMPT.lower()
+    assert "say so" in lowered
+    assert "different action" in lowered
+
+
+def test_it_must_report_what_actually_happened() -> None:
+    """It announced 'your default split is created'. No split was created."""
+    assert "tool result" in PROMPT.lower()

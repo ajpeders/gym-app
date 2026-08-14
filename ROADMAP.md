@@ -197,6 +197,20 @@ gym-app/
       5/3/1 and GZCLP *are* their progression schemes, so this leans on the
       progression work rather than just being a list of exercises. Check
       licensing/attribution before shipping anyone's named program verbatim.
+- [ ] **Stop the AI hand-building log payloads** — the spotter constructs
+      `POST /sessions/log` JSON itself, and it guesses `exercise_id`. Measured
+      2026-08-14 against both local models: "log 3x5 squats at 100kg" produced
+      `exercise_id: 1` — "Step Jack", the first row of the catalog — because it
+      never calls the exercise search tool. Skill guidance got set expansion
+      right (3x5 → three sets) but did NOT stop the id guessing, so this needs a
+      structural fix rather than more prompt words.
+      The app already has the correct pipeline: `/ai/parse` + `_match`, which
+      expands NxM and resolves names against the catalog with the matcher that
+      has its own test suite. Give the spotter a single "log this text" tool
+      that routes the raw phrase through it, so the model's only job is
+      recognising a log request — narrow and checkable — instead of authoring
+      training data. Same argument as the progression nudge: deterministic where
+      it matters, model only at the edges.
 - [ ] **Recommend the right local model** — a homelab Ollama holds a jumble
       (coder models, embedding models, roleplay finetunes, vision models), and
       nothing tells you which are any good for *this* app. Two different
@@ -210,6 +224,24 @@ gym-app/
       stopgap shipped 2026-08-14 is a `No tool calling` badge in the picker plus
       an error that names the model and the fix (`lib/ai-errors.ts`); the real
       feature is ranking, not a hardcoded deny-list.*
+      **Measured 2026-08-14** by running the same scripted conversation at both
+      installed models, which is what makes this worth building — the gap is
+      large and invisible from the model name alone:
+      | | `qwen2.5:7b-instruct` | `qwen3:8b` |
+      |---|---|---|
+      | Looks up today's plan instead of asking | ✗ | ✓ |
+      | Asks for a name instead of inventing one | ✗ (invented "Upper Body Focus") | ✓ |
+      | Keeps made-up fields out of the payload | ✗ (`rules: ["monday"...]`) | ✓ |
+      | Expands `3x5` into three sets | ✗ | ✓ |
+      | Looks up the exercise id | ✗ | ✗ |
+      So: **don't ship a static list of blessed names.** Probe the model the user
+      actually selected. A short scripted battery (four or five turns, scored on
+      whether the tool calls are right) run from a "Check this model" button
+      gives a real per-capability verdict — tool calling, argument discipline,
+      set expansion, id resolution — and stays honest as models change. The
+      harness for this already exists as a scratch script; productionising it is
+      the work. Pair it with a suggested `ollama pull` when nothing installed
+      scores well.
 - [~] **Bring-your-own-model setup guide** (self-hosted / remote Ollama): backend building blocks exist — `/ai/models` (list + pick), `/ai/test` (round-trip), URL normalization — and the `use-ai-status` hook; **the guided onboarding checklist UI itself is still pending**.
 - [x] **Natural-language logging**: "bench 3x8 @60kg, felt easy" → structured sets *(built)*
 - [x] **Notes → a past day's log**: paste a whole day from a notes app on "Add a past session" and the parser prefills the editable set rows, so an AI-read log can be backdated *(`components/NotesToSets.tsx`; the set-parse prompt handles day headers, one-exercise-per-line, and per-set "weight reps" pairs like `95 10, 90 11`)*
