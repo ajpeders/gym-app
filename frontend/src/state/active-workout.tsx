@@ -9,13 +9,15 @@ import {
   cacheSession,
   dequeueSet,
   dropSessionFromQueue,
+  enqueueOp,
   enqueueSet,
   flushQueue,
+  pendingCount as queuedCount,
   pendingSets,
   readCachedSession,
   withPendingSets,
   withPendingSetsSync,
-  type QueuedSet,
+  type QueuedOp,
 } from '@/lib/offline';
 import { useAuth } from './auth';
 
@@ -37,9 +39,9 @@ interface ActiveWorkoutContextValue {
   removeSet: (weId: string, setId: string) => Promise<void>;
   finish: () => Promise<void>;
   discard: () => Promise<void>;
-  /** Sets logged locally that haven't reached the server yet. */
+  /** Writes made locally that haven't reached the server yet. */
   pendingCount: number;
-  /** Try to push queued sets now. */
+  /** Try to push the queue now. */
   sync: () => Promise<void>;
 }
 
@@ -91,7 +93,9 @@ export function ActiveWorkoutProvider({ children }: { children: React.ReactNode 
   // logged ever disappears from the screen.
   const overlay = useCallback(async (w: Session): Promise<Session> => {
     const pend = await pendingSets(w.id);
-    setPendingCount(pend.length);
+    // Count the whole queue, not just sets — a swap or a finish waiting to go
+    // out is just as unsynced, and the badge is what tells you so.
+    setPendingCount(await queuedCount());
     return withPendingSets(w, pend);
   }, []);
 
@@ -181,44 +185,96 @@ export function ActiveWorkoutProvider({ children }: { children: React.ReactNode 
     }
   }, [activeId, applyWorkout, overlay]);
 
+  /**
+   * Try the network, fall back to the queue.
+   *
+   * Sets are queued unconditionally because they're the thing you can't lose.
+   * These writes are different: online, going straight to the server keeps the
+   * screen showing server truth immediately (an added exercise needs its real
+   * id). Only a genuine connectivity failure — ApiError status 0, never a 4xx
+   * the server would reject again — falls back to queueing.
+   */
+  const sendOrQueue = useCallback(
+    async (attempt: () => Promise<unknown>, queued: () => Promise<void>) => {
+      try {
+        await attempt();
+      } catch (err) {
+        if ((err as { status?: number })?.status !== 0) throw err;
+        await queued();
+        setPendingCount(await queuedCount());
+      }
+      await refresh();
+    },
+    [refresh],
+  );
+
   const addExercise = useCallback(
     async (exerciseId: string) => {
       if (!activeId) return;
-      await api.addSessionExercise(activeId, { exercise_id: exerciseId });
-      await refresh();
+      await sendOrQueue(
+        () => api.addSessionExercise(activeId, { exercise_id: exerciseId }),
+        () => enqueueOp({ kind: 'addExercise', sessionId: activeId, exerciseId }),
+      );
     },
-    [activeId, refresh],
+    [activeId, sendOrQueue],
   );
 
   const removeExercise = useCallback(
     async (weId: string) => {
       if (!activeId) return;
-      await api.deleteSessionExercise(activeId, weId);
-      await refresh();
+      await sendOrQueue(
+        () => api.deleteSessionExercise(activeId, weId),
+        () => enqueueOp({ kind: 'removeExercise', sessionId: activeId, weId }),
+      );
     },
-    [activeId, refresh],
+    [activeId, sendOrQueue],
   );
 
   const swapExercise = useCallback(
     async (weId: string, exerciseId: string) => {
       if (!activeId) return;
-      await api.swapSessionExercise(activeId, weId, exerciseId);
-      await refresh();
+      await sendOrQueue(
+        () => api.swapSessionExercise(activeId, weId, exerciseId),
+        () => enqueueOp({ kind: 'swap', sessionId: activeId, weId, exerciseId }),
+      );
     },
-    [activeId, refresh],
+    [activeId, sendOrQueue],
   );
 
   const sync = useCallback(async () => {
     if (syncing.current) return;
     syncing.current = true;
     try {
-      const send = async (e: QueuedSet) => {
-        // Stamp with when the set was actually logged, not when it synced —
-        // otherwise a whole offline session collapses onto one timestamp.
-        await api.addSet(e.sessionId, e.weId, {
-          ...e.input,
-          completed_at: e.input.completed_at ?? new Date(e.createdAt).toISOString(),
-        });
+      const send = async (e: QueuedOp) => {
+        switch (e.kind) {
+          case 'addExercise':
+            await api.addSessionExercise(e.sessionId, { exercise_id: e.exerciseId }, e.opId);
+            return;
+          case 'swap':
+            await api.swapSessionExercise(e.sessionId, e.weId, e.exerciseId);
+            return;
+          case 'removeExercise':
+            await api.deleteSessionExercise(e.sessionId, e.weId);
+            return;
+          case 'removeSet':
+            await api.deleteSet(e.sessionId, e.weId, e.setId);
+            return;
+          case 'finish':
+            await api.finishSession(e.sessionId, e.finishedAt);
+            return;
+          default:
+            // Stamp with when the set was actually logged, not when it synced —
+            // otherwise a whole offline session collapses onto one timestamp.
+            await api.addSet(
+              e.sessionId,
+              e.weId,
+              {
+                ...e.input,
+                completed_at: e.input.completed_at ?? new Date(e.createdAt).toISOString(),
+              },
+              e.opId,
+            );
+        }
       };
       const { synced, remaining } = await flushQueue(send);
       setPendingCount(remaining);
@@ -282,16 +338,30 @@ export function ActiveWorkoutProvider({ children }: { children: React.ReactNode 
         setPendingCount((n) => Math.max(0, n - 1));
         return;
       }
-      await api.deleteSet(activeId, weId, setId);
-      await refresh();
+      await sendOrQueue(
+        () => api.deleteSet(activeId, weId, setId),
+        () => enqueueOp({ kind: 'removeSet', sessionId: activeId, weId, setId }),
+      );
     },
-    [activeId, refresh],
+    [activeId, sendOrQueue],
   );
 
   const finish = useCallback(async () => {
     if (!activeId) return;
-    await sync(); // push any queued sets before closing the session
-    await api.finishSession(activeId);
+    await sync(); // push anything queued before closing the session
+    // The workout ended when you tapped Finish, not when the phone found
+    // signal again — so the time is stamped here and travels with the queued
+    // op. The server keeps the first finish it sees and won't restamp.
+    const finishedAt = new Date().toISOString();
+    try {
+      await api.finishSession(activeId, finishedAt);
+    } catch (err) {
+      if ((err as { status?: number })?.status !== 0) throw err;
+      // Offline: you're done regardless. Queue it and clear the screen rather
+      // than trapping someone in a session they've finished.
+      await enqueueOp({ kind: 'finish', sessionId: activeId, finishedAt });
+      setPendingCount(await queuedCount());
+    }
     await setActive(null);
   }, [activeId, setActive, sync]);
 

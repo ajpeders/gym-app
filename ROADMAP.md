@@ -255,9 +255,24 @@ Found while actually training with the app. Ordered by how much they hurt.
       looks wrong". Needs either a per-user override table (upload against a
       global exercise) or licensed demo GIFs (Gym Visual — paid; the only source
       with true animated GIFs).
-- [ ] **Offline beyond sets** — logged sets are queued and auto-sync, but
-      starting/finishing a workout and every other write still needs the
-      network. Extend the queue if mid-session connectivity proves flaky.
+- [~] **Offline beyond sets** — *2026-08-13, connectivity did prove flaky.*
+      The set queue is now a general write queue: **finishing** a workout,
+      **swapping** a taken machine, adding and removing an exercise, and
+      removing a set all survive a dead zone. Sets are still queued
+      unconditionally (they're what you can't lose); the others try the network
+      first and only fall back to the queue on a real connectivity failure
+      (`ApiError` status 0), never on a 4xx the server would reject again.
+      Finishing stamps the time you tapped it, not the time the queue drained,
+      and the server keeps the first finish it sees rather than restamping.
+      Underneath it all: `api/app/idempotency.py` + an `Idempotency-Key` header
+      on start / add-exercise / add-set, so a write the server committed but
+      never got to acknowledge is not done twice. That closes a hole sets always
+      had — a replayed start would otherwise trip the single-active-session
+      guard and close the workout you're standing in.
+      **Still to do:** *starting* a workout offline. It needs a local session id
+      that every later queued op references and that gets rewritten across the
+      cache, the router and the active-workout state once the server assigns a
+      real one — worth doing deliberately, and worth having frontend tests first.
 - [ ] **UI/UX pass** — a deliberate visual + flow review of every screen before
       launch (in progress).
 - [ ] **Launch checklist** — accounts/onboarding for a non-homelab user, EAS

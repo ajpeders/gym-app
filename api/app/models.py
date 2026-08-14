@@ -12,6 +12,7 @@ from sqlalchemy import (
     Integer,
     String,
     Text,
+    UniqueConstraint,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.types import JSON
@@ -339,4 +340,30 @@ class ProgressPhoto(Base):
     filename: Mapped[str] = mapped_column(String, nullable=False)
     content_type: Mapped[str] = mapped_column(String, nullable=False, default="image/jpeg")
     notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+
+
+class IdempotentWrite(Base):
+    """One remembered answer to a write the offline queue might replay.
+
+    The queue retries anything it couldn't confirm, and that includes writes
+    the server actually committed before the response was lost. Replaying a
+    start would trip the single-active-session guard and close the workout the
+    user is standing in, so a replayed key returns the first response instead
+    of doing the work again.
+
+    Scoped per user: two phones inventing the same uuid must not collide.
+    """
+
+    __tablename__ = "idempotent_write"
+    __table_args__ = (UniqueConstraint("owner_id", "key", name="uq_idempotent_owner_key"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    owner_id: Mapped[int] = mapped_column(
+        ForeignKey("user.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    key: Mapped[str] = mapped_column(String, nullable=False)
+    # The successful response body, verbatim, so a replay is byte-identical.
+    response: Mapped[str] = mapped_column(Text, nullable=False)
+    status_code: Mapped[int] = mapped_column(Integer, nullable=False, default=200)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)

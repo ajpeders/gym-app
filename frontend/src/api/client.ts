@@ -103,14 +103,20 @@ interface RequestOptions {
   // fail with a clear "took too long" instead of an ambiguous network error or
   // an endless spinner). Omit for no client-side timeout.
   timeoutMs?: number;
+  // Makes a write safe for the offline queue to replay: the server returns the
+  // first response instead of doing the work twice. See api/app/idempotency.py.
+  idempotencyKey?: string;
 }
 
 async function request<T>(path: string, opts: RequestOptions = {}): Promise<T> {
-  const { method = 'GET', body, query, auth = true, timeoutMs } = opts;
+  const { method = 'GET', body, query, auth = true, timeoutMs, idempotencyKey } = opts;
   const headers: Record<string, string> = { Accept: 'application/json' };
 
   if (body !== undefined) {
     headers['Content-Type'] = 'application/json';
+  }
+  if (idempotencyKey) {
+    headers['Idempotency-Key'] = idempotencyKey;
   }
   if (auth) {
     const token = await getItem(TOKEN_KEY);
@@ -633,12 +639,25 @@ export const api = {
     request<Session>('/sessions/log', { method: 'POST', body: input }),
   updateSession: (id: string, input: Partial<Pick<Session, 'name' | 'notes'>>) =>
     request<Session>(`/sessions/${id}`, { method: 'PATCH', body: input }),
-  finishSession: (id: string) =>
-    request<Session>(`/sessions/${id}/finish`, { method: 'POST' }),
+  // finishedAt lets a finish queued in a dead zone carry the time it actually
+  // happened, instead of the moment the queue drained.
+  finishSession: (id: string, finishedAt?: string) =>
+    request<Session>(`/sessions/${id}/finish`, {
+      method: 'POST',
+      body: finishedAt ? { finished_at: finishedAt } : {},
+    }),
   deleteSession: (id: string) =>
     request<void>(`/sessions/${id}`, { method: 'DELETE' }),
-  addSessionExercise: (id: string, input: { exercise_id: string; order?: number }) =>
-    request<SessionExercise>(`/sessions/${id}/exercises`, { method: 'POST', body: input }),
+  addSessionExercise: (
+    id: string,
+    input: { exercise_id: string; order?: number },
+    idempotencyKey?: string,
+  ) =>
+    request<SessionExercise>(`/sessions/${id}/exercises`, {
+      method: 'POST',
+      body: input,
+      idempotencyKey,
+    }),
   deleteSessionExercise: (id: string, weId: string) =>
     request<void>(`/sessions/${id}/exercises/${weId}`, { method: 'DELETE' }),
   // Swap which movement a logged row is for, keeping its sets — the machine
@@ -648,10 +667,11 @@ export const api = {
       method: 'PATCH',
       body: { exercise_id: exerciseId },
     }),
-  addSet: (id: string, weId: string, input: SetInput) =>
+  addSet: (id: string, weId: string, input: SetInput, idempotencyKey?: string) =>
     request<SessionSet>(`/sessions/${id}/exercises/${weId}/sets`, {
       method: 'POST',
       body: input,
+      idempotencyKey,
     }),
   updateSet: (id: string, weId: string, setId: string, input: Partial<SetInput>) =>
     request<SessionSet>(`/sessions/${id}/exercises/${weId}/sets/${setId}`, {

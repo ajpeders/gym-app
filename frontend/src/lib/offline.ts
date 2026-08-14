@@ -18,31 +18,59 @@ import type { SetInput, Session, SessionSet } from '@/api/types';
 const QUEUE_KEY = 'gymapp.offline.setQueue';
 const CACHE_KEY = 'gymapp.offline.session';
 
-export interface QueuedSet {
-  /** Local-only id; also used as the optimistic set's id until it syncs. */
+interface QueuedBase {
+  /** Local-only id; for a set, also the optimistic row's id until it syncs. */
   localId: string;
+  /**
+   * Sent as Idempotency-Key so a replay the server already committed returns
+   * the first answer instead of doing the work twice. Matters most for a
+   * replayed start, which would otherwise close the workout you're standing in.
+   */
+  opId: string;
   sessionId: string;
-  weId: string;
-  input: SetInput;
   createdAt: number;
   /** Failed attempts so far — used to back off and to surface stuck items. */
   attempts: number;
 }
 
-let memoryQueue: QueuedSet[] | null = null;
+export interface QueuedSet extends QueuedBase {
+  kind?: 'set'; // optional: entries queued before ops existed have no kind
+  weId: string;
+  input: SetInput;
+}
 
-async function readQueue(): Promise<QueuedSet[]> {
+/**
+ * The rest of a session's writes. Sets were queued from the start because you
+ * tap them 30x in a basement; these turned out to matter too — losing signal
+ * mid-session used to mean you couldn't swap a taken machine or close the
+ * workout at all.
+ */
+export type QueuedOp =
+  | QueuedSet
+  | (QueuedBase & { kind: 'addExercise'; exerciseId: string })
+  | (QueuedBase & { kind: 'swap'; weId: string; exerciseId: string })
+  | (QueuedBase & { kind: 'removeExercise'; weId: string })
+  | (QueuedBase & { kind: 'removeSet'; weId: string; setId: string })
+  | (QueuedBase & { kind: 'finish'; finishedAt: string });
+
+function isSet(op: QueuedOp): op is QueuedSet {
+  return op.kind === undefined || op.kind === 'set';
+}
+
+let memoryQueue: QueuedOp[] | null = null;
+
+async function readQueue(): Promise<QueuedOp[]> {
   if (memoryQueue) return memoryQueue;
   try {
     const raw = await AsyncStorage.getItem(QUEUE_KEY);
-    memoryQueue = raw ? (JSON.parse(raw) as QueuedSet[]) : [];
+    memoryQueue = raw ? (JSON.parse(raw) as QueuedOp[]) : [];
   } catch {
     memoryQueue = [];
   }
   return memoryQueue;
 }
 
-async function writeQueue(q: QueuedSet[]): Promise<void> {
+async function writeQueue(q: QueuedOp[]): Promise<void> {
   memoryQueue = q;
   try {
     await AsyncStorage.setItem(QUEUE_KEY, JSON.stringify(q));
@@ -57,14 +85,32 @@ function nextLocalId(): string {
   return `local-${Date.now()}-${seq}`;
 }
 
+/** What a caller supplies; the queue fills in ids, timestamp and attempts. */
+export type QueuedOpInput =
+  | { kind: 'addExercise'; sessionId: string; exerciseId: string }
+  | { kind: 'swap'; sessionId: string; weId: string; exerciseId: string }
+  | { kind: 'removeExercise'; sessionId: string; weId: string }
+  | { kind: 'removeSet'; sessionId: string; weId: string; setId: string }
+  | { kind: 'finish'; sessionId: string; finishedAt: string };
+
+/** Queue any non-set write. Ordering is preserved, so a finish stays last. */
+export async function enqueueOp(op: QueuedOpInput): Promise<void> {
+  const localId = nextLocalId();
+  const entry = { ...op, localId, opId: localId, createdAt: Date.now(), attempts: 0 } as QueuedOp;
+  await writeQueue([...(await readQueue()), entry]);
+}
+
 /** Persist a set immediately. Returns the queued entry for optimistic display. */
 export async function enqueueSet(
   sessionId: string,
   weId: string,
   input: SetInput,
 ): Promise<QueuedSet> {
+  const localId = nextLocalId();
   const entry: QueuedSet = {
-    localId: nextLocalId(),
+    kind: 'set',
+    localId,
+    opId: localId,
     sessionId,
     weId,
     input,
@@ -77,7 +123,7 @@ export async function enqueueSet(
 }
 
 export async function pendingSets(sessionId?: string): Promise<QueuedSet[]> {
-  const q = await readQueue();
+  const q = (await readQueue()).filter(isSet);
   return sessionId ? q.filter((e) => e.sessionId === sessionId) : q;
 }
 
@@ -116,12 +162,12 @@ export interface FlushResult {
  * it forever would block everything behind it.
  */
 export async function flushQueue(
-  send: (e: QueuedSet) => Promise<void>,
+  send: (e: QueuedOp) => Promise<void>,
 ): Promise<FlushResult> {
   const q = await readQueue();
   if (q.length === 0) return { synced: 0, remaining: 0 };
 
-  const remaining: QueuedSet[] = [];
+  const remaining: QueuedOp[] = [];
   let synced = 0;
   let stopped = false;
 

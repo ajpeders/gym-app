@@ -9,6 +9,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session as SASession
 
 from ..db import get_db
+from ..idempotency import idempotency_key, replay_or_run
 from ..models import (
     Exercise,
     Session,
@@ -21,8 +22,9 @@ from ..models import (
 from ..schemas import (
     SessionCreate,
     SessionExerciseCreate,
-    SessionExerciseUpdate,
     SessionExerciseOut,
+    SessionExerciseUpdate,
+    SessionFinish,
     SessionListOut,
     SessionLog,
     SessionOut,
@@ -141,7 +143,14 @@ def start_session(
     payload: SessionStart,
     db: SASession = Depends(get_db),
     user: User = Depends(get_current_user),
+    key: str | None = Depends(idempotency_key),
 ) -> SessionOut:
+    return replay_or_run(
+        db, user, key, lambda: _start_session(payload, db, user), lambda o: o.model_dump()
+    )
+
+
+def _start_session(payload: SessionStart, db: SASession, user: User) -> SessionOut:
     _close_open_sessions(db, user)
     session = Session(
         owner_id=user.id,
@@ -277,11 +286,19 @@ def update_session(
 @router.post("/{session_id}/finish", response_model=SessionOut)
 def finish_session(
     session_id: int,
+    payload: SessionFinish | None = None,
     db: SASession = Depends(get_db),
     user: User = Depends(get_current_user),
 ) -> SessionOut:
+    """Close a session. Naturally idempotent: an already-finished session keeps
+    the end time it has, because a finish queued offline can arrive hours later
+    (or after the single-active-session guard already closed it) and must not
+    restamp the workout with the moment the phone found signal."""
     session = _get_session(db, session_id, user)
-    session.finished_at = utcnow()
+    if session.finished_at is None:
+        session.finished_at = _resolve_started_at(
+            payload.finished_at if payload else None
+        )
     db.commit()
     db.refresh(session)
     return SessionOut.model_validate(session)
@@ -310,6 +327,19 @@ def add_session_exercise(
     payload: SessionExerciseCreate,
     db: SASession = Depends(get_db),
     user: User = Depends(get_current_user),
+    key: str | None = Depends(idempotency_key),
+) -> SessionExerciseOut:
+    return replay_or_run(
+        db,
+        user,
+        key,
+        lambda: _add_session_exercise(session_id, payload, db, user),
+        lambda o: o.model_dump(),
+    )
+
+
+def _add_session_exercise(
+    session_id: int, payload: SessionExerciseCreate, db: SASession, user: User
 ) -> SessionExerciseOut:
     session = _get_session(db, session_id, user)
     _validate_exercise(db, payload.exercise_id, user)
@@ -387,6 +417,19 @@ def add_set(
     payload: SetCreate,
     db: SASession = Depends(get_db),
     user: User = Depends(get_current_user),
+    key: str | None = Depends(idempotency_key),
+) -> SetOut:
+    return replay_or_run(
+        db,
+        user,
+        key,
+        lambda: _add_set(session_id, se_id, payload, db, user),
+        lambda o: o.model_dump(),
+    )
+
+
+def _add_set(
+    session_id: int, se_id: int, payload: SetCreate, db: SASession, user: User
 ) -> SetOut:
     session = _get_session(db, session_id, user)
     se = _get_session_exercise(db, session, se_id)

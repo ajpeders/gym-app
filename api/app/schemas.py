@@ -333,6 +333,16 @@ class SessionExerciseOut(BaseModel):
         return cleared_rep_range(self.target_sets, self.target_reps_max, self.sets)
 
 
+class SessionFinish(BaseModel):
+    """Optional body on POST /sessions/{id}/finish.
+
+    Lets a finish queued offline carry the time it actually happened instead of
+    the time the queue drained. Omitted -> now.
+    """
+
+    finished_at: Optional[datetime] = None
+
+
 class SessionExerciseCreate(BaseModel):
     exercise_id: int
     order: Optional[int] = None
