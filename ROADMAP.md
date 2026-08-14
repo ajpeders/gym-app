@@ -4,9 +4,9 @@
 > a local (Ollama) or frontier (Claude) model. Native-first (Expo / React
 > Native) with a web build from the same codebase.
 
-Status: **Phase 0–2 shipped; Phase 3 (AI) largely done; Phase 4 (insights) started; prepping for launch** · Last updated: 2026-07-26
+Status: **Phase 0–2 shipped; Phase 3 (AI) largely done; Phase 4 (insights) started; prepping for launch** · Last updated: 2026-08-14
 
-> Reconciled against the codebase on 2026-07-26. Deviations from the original plan
+> Reconciled against the codebase on 2026-08-14. Deviations from the original plan
 > now in reality: **Alembic was dropped** for hand-rolled additive column
 > migrations (`api/app/db.py` `_ADDED_COLUMNS`); and the plan model settled as
 > **Split** (a week) → **Workout** (a plan-day, scheduled via `weekdays`+`floating`)
@@ -361,13 +361,26 @@ Found while actually training with the app. Ordered by how much they hurt.
 - [ ] **Lavish AI** (Tier-1 moat): regenerate in-session UI / re-plan per session without rationing — free on local compute
 
 ### Phase 5 — Polish & power features
-- [~] **Nutrition logging** — *built but never roadmap'd until now.*
-      `nutrition_entry` (label, calories, protein, `eaten_at`), full CRUD at
-      `/api/nutrition`, an AI parser at `/ai/parse-nutrition`, a Nutrition
-      screen and a Home card. Entries are timestamped, not aggregated per day —
-      the client groups by *local* calendar day, since grouping server-side
-      would quietly impose UTC boundaries (see the naive-UTC key decision).
-- [ ] **Food database with default calories / protein** — today every entry is
+- [~] **Nutrition logging** — lightweight v0 exists, v1 is now specified in
+      `docs/superpowers/specs/2026-07-27-calorie-protein-tracker-design.md`.
+      **Today:** `nutrition_entry` stores `label`, `calories`, `protein`, and
+      timestamp `eaten_at`; CRUD lives at `/api/nutrition`; AI parsing lives at
+      `/ai/parse-nutrition`; the app has a Nutrition screen and a Home card.
+      The client currently groups entries by local calendar day because the
+      server has no per-user timezone and server grouping would impose UTC day
+      boundaries.
+      **Target v1:** make nutrition explicitly day-based and goal-based without
+      becoming a full meal-planning app: `NutritionGoal` history, `NutritionEntry`
+      with `local_date` + meal bucket, `SavedFood`, daily and Sunday-through-
+      Saturday summaries, and Home/calendar/profile integration with editable
+      calorie + protein targets. Manual logging and saved foods come before AI
+      smart input; AI must always produce an editable review, never silent writes.
+      **Migration decision:** evolve the current timestamped entries carefully
+      rather than layering a second incompatible model beside them. Existing
+      `eaten_at` rows can backfill `local_date` using the device/local timezone
+      assumption that the current client already uses.
+- [ ] **Food database with default calories / protein** — after nutrition v1.
+      Today every entry is
       typed from scratch: a free-text label and two numbers you have to know or
       guess. Give it a searchable food library so "chicken breast, 200g" fills
       itself in.
