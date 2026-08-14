@@ -156,6 +156,26 @@ gym-app/
 ### Phase 3 — AI provider layer + natural-language logging (largely done)
 - [x] Provider abstraction: Ollama ⇄ Claude; pick provider/model in settings *(BYO per-user, no silent default; `/ai/providers`,`/models`,`/test`)*
 - [ ] **On-device AI — iPhone first** (capable phones): run a small model directly on the phone's hardware (iOS: Apple Foundation Models / MLX / Core ML; Android: `llama.rn` / ExecuTorch) — fully private, works offline with no Ollama/Claude needed. Auto-detect support and offer it as a third provider alongside Ollama/Claude. The ultimate "no-setup, no-cost, no-network" local option.
+- [ ] **Admin page** — there is no admin concept at all today: `User` has no role
+      column, and several things now exist with no way to observe them.
+      What it would actually be for, roughly in order of how much it's missed:
+      - **Crash reports.** `POST /api/errors` writes to the `gym.client` logger
+        and that's it — reading them means `docker logs` over SSH. Persist them
+        and show them, or the reporting only helps whoever has shell access.
+      - **Catalog curation.** 338 of 828 exercises have no image and some are
+        plain wrong (the Plank photo). Per-user upload shipped, but fixing the
+        *shared* catalog needs a trusted editor — that's an admin, not a user.
+      - **Accounts.** List users, reset a forgotten password, delete an account.
+        Live example: turning DEMO_MODE off risked locking Alex out with no
+        recovery path except editing SQLite in the container by hand.
+      - **AI health.** Per-provider success/failure and `latency_ms` over time,
+        which would have made "Ollama returns 400" obvious instead of a hunt.
+      - **DB / seed state.** Row counts, seed version, when the catalog last
+        refreshed.
+      Needs `user.role` (or a single `GYM_ADMIN_EMAIL`) plus an admin-only
+      dependency — and note this is the first thing in the app that would let
+      one account read another's data, so scope it deliberately: aggregate and
+      operational data, not other people's training logs.
 - [ ] **Preset splits (well-known programs) as a shared library** — ship a set of
       established programs (PPL, Upper/Lower, Full Body 3x, 5/3/1, Starting
       Strength, GZCLP, nSuns, Arnold, Bro split) as first-class presets, stored
