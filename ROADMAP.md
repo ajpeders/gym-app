@@ -156,6 +156,27 @@ gym-app/
 ### Phase 3 — AI provider layer + natural-language logging (largely done)
 - [x] Provider abstraction: Ollama ⇄ Claude; pick provider/model in settings *(BYO per-user, no silent default; `/ai/providers`,`/models`,`/test`)*
 - [ ] **On-device AI — iPhone first** (capable phones): run a small model directly on the phone's hardware (iOS: Apple Foundation Models / MLX / Core ML; Android: `llama.rn` / ExecuTorch) — fully private, works offline with no Ollama/Claude needed. Auto-detect support and offer it as a third provider alongside Ollama/Claude. The ultimate "no-setup, no-cost, no-network" local option.
+- [ ] **Preset splits (well-known programs) as a shared library** — ship a set of
+      established programs (PPL, Upper/Lower, Full Body 3x, 5/3/1, Starting
+      Strength, GZCLP, nSuns, Arnold, Bro split) as first-class presets, stored
+      like any other split with exercises resolved against the catalog.
+      **Two consumers, one library, and that's the point:**
+      1. **The user** picks one at onboarding or from Splits — an instant
+         credible plan without pasting or building anything. This is the answer
+         to a new account's empty home screen, and it pairs with the preset
+         being *editable* once adopted (copy-on-adopt, never a live link).
+      2. **The AI** reads them as grounding. Generation and coaching currently
+         invent structure from scratch; a library of known-good programs gives
+         the model real templates to adapt ("this is PPL with your equipment and
+         your Thursday conflict") instead of freelancing a plan. Also gives the
+         importer something to *recognise*: "this looks like 5/3/1" is a much
+         better import than 4 loose days.
+      Notes / open questions: keep them owner-less like the exercise catalog and
+      copy on adopt, so a user editing PPL doesn't mutate it for everyone (same
+      rule as custom exercises). Progression rules are the interesting part —
+      5/3/1 and GZCLP *are* their progression schemes, so this leans on the
+      progression work rather than just being a list of exercises. Check
+      licensing/attribution before shipping anyone's named program verbatim.
 - [ ] **Recommend the right local model** — a homelab Ollama holds a jumble
       (coder models, embedding models, roleplay finetunes, vision models), and
       nothing tells you which are any good for *this* app. Two different
