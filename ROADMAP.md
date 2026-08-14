@@ -194,8 +194,25 @@ gym-app/
          `w.weekdays`, which floating days don't have), so gap detection
          silently has nothing to compare against — the failure mode is an empty
          column rather than an error.
-      Probably a `split.mode` of `weekly | rolling` rather than more flags, since
-      it changes what "today", "missed" and "done" each mean.
+      **Make it an explicit choice on the split, not an emergent property of
+      flags.** `split.mode` = `rigid | rolling`, picked when you create or edit
+      a split, because it changes what "today", "missed" and "done" each mean —
+      three separate pieces of logic, not one toggle:
+      - **Rigid** (what exists today) — days claim weekdays, Home shows what
+        today's date calls for, a passed day is *missed*, "done" resets weekly.
+        Right for anyone who trains Mon/Wed/Fri and wants to be told when they
+        slipped.
+      - **Rolling** — days are an ordered rotation with no dates. Home shows
+        *next in the cycle*, nothing is ever "missed" (you can't miss a day that
+        was never scheduled), and "done" means since the cycle last came round.
+      The mode should drive the UI, not just the backend: the weekday picker is
+      meaningless in rolling mode and should be replaced by rotation order, and
+      the Catch up screen needs to compare against the cycle rather than against
+      weekdays or it goes blank (above).
+      Existing splits migrate to `rigid`, which is what they already are, so
+      nobody's plan changes under them. Worth allowing a switch either way after
+      the fact — moving to rolling is exactly what prompted this, and going back
+      should be equally easy.
       *Raised 2026-08-14 by Alex moving to a rolling split because his rest days
       are unpredictable — the common case, not an edge one.*
 - [ ] **Preset splits (well-known programs) as a shared library** — ship a set of
