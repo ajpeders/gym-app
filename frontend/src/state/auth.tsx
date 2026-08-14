@@ -5,9 +5,11 @@ import type { User } from '@/api/types';
 import { deleteItem, getItem, setItem, TOKEN_KEY } from '@/lib/storage';
 
 // DEMO_MODE: skip the login/register UI and auto-sign-in as a shared demo user.
-// Set to false to require real accounts — the login/register screens are already
-// built and the root navigator will gate on auth again.
-export const DEMO_MODE = true;
+// Off now that accounts are real: while it was on, logging out deleted the token
+// and immediately signed back in as the demo user, so the Log out button looked
+// broken — and the login and register screens were unreachable, which also made
+// first-run onboarding impossible to ever see.
+export const DEMO_MODE = false;
 const DEMO_EMAIL = 'demo@gymapp.io';
 const DEMO_PASSWORD = 'demo-account';
 const DEMO_NAME = 'Demo';
