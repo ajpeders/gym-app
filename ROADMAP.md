@@ -295,7 +295,14 @@ Found while actually training with the app. Ordered by how much they hurt.
         Reporting works signed out, because the login screen can crash too.
         A self-hosted Sentry/GlitchTip DSN plugs in behind that one function if
         grouping and stack symbolication are ever wanted.
-  - [ ] **Accounts / onboarding** — first-run flow for someone who isn't Alex.
+  - [x] **Accounts / onboarding** *(2026-08-13)* — `app/onboarding.tsx`, shown
+        once after registering. One screen, not a wizard: units, bring-your-own
+        AI (explicitly optional — a non-homelab user has no Ollama to point at),
+        and paste-your-plan. Everything is skippable and nothing blocks reaching
+        the app. Gated on `feature_flags.onboarded === false`, which
+        registration writes explicitly: accounts predating onboarding have no
+        flag at all and are never dragged through a tour of an app they use.
+        The flag lives on the account, so a second phone doesn't ask again.
   - [~] **EAS build + distribution** — *config landed 2026-08-13.* `eas.json`
         with development / preview / production profiles, `com.forgo.gymapp` as
         the bundle id on both platforms, and `EXPO_PUBLIC_API_URL` pinned per

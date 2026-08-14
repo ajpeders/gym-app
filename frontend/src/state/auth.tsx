@@ -100,6 +100,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     async (email: string, password: string, displayName: string) => {
       const res = await api.register({ email, password, display_name: displayName });
       await setItem(TOKEN_KEY, res.token);
+      // Explicitly false, not absent: that's what marks this account as new.
+      // Accounts that predate onboarding have no flag at all and must not be
+      // dragged through a welcome screen for an app they already use.
+      try {
+        await api.updateSettings({ feature_flags: { onboarded: false } });
+      } catch {
+        // Worst case the walkthrough doesn't show. Never block a signup on it.
+      }
       setUser(res.user);
     },
     [],

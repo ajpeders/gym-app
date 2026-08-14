@@ -8,7 +8,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { AuthProvider, useAuth } from '@/state/auth';
-import { SettingsProvider } from '@/state/settings';
+import { SettingsProvider, useSettings } from '@/state/settings';
 import { ActiveWorkoutProvider } from '@/state/active-workout';
 import { Logo } from '@/components/ui/Logo';
 import { HeaderBack } from '@/components/ui/HeaderBack';
@@ -31,18 +31,28 @@ function Splash() {
 
 function RootNavigator() {
   const { user, loading } = useAuth();
+  const { settings, loading: settingsLoading } = useSettings();
   const segments = useSegments();
   const router = useRouter();
+
+  // Strictly `=== false`. Registration writes the flag as false; accounts that
+  // predate onboarding have no flag at all, and an existing user must not be
+  // shown a welcome tour for an app they already use.
+  const needsOnboarding =
+    !!user && !settingsLoading && settings.feature_flags.onboarded === false;
 
   useEffect(() => {
     if (loading) return;
     const inAuthGroup = segments[0] === '(auth)';
+    const onOnboarding = segments[0] === 'onboarding';
     if (!user && !inAuthGroup) {
       router.replace('/(auth)/login');
-    } else if (user && inAuthGroup) {
+    } else if (user && needsOnboarding && !onOnboarding) {
+      router.replace('/onboarding');
+    } else if (user && inAuthGroup && !needsOnboarding) {
       router.replace('/(tabs)');
     }
-  }, [user, loading, segments, router]);
+  }, [user, loading, needsOnboarding, segments, router]);
 
   if (loading) return <Splash />;
 
@@ -63,6 +73,7 @@ function RootNavigator() {
       }}>
       <Stack.Screen name="(auth)" />
       <Stack.Screen name="(tabs)" />
+      <Stack.Screen name="onboarding" options={{ gestureEnabled: false }} />
       <Stack.Screen name="exercise/[id]" options={{ presentation: 'card' }} />
       <Stack.Screen name="session/[id]" />
       <Stack.Screen name="session/log" />

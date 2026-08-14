@@ -257,6 +257,9 @@ export interface MetricInput {
 export interface FeatureFlags {
   quick_buttons: boolean;
   in_set_prompts: boolean;
+  /** First-run walkthrough done (or skipped). Lives on the account, not the
+   *  device, so a second phone doesn't ask again. */
+  onboarded?: boolean;
 }
 
 export interface Settings {
@@ -272,8 +275,12 @@ export interface Settings {
 // Write-only settings patch. `claude_api_key` is accepted by PATCH /settings
 // (empty string clears it) but is never returned by GET /settings, so it lives
 // here rather than on the read-side `Settings` type.
-export interface SettingsUpdate extends Partial<Settings> {
+export interface SettingsUpdate extends Partial<Omit<Settings, 'feature_flags'>> {
   claude_api_key?: string;
+  // PATCH /settings merges feature_flags into the stored dict rather than
+  // replacing it, so sending one flag on its own is correct and doesn't need
+  // the caller to echo back the others.
+  feature_flags?: Partial<FeatureFlags>;
 }
 
 // ---- AI (Phase 3) ----
