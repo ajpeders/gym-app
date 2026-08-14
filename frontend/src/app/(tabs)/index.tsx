@@ -1,156 +1,47 @@
 import { useCallback, useState } from 'react';
-import {
-  KeyboardAvoidingView,
-  Modal,
-  Platform,
-  Pressable,
-  RefreshControl,
-  ScrollView,
-  TextInput,
-  View,
-} from 'react-native';
+import type { ComponentProps } from 'react';
+import { Pressable, RefreshControl, ScrollView, View } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
-import { api, ApiError } from '@/api/client';
-import type {
-  SessionExercise,
-  TodayWorkout,
-  Workout,
-  WorkoutExercise,
-  WorkoutInput,
-} from '@/api/types';
+import { api } from '@/api/client';
+import type { Split, TodayWorkout, Workout } from '@/api/types';
 import { useActiveWorkout } from '@/state/active-workout';
 import { useStartSession } from '@/hooks/use-start-session';
-import { useSettings } from '@/state/settings';
 import { Screen, ScreenHeader, SectionHeader } from '@/components/ui/Screen';
 import { Text } from '@/components/ui/Text';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
-import { ExerciseThumb } from '@/components/ExerciseThumb';
-import { HomeProfileCard } from '@/components/HomeProfileCard';
+import { ActionRow } from '@/components/ui/ActionRow';
 import { HomeNutritionCard } from '@/components/HomeNutritionCard';
-import { formatRepRange } from '@/lib/format';
+import { HomeProfileCard } from '@/components/HomeProfileCard';
 
-type IoniconName = React.ComponentProps<typeof Ionicons>['name'];
+type IoniconName = ComponentProps<typeof Ionicons>['name'];
 
 const DOW = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-
-function PlanExerciseLine({
-  ex,
-  units,
-  onPress,
-}: {
-  ex: WorkoutExercise;
-  units: string;
-  onPress?: () => void;
-}) {
-  const name = ex.exercise?.name ?? 'Exercise';
-  const sets =
-    ex.target_sets != null
-      ? `${ex.target_sets} set${ex.target_sets === 1 ? '' : 's'}`
-      : 'Sets not set';
-  const repRange = formatRepRange(ex.target_reps, ex.target_reps_max);
-  const reps = repRange
-    ? `${repRange} rep${repRange === '1' ? '' : 's'}`
-    : 'Reps not set';
-  const weight =
-    ex.target_weight != null
-      ? `${ex.target_weight}${
-          ex.target_weight_max != null ? `–${ex.target_weight_max}` : ''
-        }${units}`
-      : null;
-  const duration =
-    ex.target_duration_seconds != null
-      ? `${ex.target_duration_seconds}${
-          ex.target_duration_seconds_max != null
-            ? `–${ex.target_duration_seconds_max}`
-            : ''
-        } sec`
-      : null;
-  const detail = [sets, repRange ? reps : null, weight, duration].filter(Boolean).join(' · ');
-
-  return (
-    <Pressable
-      onPress={onPress}
-      disabled={!onPress}
-      accessibilityRole={onPress ? 'button' : undefined}
-      className="flex-row items-center border-b border-iron-800 py-3 active:opacity-70">
-      <ExerciseThumb images={ex.exercise?.images} size={40} radius={6} />
-      <View className="ml-3 flex-1">
-        <Text variant="subheading" numberOfLines={1}>
-          {name}
-        </Text>
-        <Text variant="caption" className="mt-0.5 text-iron-400" numberOfLines={1}>
-          {detail}
-        </Text>
-      </View>
-      {onPress ? <Ionicons name="chevron-forward" size={16} color="#475569" /> : null}
-    </Pressable>
-  );
-}
-
-function SessionExerciseLine({
-  ex,
-  units,
-  onPress,
-}: {
-  ex: SessionExercise;
-  units: string;
-  onPress?: () => void;
-}) {
-  const name = ex.exercise?.name ?? 'Exercise';
-  const completedSets = ex.sets.filter((set) => set.completed !== false);
-  const detail =
-    completedSets.length > 0
-      ? completedSets
-          .map((set, index) => {
-            const weight = set.weight != null ? ` @ ${set.weight}${units}` : '';
-            return `Set ${index + 1}: ${set.reps} rep${set.reps === 1 ? '' : 's'}${weight}`;
-          })
-          .join(' · ')
-      : 'No sets logged yet';
-
-  return (
-    <Pressable
-      onPress={onPress}
-      disabled={!onPress}
-      accessibilityRole={onPress ? 'button' : undefined}
-      className="flex-row items-center border-b border-brand/20 py-3 active:opacity-70">
-      <ExerciseThumb images={ex.exercise?.images} size={40} radius={6} />
-      <View className="ml-3 flex-1">
-        <Text variant="subheading" numberOfLines={1}>
-          {name}
-        </Text>
-        <Text
-          variant="caption"
-          className={`mt-0.5 ${completedSets.length > 0 ? 'text-iron-300' : 'text-iron-500'}`}
-          numberOfLines={2}>
-          {detail}
-        </Text>
-      </View>
-      {onPress ? <Ionicons name="chevron-forward" size={16} color="#475569" /> : null}
-    </Pressable>
-  );
-}
 
 function QuickLink({
   icon,
   title,
   subtitle,
   onPress,
+  disabled,
 }: {
   icon: IoniconName;
   title: string;
   subtitle: string;
   onPress: () => void;
+  disabled?: boolean;
 }) {
   return (
     <Pressable
       onPress={onPress}
+      disabled={disabled}
       accessibilityRole="button"
-      className="min-h-[96px] flex-1 rounded-lg border border-iron-800 bg-iron-900/75 p-3.5 active:bg-iron-850">
+      className={`min-h-[96px] flex-1 rounded-lg border border-iron-800 bg-iron-900/75 p-3.5 active:bg-iron-850 ${
+        disabled ? 'opacity-50' : ''
+      }`}>
       <View className="flex-row items-start">
         <View className="h-10 w-10 items-center justify-center rounded-lg border border-brand/25 bg-brand/10">
           <Ionicons name={icon} size={18} color="#818cf8" />
@@ -172,32 +63,20 @@ function QuickLink({
   );
 }
 
-type MetricTone = 'brand' | 'mint' | 'steel';
-
-const metricTone: Record<MetricTone, { box: string; text: string; icon: string }> = {
-  brand: { box: 'border-iron-700 bg-iron-950', text: 'text-brand', icon: '#818cf8' },
-  mint: { box: 'border-iron-700 bg-iron-950', text: 'text-mint', icon: '#2dd4bf' },
-  steel: { box: 'border-iron-700 bg-iron-950', text: 'text-steel', icon: '#22d3ee' },
-};
-
-function MetricPill({
+function StatTile({
   icon,
   value,
   label,
-  tone = 'brand',
 }: {
   icon: IoniconName;
   value: string;
   label: string;
-  tone?: MetricTone;
 }) {
-  const style = metricTone[tone];
-
   return (
-    <View className={`flex-1 rounded-lg border px-3 py-2 ${style.box}`}>
+    <View className="flex-1 rounded-lg border border-iron-700 bg-iron-950 px-3 py-2">
       <View className="flex-row items-center">
-        <Ionicons name={icon} size={15} color={style.icon} />
-        <Text variant="label" className={`ml-1.5 ${style.text}`} numberOfLines={1}>
+        <Ionicons name={icon} size={15} color="#818cf8" />
+        <Text variant="label" className="ml-1.5 text-brand" numberOfLines={1}>
           {value}
         </Text>
       </View>
@@ -208,42 +87,43 @@ function MetricPill({
   );
 }
 
-function findPreviousExercise(workout: Workout, exerciseId: string, fallbackName: string) {
-  return workout.exercises.find((ex) => {
-    if (String(ex.exercise_id) === String(exerciseId)) return true;
-    return ex.exercise?.name?.toLowerCase() === fallbackName.toLowerCase();
-  });
+function workoutById(workouts: Workout[], id: string | number | undefined | null): Workout | null {
+  if (id == null) return null;
+  return workouts.find((workout) => String(workout.id) === String(id)) ?? null;
+}
+
+function splitNameForWorkout(splits: Split[], workout: Workout): string | null {
+  if (workout.split_id == null) return null;
+  return splits.find((split) => Number(split.id) === Number(workout.split_id))?.name ?? null;
+}
+
+function scheduleText(workout: Workout): string {
+  if (workout.floating) return 'Any day';
+  if (workout.weekdays.length === 0) return 'Unscheduled';
+  return workout.weekdays.map((day) => DOW[day]?.slice(0, 3) ?? '?').join(' / ');
 }
 
 export default function HomeScreen() {
   const router = useRouter();
-  const { workout: active } = useActiveWorkout();
-  const { settings } = useSettings();
-
-  // All plan workouts (the pool for the picker + preview + AI edit).
-  const [workouts, setWorkouts] = useState<Workout[]>([]);
-  // Today's scheduled plan workout(s) + whether they're already done this week.
-  const [today, setToday] = useState<TodayWorkout[]>([]);
-  // The user's manual pick for this session (overrides today's default).
-  const [pickedId, setPickedId] = useState<string | null>(null);
-  const [pickerOpen, setPickerOpen] = useState(false);
-  const [refreshing, setRefreshing] = useState(false);
+  const { workout: active, start } = useActiveWorkout();
   const { startSession, starting } = useStartSession();
-  const [aiOpen, setAiOpen] = useState(false);
-  const [aiPrompt, setAiPrompt] = useState('');
-  const [aiSaving, setAiSaving] = useState(false);
-  const [aiError, setAiError] = useState<string | null>(null);
-  // The coach's one-line summary of what the last AI edit changed.
-  const [aiReply, setAiReply] = useState<string | null>(null);
+
+  const [splits, setSplits] = useState<Split[]>([]);
+  const [workouts, setWorkouts] = useState<Workout[]>([]);
+  const [today, setToday] = useState<TodayWorkout[]>([]);
+  const [refreshing, setRefreshing] = useState(false);
+  const [blankStarting, setBlankStarting] = useState(false);
 
   const fetchData = useCallback(async () => {
     try {
-      const [w, t] = await Promise.all([
+      const [splitList, workoutList, todayList] = await Promise.all([
+        api.splits().catch(() => [] as Split[]),
         api.workouts().catch(() => [] as Workout[]),
         api.splitToday().catch(() => [] as TodayWorkout[]),
       ]);
-      setWorkouts(w);
-      setToday(t);
+      setSplits(splitList);
+      setWorkouts(workoutList);
+      setToday(todayList);
     } finally {
       setRefreshing(false);
     }
@@ -260,124 +140,33 @@ export default function HomeScreen() {
     await startSession({ workout_id: String(workout.id) });
   }
 
-  async function onAiEdit(workout: Workout) {
-    const request = aiPrompt.trim();
-    if (!request || aiSaving) return;
+  async function startBlankSession() {
+    if (active && active.finished_at == null) {
+      router.push('/session/add-exercise');
+      return;
+    }
 
-    setAiSaving(true);
-    setAiError(null);
-    setAiReply(null);
+    setBlankStarting(true);
     try {
-      // Scoped single-workout edit: streams a proposal + a one-line summary of
-      // what changed, and resolves each exercise via matcher v2.
-      const proposal = await api.editWorkoutStream({
-        instruction: request,
-        name: workout.name,
-        notes: workout.notes,
-        exercises: workout.exercises
-          .slice()
-          .sort((a, b) => a.order - b.order)
-          .map((e) => ({
-            exercise: e.exercise?.name ?? 'Exercise',
-            target_sets: e.target_sets,
-            target_reps: e.target_reps,
-            target_reps_max: e.target_reps_max ?? null,
-            target_weight: e.target_weight,
-            target_weight_max: e.target_weight_max ?? null,
-            target_duration_seconds: e.target_duration_seconds ?? null,
-            target_duration_seconds_max: e.target_duration_seconds_max ?? null,
-            notes: e.notes ?? null,
-          })),
-      });
-
-      const exercises = [];
-      for (const ex of proposal.exercises) {
-        const exerciseId =
-          ex.exercise_id != null
-            ? String(ex.exercise_id)
-            : (await api.createExercise({ name: ex.matched_name ?? ex.exercise_name })).id;
-        const previous = findPreviousExercise(workout, exerciseId, ex.exercise_name);
-        exercises.push({
-          exercise_id: exerciseId,
-          order: exercises.length,
-          target_sets: ex.target_sets,
-          target_reps: ex.target_reps,
-          target_reps_max: ex.target_reps_max,
-          target_weight: ex.target_weight,
-          target_weight_max: ex.target_weight_max,
-          target_duration_seconds: ex.target_duration_seconds,
-          target_duration_seconds_max: ex.target_duration_seconds_max,
-          rest_seconds: previous?.rest_seconds ?? null,
-          notes: ex.notes ?? previous?.notes ?? null,
-        });
-      }
-
-      if (exercises.length === 0) {
-        throw new Error('AI could not match any exercises in the updated workout.');
-      }
-
-      const input: WorkoutInput = {
-        name: proposal.name?.trim() || workout.name,
-        notes: proposal.notes ?? workout.notes,
-        exercises,
-      };
-      const updated = await api.updateWorkout(workout.id, input);
-      setWorkouts((prev) => prev.map((w) => (String(w.id) === String(updated.id) ? updated : w)));
-      setPickedId(String(updated.id));
-      setAiPrompt('');
-      // Keep the sheet open and show what the coach did, rather than silently
-      // closing — the user asked for a response after every AI edit.
-      setAiReply(proposal.reply?.trim() || 'Updated your workout.');
-    } catch (err) {
-      if (err instanceof ApiError && err.status === 502) {
-        setAiError('AI provider unavailable - check Settings.');
-      } else {
-        setAiError(err instanceof Error ? err.message : 'AI edit failed.');
-      }
+      const session = await start({ name: 'Quick session' });
+      router.push(`/session/active/${session.id}`);
+      setTimeout(() => router.push('/session/add-exercise'), 0);
     } finally {
-      setAiSaving(false);
+      setBlankStarting(false);
     }
   }
 
   const now = new Date();
-  const dayName = DOW[now.getDay()];
-  const dateLabel = `${dayName}, ${MON[now.getMonth()]} ${now.getDate()}`;
-
-  // /splits/today now returns three kinds of day; prefer one actually due today.
-  const scheduledToday = today.filter((t) => t.scheduled_today);
-  // Days scheduled earlier this week and still undone — offer as makeups when
-  // there is nothing on today.
-  const makeups = today.filter((t) => t.missed);
-
-  // Resolve the workout to feature: manual pick → due today → makeup → first.
-  const defaultId = scheduledToday[0]?.id ?? makeups[0]?.id ?? workouts[0]?.id ?? null;
-  const selectedId = pickedId ?? defaultId;
-  const selectedWorkout =
-    workouts.find((w) => String(w.id) === String(selectedId)) ?? workouts[0] ?? null;
-  const todayEntry = today.find((t) => String(t.id) === String(selectedWorkout?.id));
-  const doneThisWeek = todayEntry?.done_this_week ?? false;
-  // True when the featured workout isn't actually due today, so the UI can say
-  // so instead of silently presenting an arbitrary workout as today's.
-  const isMakeup = todayEntry?.missed ?? false;
-  const nothingScheduledToday = scheduledToday.length === 0;
-
-  const selectedExercises = selectedWorkout
-    ? [...selectedWorkout.exercises].sort((a, b) => a.order - b.order)
-    : [];
-  const activeExercises = active ? [...active.exercises].sort((a, b) => a.order - b.order) : [];
-  const loggedSetCount = activeExercises.reduce(
-    (total, ex) => total + ex.sets.filter((set) => set.completed !== false).length,
-    0,
-  );
-  const summaryLabel = active
-    ? 'Session in progress'
-    : isMakeup
-      ? 'Rest day — makeup available'
-      : nothingScheduledToday && selectedWorkout
-        ? 'Rest day'
-        : selectedWorkout
-          ? 'Split ready to start'
-          : 'Set up your first split';
+  const dateLabel = `${DOW[now.getDay()]}, ${MON[now.getMonth()]} ${now.getDate()}`;
+  const activeSplit = splits.find((split) => split.is_active) ?? splits[0] ?? null;
+  const otherSplits = splits.filter((split) => split.id !== activeSplit?.id);
+  const scheduledToday = today.filter((entry) => entry.scheduled_today);
+  const makeups = today.filter((entry) => entry.missed);
+  const dueToday = scheduledToday.length > 0 ? scheduledToday : makeups;
+  const primaryToday = workoutById(workouts, dueToday[0]?.id);
+  const shownWorkouts = workouts
+    .filter((workout) => String(workout.id) !== String(primaryToday?.id))
+    .slice(0, 5);
 
   return (
     <Screen scroll={false} padded={false}>
@@ -395,39 +184,22 @@ export default function HomeScreen() {
         }>
         <ScreenHeader
           eyebrow={dateLabel}
-          title="Today"
-          subtitle={summaryLabel}
+          title="Home"
+          subtitle="Pick your plan, another split, or any exercise."
           action={
-            <View className="flex-row items-center gap-2">
-              {doneThisWeek ? (
-                <View className="flex-row items-center rounded-full border border-mint/30 bg-mint/10 px-2.5 py-1">
-                  <Ionicons name="checkmark-circle" size={14} color="#2dd4bf" />
-                  <Text variant="caption" className="ml-1 font-bold text-mint">
-                    Done
-                  </Text>
-                </View>
-              ) : isMakeup ? (
-                <View className="flex-row items-center rounded-full border border-amber-400/30 bg-amber-400/10 px-2.5 py-1">
-                  <Ionicons name="refresh" size={14} color="#fbbf24" />
-                  <Text variant="caption" className="ml-1 font-bold text-amber-400">
-                    Makeup
-                  </Text>
-                </View>
-              ) : null}
-              <Pressable
-                onPress={() => router.push('/settings')}
-                accessibilityRole="button"
-                accessibilityLabel="Open settings"
-                hitSlop={8}
-                className="h-10 w-10 items-center justify-center rounded-full border border-iron-700 bg-iron-900 active:bg-iron-800">
-                <Ionicons name="settings-outline" size={19} color="#94a3b8" />
-              </Pressable>
-            </View>
+            <Pressable
+              onPress={() => router.push('/settings')}
+              accessibilityRole="button"
+              accessibilityLabel="Open settings"
+              hitSlop={8}
+              className="h-10 w-10 items-center justify-center rounded-full border border-iron-700 bg-iron-900 active:bg-iron-800">
+              <Ionicons name="settings-outline" size={19} color="#94a3b8" />
+            </Pressable>
           }
         />
 
         {active ? (
-          <Card elevated className="border-brand/35 bg-iron-900 p-4">
+          <Card elevated className="mb-4 border-brand/35 bg-iron-900 p-4">
             <View className="flex-row items-center">
               <View className="mr-3 h-12 w-12 items-center justify-center rounded-lg bg-brand">
                 <Ionicons name="barbell" size={23} color="#070b12" />
@@ -442,46 +214,10 @@ export default function HomeScreen() {
                   {active.name ?? 'Session'}
                 </Text>
                 <Text variant="caption" className="mt-0.5 text-iron-300">
-                  {active.exercises.length} exercises · {loggedSetCount} logged{' '}
-                  {loggedSetCount === 1 ? 'set' : 'sets'}
+                  {active.exercises.length} exercises in progress
                 </Text>
               </View>
             </View>
-
-            <View className="mt-4 flex-row gap-2">
-              <MetricPill
-                icon="fitness-outline"
-                value={String(active.exercises.length)}
-                label="Exercises"
-                tone="brand"
-              />
-              <MetricPill
-                icon="checkmark-done-outline"
-                value={String(loggedSetCount)}
-                label="Logged sets"
-                tone="mint"
-              />
-            </View>
-
-            <View className="mt-3">
-              {activeExercises.length > 0 ? (
-                activeExercises.map((ex) => (
-                  <SessionExerciseLine
-                    key={ex.id}
-                    ex={ex}
-                    units={settings.units}
-                    onPress={
-                      ex.exercise_id
-                        ? () => router.push(`/exercise/${ex.exercise_id}`)
-                        : undefined
-                    }
-                  />
-                ))
-              ) : (
-                <Text variant="muted">No exercises added yet.</Text>
-              )}
-            </View>
-
             <Button
               title="Continue session"
               size="lg"
@@ -490,192 +226,158 @@ export default function HomeScreen() {
               onPress={() => router.push(`/session/active/${active.id}`)}
             />
           </Card>
-        ) : workouts.length === 0 ? (
-          <Card elevated className="p-4">
-            <View className="mb-4 h-12 w-12 items-center justify-center rounded-lg border border-brand/30 bg-brand/10">
-              <Ionicons name="clipboard-outline" size={24} color="#818cf8" />
-            </View>
-            <Text variant="heading">No split yet</Text>
-            <Text variant="muted" className="mt-1">
-              Import your program from notes or create a workout day manually.
-            </Text>
-            <View className="mt-4 gap-3">
-              <Button
-                title="Import a split"
-                icon="document-text-outline"
-                onPress={() => router.push('/workout-import')}
-              />
-              <Button
-                title="Create a workout"
-                variant="secondary"
-                icon="add"
-                onPress={() => router.push('/workout/new')}
-              />
-            </View>
-          </Card>
-        ) : selectedWorkout ? (
-          <Card elevated className="p-4">
-            {workouts.length > 1 ? (
-              <Pressable
-                onPress={() => setPickerOpen((v) => !v)}
-                accessibilityRole="button"
-                className="flex-row items-center active:opacity-70">
-                <View className="mr-3 h-12 w-12 items-center justify-center rounded-lg border border-brand/30 bg-brand/10">
-                  <Ionicons name="calendar-outline" size={23} color="#818cf8" />
-                </View>
-                <View className="flex-1">
-                  <Text variant="heading" numberOfLines={1}>
-                    {selectedWorkout.name}
-                  </Text>
-                  <Text variant="caption" className="mt-0.5">
-                    {selectedExercises.length} exercises
-                  </Text>
-                </View>
-                <Ionicons
-                  name={pickerOpen ? 'chevron-up' : 'chevron-down'}
-                  size={22}
-                  color="#818cf8"
-                />
-              </Pressable>
-            ) : (
-              <View className="flex-row items-center">
-                <View className="mr-3 h-12 w-12 items-center justify-center rounded-lg border border-brand/30 bg-brand/10">
-                  <Ionicons name="calendar-outline" size={23} color="#818cf8" />
-                </View>
-                <View className="flex-1">
-                  <Text variant="heading" numberOfLines={1}>
-                    {selectedWorkout.name}
-                  </Text>
-                  <Text variant="caption" className="mt-0.5">
-                    {selectedExercises.length} exercises
-                  </Text>
-                </View>
-              </View>
-            )}
-
-            <View className="mt-4 flex-row gap-2">
-              <MetricPill
-                icon="fitness-outline"
-                value={String(selectedExercises.length)}
-                label="Exercises"
-                tone="brand"
-              />
-              <MetricPill
-                icon="calendar-outline"
-                value={todayEntry ? 'Today' : selectedWorkout.floating ? 'Any' : 'Plan'}
-                label="Schedule"
-                tone="steel"
-              />
-              <MetricPill
-                icon={doneThisWeek ? 'checkmark-done-outline' : 'radio-button-off-outline'}
-                value={doneThisWeek ? 'Done' : 'Open'}
-                label="This week"
-                tone={doneThisWeek ? 'mint' : 'brand'}
-              />
-            </View>
-
-            {pickerOpen && workouts.length > 1 ? (
-              <View className="mt-3 overflow-hidden rounded-lg border border-iron-700">
-                {workouts.map((w) => {
-                  const isSel = String(w.id) === String(selectedWorkout.id);
-                  const isToday = today.some((t) => String(t.id) === String(w.id));
-                  return (
-                    <Pressable
-                      key={w.id}
-                      onPress={() => {
-                        setPickedId(String(w.id));
-                        setPickerOpen(false);
-                      }}
-                      accessibilityRole="button"
-                      className={`flex-row items-center border-b border-iron-800 px-3 py-3 active:opacity-70 ${
-                        isSel ? 'bg-brand/10' : 'bg-iron-900'
-                      }`}>
-                      <Text
-                        variant="subheading"
-                        className={`flex-1 ${isSel ? 'text-brand' : ''}`}
-                        numberOfLines={1}>
-                        {w.name}
-                      </Text>
-                      {isToday ? (
-                        <View className="mr-2 rounded-full bg-iron-700 px-2 py-0.5">
-                          <Text variant="caption">today</Text>
-                        </View>
-                      ) : null}
-                      {isSel ? <Ionicons name="checkmark" size={18} color="#818cf8" /> : null}
-                    </Pressable>
-                  );
-                })}
-              </View>
-            ) : null}
-
-            <View className="mt-3">
-              {selectedExercises.length > 0 ? (
-                selectedExercises.map((ex, i) => (
-                  <PlanExerciseLine
-                    key={ex.id ?? i}
-                    ex={ex}
-                    units={settings.units}
-                    onPress={
-                      ex.exercise_id
-                        ? () => router.push(`/exercise/${ex.exercise_id}`)
-                        : undefined
-                    }
-                  />
-                ))
-              ) : (
-                <Text variant="muted">This workout has no exercises yet.</Text>
-              )}
-            </View>
-
-            <Button
-              title="Start session"
-              size="lg"
-              icon="play"
-              className="mt-4"
-              loading={starting}
-              onPress={() => onStartWorkout(selectedWorkout)}
-            />
-            <View className="mt-3 flex-row gap-2">
-              <Button
-                title="Edit workout"
-                variant="secondary"
-                size="sm"
-                icon="create-outline"
-                className="flex-1"
-                disabled={starting}
-                onPress={() => router.push(`/workout/${selectedWorkout.id}`)}
-              />
-              <Button
-                title="Adjust with AI"
-                variant="secondary"
-                size="sm"
-                icon="sparkles"
-                className="flex-1"
-                disabled={starting}
-                onPress={() => {
-                  setAiError(null);
-                  setAiReply(null);
-                  setAiPrompt('');
-                  setAiOpen(true);
-                }}
-              />
-            </View>
-          </Card>
         ) : null}
 
-        <HomeNutritionCard />
-
-        <HomeProfileCard />
-
         <SectionHeader
-          title="Tools"
-          subtitle="Reference movements or check your visual progress."
+          title="Plan"
+          subtitle="Use the active split, or switch to another program when it fits."
+          className="mt-0"
         />
+        <Card elevated className="p-4">
+          <View className="flex-row gap-2">
+            <StatTile
+              icon="calendar-outline"
+              value={activeSplit?.name ?? 'None'}
+              label="Active split"
+            />
+            <StatTile
+              icon="fitness-outline"
+              value={String(activeSplit?.workouts.length ?? 0)}
+              label="Workout days"
+            />
+          </View>
+
+          <View className="mt-4 overflow-hidden rounded-lg border border-iron-800">
+            {primaryToday ? (
+              <ActionRow
+                title={primaryToday.name}
+                subtitle={`${primaryToday.exercises.length} exercises - ${
+                  scheduledToday.length > 0 ? 'scheduled today' : 'makeup day'
+                }`}
+                icon={scheduledToday.length > 0 ? 'today-outline' : 'refresh-outline'}
+                onPress={() => router.push(`/workout/${primaryToday.id}`)}
+              />
+            ) : (
+              <ActionRow
+                title="No workout scheduled today"
+                subtitle={activeSplit ? 'Open your split to pick a day.' : 'Import or create a split to start.'}
+                icon="bed-outline"
+                onPress={() =>
+                  activeSplit ? router.push(`/split/${activeSplit.id}`) : router.push('/workout-import')
+                }
+              />
+            )}
+          </View>
+
+          {primaryToday ? (
+            <Button
+              title="Start today's plan"
+              icon="play"
+              className="mt-3"
+              loading={starting}
+              onPress={() => void onStartWorkout(primaryToday)}
+            />
+          ) : null}
+          <View className="mt-3 flex-row gap-2">
+            <Button
+              title={activeSplit ? 'Open split' : 'Import split'}
+              variant="secondary"
+              icon={activeSplit ? 'calendar-outline' : 'document-text-outline'}
+              className="flex-1"
+              onPress={() =>
+                activeSplit ? router.push(`/split/${activeSplit.id}`) : router.push('/workout-import')
+              }
+            />
+            <Button
+              title="All splits"
+              variant="secondary"
+              icon="layers-outline"
+              className="flex-1"
+              onPress={() => router.push('/workouts')}
+            />
+          </View>
+        </Card>
+
+        {otherSplits.length > 0 ? (
+          <>
+            <SectionHeader title="Other splits" subtitle="Switch context without changing your main split." />
+            <Card className="p-2">
+              {otherSplits.slice(0, 4).map((split) => (
+                <ActionRow
+                  key={split.id}
+                  title={split.name}
+                  subtitle={`${split.workouts.length} workout day${
+                    split.workouts.length === 1 ? '' : 's'
+                  }`}
+                  icon="calendar-clear-outline"
+                  onPress={() => router.push(`/split/${split.id}`)}
+                />
+              ))}
+              {otherSplits.length > 4 ? (
+                <Button
+                  title="View all splits"
+                  variant="secondary"
+                  className="mt-2"
+                  onPress={() => router.push('/workouts')}
+                />
+              ) : null}
+            </Card>
+          </>
+        ) : null}
+
+        {shownWorkouts.length > 0 ? (
+          <>
+            <SectionHeader title="Workout days" subtitle="Open any saved day before starting it." />
+            <Card className="p-2">
+              {shownWorkouts.map((workout) => {
+                const splitName = splitNameForWorkout(splits, workout);
+                return (
+                  <ActionRow
+                    key={workout.id}
+                    title={workout.name}
+                    subtitle={`${workout.exercises.length} exercises${
+                      splitName ? ` - ${splitName}` : ''
+                    }`}
+                    meta={scheduleText(workout)}
+                    icon="barbell-outline"
+                    onPress={() => router.push(`/workout/${workout.id}`)}
+                  />
+                );
+              })}
+              {workouts.length > shownWorkouts.length + (primaryToday ? 1 : 0) ? (
+                <Button
+                  title="Browse all workout days"
+                  variant="secondary"
+                  className="mt-2"
+                  onPress={() => router.push('/workouts')}
+                />
+              ) : null}
+            </Card>
+          </>
+        ) : null}
+
+        <SectionHeader title="Start from scratch" subtitle="Pick a stored exercise or log in plain English." />
         <View className="flex-row gap-3">
+          <QuickLink
+            icon="add-circle-outline"
+            title="Any exercise"
+            subtitle="Start a blank session and add from your library."
+            disabled={blankStarting}
+            onPress={() => void startBlankSession()}
+          />
+          <QuickLink
+            icon="chatbubble-ellipses-outline"
+            title="Log sentence"
+            subtitle="Type what you did and let AI structure it."
+            onPress={() => router.push('/log-chat')}
+          />
+        </View>
+
+        <View className="mt-3 flex-row gap-3">
           <QuickLink
             icon="fitness-outline"
             title="Exercise library"
-            subtitle="Form notes, muscles, and equipment."
+            subtitle="Browse movements, muscles, and equipment."
             onPress={() => router.push('/exercises')}
           />
           <QuickLink
@@ -685,83 +387,10 @@ export default function HomeScreen() {
             onPress={() => router.push('/progress')}
           />
         </View>
+
+        <HomeNutritionCard />
+        <HomeProfileCard />
       </ScrollView>
-
-      <Modal visible={aiOpen} animationType="slide" transparent onRequestClose={() => setAiOpen(false)}>
-        <KeyboardAvoidingView
-          className="flex-1 justify-end bg-black/60"
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-          <View className="max-h-[88%] rounded-t-lg border-t border-iron-700 bg-iron-950">
-            <ScrollView
-              className="px-4 pt-4"
-              contentContainerClassName="pb-8"
-              keyboardShouldPersistTaps="handled">
-              <View className="mb-3 flex-row items-center justify-between">
-                <Text variant="heading">Edit with AI</Text>
-                <Pressable
-                  onPress={() => setAiOpen(false)}
-                  disabled={aiSaving}
-                  hitSlop={8}
-                  accessibilityRole="button"
-                  accessibilityLabel="Close AI editor"
-                  className="h-9 w-9 items-center justify-center rounded-lg bg-iron-900 active:opacity-70">
-                  <Ionicons name="close" size={20} color="#94a3b8" />
-                </Pressable>
-              </View>
-
-              <Text variant="muted" className="mb-3">
-                Tell AI how to change this workout. It will save the updated workout.
-              </Text>
-
-              <TextInput
-                value={aiPrompt}
-                onChangeText={setAiPrompt}
-                multiline
-                editable={!aiSaving}
-                placeholder="Example: make this lower volume and swap barbell bench for dumbbells"
-                placeholderTextColor="#64748b"
-                className="min-h-[120px] rounded-lg border border-iron-700 bg-iron-900 px-4 py-3 text-base text-iron-50"
-                style={{ textAlignVertical: 'top' }}
-              />
-
-              {aiError ? (
-                <Text className="mt-3 text-sm font-medium text-red-400">{aiError}</Text>
-              ) : null}
-
-              {aiReply ? (
-                <View className="mt-4 flex-row rounded-lg border border-brand/40 bg-brand/10 p-3">
-                  <Ionicons name="sparkles" size={16} color="#818cf8" />
-                  <View className="ml-2 flex-1">
-                    <Text variant="caption" className="font-bold text-brand">
-                      Coach
-                    </Text>
-                    <Text variant="body" className="mt-0.5 text-iron-100">
-                      {aiReply}
-                    </Text>
-                  </View>
-                </View>
-              ) : null}
-
-              <Button
-                title={aiReply ? 'Done' : 'Apply AI edit'}
-                icon={aiReply ? 'checkmark' : 'sparkles'}
-                size="lg"
-                className="mt-4"
-                loading={aiSaving}
-                disabled={!aiReply && (aiPrompt.trim() === '' || !selectedWorkout)}
-                onPress={() => {
-                  if (aiReply) {
-                    setAiReply(null);
-                    setAiOpen(false);
-                    return;
-                  }
-                  if (selectedWorkout) void onAiEdit(selectedWorkout);
-                }}
-              />
-            </ScrollView>
-          </View>
-        </KeyboardAvoidingView>
-      </Modal>
     </Screen>
   );
 }
