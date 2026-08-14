@@ -38,6 +38,8 @@ api/app/
   security.py    # bcrypt (passlib) + JWT (PyJWT); get_current_user dependency
   models.py      # ORM models (single module)
   schemas.py     # Pydantic request/response DTOs
+  progression.py # "top of the rep range on every set" — pure, derived, unstored
+  idempotency.py # remembers a write's answer so the offline queue can replay it
   routes/        # one APIRouter per resource — /splits (+ /splits/today),
                  #   /workouts, /sessions, /exercises, /metrics, /ai, ...
   ai/            # domain schemas, prompts, provider selection, companion wiring
@@ -142,8 +144,28 @@ falling back. Keys are write-only — accepted by PATCH `/settings`, never retur
   homelab runs local Ollama at zero marginal cost; Claude is opt-in per user.
 - **Snapshot targets onto sessions** — a logged session copies the plan workout's
   targets, so history is immutable intent, decoupled from a mutable plan.
-- **Offline-first set logging** — the client queues sets locally and auto-syncs
-  (`frontend/src/lib/offline.ts`); the backend stays a plain REST API.
+- **Offline-first writes, made replay-safe.** The client queues writes locally
+  and auto-syncs (`frontend/src/lib/offline.ts`); the backend stays a plain REST
+  API. Sets are queued unconditionally (they're what you can't lose); finishing,
+  swapping and add/remove try the network first and fall back only on a real
+  connectivity failure (`ApiError` status 0), never on a 4xx.
+  A retry is not always a first attempt — the server may have committed before
+  the response was lost — so replayable writes carry an `Idempotency-Key` and
+  `app/idempotency.py` returns the first response instead of doing the work
+  twice. Without it a replayed start trips the single-active-session guard and
+  closes the workout being logged. Only successes are remembered: a rejected
+  write has to stay retryable.
+- **Derive, don't store, what the sets already say.** Personal records
+  (`/stats/summary`) and the progression nudge (`cleared_rep_range`, a Pydantic
+  `computed_field` on `SessionExerciseOut`) are computed at serialize time. A
+  computed field costs no route changes and can't drift from the sets it
+  describes — the trade is that it reflects the *server's* copy, so a set logged
+  offline moves the nudge only once the queue drains.
+- **A user's data never edits the shared catalog.** Imports create custom
+  exercises rather than rewriting global rows, and an uploaded exercise image is
+  allowed only on an exercise you own. `GET /auth/me/export` mirrors what
+  `DELETE /auth/me` sweeps, so the pair is symmetric: anything the account owns,
+  you can take with you before you delete it.
 - **companion over SSH** — the private dependency is fetched with an SSH deploy
   key across local/CI/Docker (see HOWTO), not an HTTPS token.
 - **Times are naive UTC on the server; calendar days belong to the client.** No
