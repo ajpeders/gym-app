@@ -16,7 +16,7 @@ import type { CompanionEvent, CompanionMessage } from '@/api/client';
 import { useAiStatus } from '@/hooks/use-ai-status';
 import { useSettings } from '@/state/settings';
 import { explainCoachError } from '@/lib/ai-errors';
-import { Screen, ScreenHeader } from '@/components/ui/Screen';
+import { Screen } from '@/components/ui/Screen';
 import { Text } from '@/components/ui/Text';
 import { Button } from '@/components/ui/Button';
 import { Loading } from '@/components/ui/Feedback';
@@ -70,6 +70,32 @@ function describeWrite(name: string): string {
   return `${verb} ${humanize(name)}`;
 }
 
+function mergeStreamText(previous: string, incoming: string): string {
+  if (!previous) return incoming;
+  if (incoming.startsWith(previous)) return incoming;
+  return `${previous}${incoming}`;
+}
+
+function argLabel(key: string): string {
+  return key
+    .replace(/_id$/g, '')
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+function argValue(value: unknown): string {
+  if (value == null || value === '') return '—';
+  if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+    return String(value);
+  }
+  try {
+    const text = JSON.stringify(value);
+    return text.length > 90 ? `${text.slice(0, 87)}…` : text;
+  } catch {
+    return String(value);
+  }
+}
+
 const markdownStyles = {
   body: { color: '#f8fafc', fontSize: 16, lineHeight: 23 },
   paragraph: { marginTop: 0, marginBottom: 8 },
@@ -92,8 +118,8 @@ const markdownStyles = {
 
 function UserBubble({ content }: { content: string }) {
   return (
-    <View className="mb-3 flex-row justify-end">
-      <View className="max-w-[85%] rounded-2xl rounded-br-md border border-brand/40 bg-brand/20 px-3.5 py-2.5">
+    <View className="mb-4 flex-row justify-end">
+      <View className="max-w-[84%] rounded-2xl rounded-br-md border border-brand/40 bg-brand px-3.5 py-2.5 shadow-black/30">
         <Text variant="body" className="text-iron-50">
           {content}
         </Text>
@@ -104,10 +130,13 @@ function UserBubble({ content }: { content: string }) {
 
 function AssistantBubble({ content, error }: { content: string; error?: boolean }) {
   return (
-    <View className="mb-3 flex-row justify-start">
+    <View className="mb-4 flex-row justify-start">
+      <View className="mr-2 mt-1 h-8 w-8 items-center justify-center rounded-full border border-brand/30 bg-brand/10">
+        <Ionicons name={error ? 'warning-outline' : 'sparkles'} size={15} color={error ? '#f87171' : '#818cf8'} />
+      </View>
       <View
-        className={`max-w-[88%] rounded-2xl rounded-bl-md border px-3.5 py-2.5 ${
-          error ? 'border-red-500/40 bg-red-500/10' : 'border-iron-800 bg-iron-900/95'
+        className={`max-w-[86%] rounded-2xl rounded-tl-md border px-3.5 py-2.5 ${
+          error ? 'border-red-500/40 bg-red-500/10' : 'border-iron-800 bg-iron-900'
         }`}>
         {error ? (
           <Text variant="body" className="text-red-300">
@@ -124,8 +153,8 @@ function AssistantBubble({ content, error }: { content: string; error?: boolean 
 /** Subtle centered line shown while the coach reads/uses a tool. */
 function ActivityChip({ label }: { label: string }) {
   return (
-    <View className="mb-2 flex-row items-center justify-center">
-      <View className="flex-row items-center rounded-full border border-iron-800 bg-iron-900/70 px-3 py-1">
+    <View className="mb-3 ml-10 flex-row items-center">
+      <View className="flex-row items-center rounded-full border border-iron-800 bg-iron-900/70 px-3 py-1.5">
         <Ionicons name="construct-outline" size={12} color="#94a3b8" />
         <Text variant="caption" className="ml-1.5 text-iron-400">
           {label}
@@ -147,42 +176,57 @@ function ConfirmCard({
   onApprove: () => void;
   onSkip: () => void;
 }) {
-  const args = Object.entries(item.args).filter(([, v]) => v !== null && v !== '');
+  const args = Object.entries(item.args)
+    .filter(([, v]) => v !== null && v !== '')
+    .slice(0, 6);
   return (
-    <View className="mb-3 flex-row justify-start">
-      <View className="max-w-[90%] rounded-2xl rounded-bl-md border border-brand/40 bg-brand/10 px-3.5 py-3">
-        <View className="mb-1.5 flex-row items-center">
-          <Ionicons name="alert-circle-outline" size={16} color="#818cf8" />
-          <Text variant="body" className="ml-1.5 font-semibold text-iron-50">
-            Confirm: {humanize(item.name)}
+    <View className="mb-4 flex-row justify-start">
+      <View className="mr-2 mt-1 h-8 w-8 items-center justify-center rounded-full border border-brand/30 bg-brand/10">
+        <Ionicons name="shield-checkmark-outline" size={15} color="#818cf8" />
+      </View>
+      <View className="max-w-[86%] rounded-2xl rounded-tl-md border border-brand/40 bg-brand/10 px-3.5 py-3">
+        <View className="mb-2">
+          <Text variant="caption" className="font-black uppercase tracking-[2px] text-brand">
+            Approval needed
+          </Text>
+          <Text variant="subheading" className="mt-1 text-iron-50">
+            {humanize(item.name)}
+          </Text>
+          <Text variant="caption" className="mt-1 text-iron-300">
+            The coach wants to write this change. Review it before it saves.
           </Text>
         </View>
         {args.length > 0 && (
-          <View className="mb-2.5">
+          <View className="mb-3 gap-1.5">
             {args.map(([k, v]) => (
-              <Text key={k} variant="caption" className="text-iron-300">
-                {k}: {String(v)}
-              </Text>
+              <View key={k} className="rounded-lg border border-iron-800 bg-iron-950/80 px-3 py-2">
+                <Text variant="caption" className="font-semibold text-iron-400">
+                  {argLabel(k)}
+                </Text>
+                <Text variant="caption" className="mt-0.5 text-iron-100" numberOfLines={2}>
+                  {argValue(v)}
+                </Text>
+              </View>
             ))}
           </View>
         )}
-        <View className="flex-row">
+        <View className="flex-row gap-2">
           <Pressable
             disabled={busy}
             onPress={onApprove}
             accessibilityRole="button"
-            className={`mr-2 rounded-lg px-4 py-2 ${busy ? 'bg-iron-800 opacity-50' : 'bg-brand active:bg-brand-600'}`}>
+            className={`flex-1 rounded-lg px-4 py-2.5 ${busy ? 'bg-iron-800 opacity-50' : 'bg-brand active:bg-brand-600'}`}>
             <Text variant="caption" className="font-semibold text-iron-950">
-              Do it
+              Approve
             </Text>
           </Pressable>
           <Pressable
             disabled={busy}
             onPress={onSkip}
             accessibilityRole="button"
-            className="rounded-lg border border-iron-700 px-4 py-2 active:opacity-70">
-            <Text variant="caption" className="text-iron-200">
-              Skip
+            className="flex-1 rounded-lg border border-iron-700 px-4 py-2.5 active:opacity-70">
+            <Text variant="caption" className="text-center text-iron-200">
+              Not now
             </Text>
           </Pressable>
         </View>
@@ -193,8 +237,11 @@ function ConfirmCard({
 
 function TypingBubble() {
   return (
-    <View className="mb-3 flex-row justify-start">
-      <View className="flex-row items-center rounded-2xl rounded-bl-md border border-iron-800 bg-iron-900/95 px-3.5 py-3">
+    <View className="mb-4 flex-row justify-start">
+      <View className="mr-2 mt-1 h-8 w-8 items-center justify-center rounded-full border border-brand/30 bg-brand/10">
+        <Ionicons name="sparkles" size={15} color="#818cf8" />
+      </View>
+      <View className="flex-row items-center rounded-2xl rounded-tl-md border border-iron-800 bg-iron-900 px-3.5 py-3">
         <Ionicons name="ellipsis-horizontal" size={18} color="#818cf8" />
         <Text variant="muted" className="ml-2">
           Working…
@@ -232,14 +279,19 @@ function SpotterDisclaimer() {
 
 function EmptyIntro({ onPick }: { onPick: (q: string) => void }) {
   return (
-    <View>
-      <View className="mb-5 rounded-lg border border-brand/30 bg-brand/10 p-5">
-        <View className="mb-4 h-14 w-14 items-center justify-center rounded-2xl border border-brand/30 bg-brand/15">
-          <Ionicons name="sparkles" size={25} color="#818cf8" />
+    <View className="pt-2">
+      <View className="mb-5 rounded-2xl border border-brand/30 bg-brand/10 p-5">
+        <View className="mb-4 flex-row items-center">
+          <View className="h-14 w-14 items-center justify-center rounded-2xl border border-brand/30 bg-brand/15">
+            <Ionicons name="sparkles" size={25} color="#818cf8" />
+          </View>
+          <View className="ml-3 flex-1">
+            <Text variant="eyebrow">AI spotter</Text>
+            <Text variant="heading" className="mt-1">
+              What do you need doing?
+            </Text>
+          </View>
         </View>
-        <Text variant="heading">
-          What do you need doing?
-        </Text>
         <Text variant="muted" className="mt-1">
           Log sets, run your session, or look up what you've already lifted — without
           digging through forms.
@@ -254,7 +306,7 @@ function EmptyIntro({ onPick }: { onPick: (q: string) => void }) {
             key={s}
             onPress={() => onPick(s)}
             accessibilityRole="button"
-            className="flex-row items-center rounded-lg border border-iron-800 bg-iron-900/90 px-4 py-3.5 active:opacity-70">
+            className="flex-row items-center rounded-xl border border-iron-800 bg-iron-900/90 px-4 py-3.5 active:bg-brand/10">
             <View className="mr-3 h-9 w-9 items-center justify-center rounded-xl bg-iron-800">
               <Ionicons name="arrow-up-outline" size={16} color="#818cf8" style={{ transform: [{ rotate: '45deg' }] }} />
             </View>
@@ -262,6 +314,40 @@ function EmptyIntro({ onPick }: { onPick: (q: string) => void }) {
             <Ionicons name="chevron-forward" size={16} color="#475569" />
           </Pressable>
         ))}
+      </View>
+    </View>
+  );
+}
+
+function CoachTopBar({
+  model,
+  onSettings,
+}: {
+  model: string;
+  onSettings: () => void;
+}) {
+  return (
+    <View className="border-b border-iron-800 bg-iron-950/95 px-4 pb-3 pt-2">
+      <View className="flex-row items-center">
+        <View className="mr-3 h-10 w-10 items-center justify-center rounded-2xl border border-brand/30 bg-brand/10">
+          <Ionicons name="sparkles" size={18} color="#818cf8" />
+        </View>
+        <View className="min-w-0 flex-1">
+          <Text variant="heading" numberOfLines={1}>
+            Spotter
+          </Text>
+          <Text variant="caption" className="mt-0.5 text-iron-400" numberOfLines={1}>
+            {model || 'AI model'} · tools require approval
+          </Text>
+        </View>
+        <Pressable
+          onPress={onSettings}
+          accessibilityRole="button"
+          accessibilityLabel="Open coach settings"
+          hitSlop={8}
+          className="h-10 w-10 items-center justify-center rounded-full border border-iron-700 bg-iron-900 active:bg-iron-800">
+          <Ionicons name="settings-outline" size={18} color="#94a3b8" />
+        </Pressable>
       </View>
     </View>
   );
@@ -302,14 +388,27 @@ export default function CoachScreen() {
     async (messages: CompanionMessage[], approvals?: Record<string, boolean>) => {
       setSending(true);
       let assistantText = '';
+      let assistantId: string | null = null;
       try {
         await api.companionChat(
           messages,
           (ev: CompanionEvent) => {
             switch (ev.type) {
               case 'text':
-                assistantText = ev.text;
-                push({ id: nextId(), kind: 'assistant', content: ev.text });
+                assistantText = mergeStreamText(assistantText, ev.text);
+                if (!assistantId) {
+                  assistantId = nextId();
+                  push({ id: assistantId, kind: 'assistant', content: assistantText });
+                } else {
+                  const id = assistantId;
+                  setItems((prev) =>
+                    prev.map((item) =>
+                      item.id === id && item.kind === 'assistant'
+                        ? { ...item, content: assistantText }
+                        : item,
+                    ),
+                  );
+                }
                 break;
               case 'tool_call':
                 push({
@@ -329,6 +428,13 @@ export default function CoachScreen() {
                   name: ev.name,
                   args: (ev.arguments as Record<string, unknown>) ?? {},
                   messages: ev.messages,
+                });
+                break;
+              case 'tool_result':
+                push({
+                  id: nextId(),
+                  kind: 'activity',
+                  label: `Finished ${humanize(ev.name)}.`,
                 });
                 break;
               case 'error':
@@ -360,7 +466,7 @@ export default function CoachScreen() {
         setSending(false);
       }
     },
-    [push],
+    [push, activeModel],
   );
 
   const send = useCallback(
@@ -432,7 +538,8 @@ export default function CoachScreen() {
   const canSend = input.trim().length > 0 && !sending && !hasConfirm;
 
   return (
-    <Screen scroll={false} padded={false} edges={['left', 'right']}>
+    <Screen scroll={false} padded={false}>
+      <CoachTopBar model={activeModel ?? 'AI model'} onSettings={() => router.push('/settings')} />
       <KeyboardAvoidingView
         className="flex-1"
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -445,11 +552,6 @@ export default function CoachScreen() {
           onContentSizeChange={scrollToEnd}>
           {items.length === 0 && !sending ? (
             <>
-              <ScreenHeader
-                eyebrow="Hands, not opinions"
-                title="Spotter"
-                subtitle="Ask it to log sets, run your session, or look up what you lifted."
-              />
               <SpotterDisclaimer />
               <EmptyIntro onPick={setInput} />
             </>
@@ -481,11 +583,19 @@ export default function CoachScreen() {
         </ScrollView>
 
         <View className="border-t border-iron-800 bg-iron-950/95 px-3 pb-6 pt-2.5">
+          {hasConfirm ? (
+            <View className="mb-2 flex-row items-center rounded-lg border border-brand/25 bg-brand/10 px-3 py-2">
+              <Ionicons name="lock-closed-outline" size={13} color="#818cf8" />
+              <Text variant="caption" className="ml-2 flex-1 text-iron-300">
+                Approve or dismiss the pending action before sending another message.
+              </Text>
+            </View>
+          ) : null}
           <View className="flex-row items-end">
             <TextInput
               value={input}
               onChangeText={setInput}
-              placeholder={hasConfirm ? 'Respond to the action above…' : 'Ask your coach'}
+              placeholder={hasConfirm ? 'Respond to the action above…' : 'Ask your spotter'}
               placeholderTextColor="#64748b"
               selectionColor="#818cf8"
               multiline
