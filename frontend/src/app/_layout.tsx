@@ -12,6 +12,11 @@ import { SettingsProvider } from '@/state/settings';
 import { ActiveWorkoutProvider } from '@/state/active-workout';
 import { Logo } from '@/components/ui/Logo';
 import { HeaderBack } from '@/components/ui/HeaderBack';
+import { installGlobalErrorReporting } from '@/lib/report-error';
+
+// Before anything renders: a crash during startup is still a crash worth
+// knowing about, and this is the only place guaranteed to run first.
+installGlobalErrorReporting();
 
 function Splash() {
   return (

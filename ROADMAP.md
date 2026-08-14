@@ -285,7 +285,16 @@ Found while actually training with the app. Ordered by how much they hurt.
         be silently left behind. The shared catalog is excluded (828 rows nobody
         owns is noise) and nothing secret leaves — no password hash is on any
         `Out` schema and `SettingsOut` omits the Claude key. Settings → Your data.
-  - [ ] **Error reporting** — nothing exists anywhere today.
+  - [x] **Error reporting** *(2026-08-13)* — `POST /api/errors` takes a client
+        crash (message, stack, context, platform, version) and writes it to a
+        `gym.client` logger, next to the API's own unhandled exceptions, so
+        there's one place to look and no new service to run in the homelab.
+        `lib/report-error.ts` installs a global RN error handler at startup that
+        chains the previous one (so the redbox and fatal handling survive) and
+        never throws — the API being down is frequently *why* it crashed.
+        Reporting works signed out, because the login screen can crash too.
+        A self-hosted Sentry/GlitchTip DSN plugs in behind that one function if
+        grouping and stack symbolication are ever wanted.
   - [ ] **Accounts / onboarding** — first-run flow for someone who isn't Alex.
   - [ ] **EAS build + distribution** — needed anyway for Siri/App Intents and
         on-device AI.
