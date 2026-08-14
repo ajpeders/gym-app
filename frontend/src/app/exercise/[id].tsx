@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react';
 import { Dimensions, ScrollView, View } from 'react-native';
 import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
+import * as ImagePicker from 'expo-image-picker';
 
 import { api } from '@/api/client';
 import type { Exercise } from '@/api/types';
@@ -23,6 +24,8 @@ export default function ExerciseDetailScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [imageError, setImageError] = useState<string | null>(null);
 
   const fetch = useCallback(async () => {
     if (!id) return;
@@ -42,6 +45,47 @@ export default function ExerciseDetailScreen() {
       void fetch();
     }, [fetch]),
   );
+
+  async function onPickImage() {
+    if (!exercise) return;
+    setImageError(null);
+    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!perm.granted) {
+      setImageError('Allow photo access to add an image.');
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      quality: 0.7,
+      mediaTypes: ['images'],
+    });
+    if (result.canceled || !result.assets?.[0]) return;
+    const asset = result.assets[0];
+
+    setUploading(true);
+    try {
+      setExercise(
+        await api.uploadExerciseImage(exercise.id, {
+          uri: asset.uri,
+          mimeType: asset.mimeType,
+          fileName: asset.fileName ?? undefined,
+        }),
+      );
+    } catch (err) {
+      setImageError(err instanceof Error ? err.message : 'Upload failed');
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  async function onRemoveImage() {
+    if (!exercise) return;
+    setImageError(null);
+    try {
+      setExercise(await api.deleteExerciseImage(exercise.id));
+    } catch (err) {
+      setImageError(err instanceof Error ? err.message : 'Could not remove the image');
+    }
+  }
 
   async function onAddToWorkout() {
     if (!exercise) return;
@@ -90,6 +134,28 @@ export default function ExerciseDetailScreen() {
                 </Text>
               ) : null}
             </View>
+          ) : null}
+
+          {/* Only your own exercises — the shared catalog stays as imported.
+              Most likely to be blank: movements the importer created for you. */}
+          {exercise.is_custom ? (
+            <View className="mb-3 flex-row gap-2">
+              <Button
+                title={exercise.images?.length ? 'Replace photo' : 'Add a photo'}
+                variant="secondary"
+                onPress={onPickImage}
+                loading={uploading}
+              />
+              {exercise.images?.length ? (
+                <Button title="Remove" variant="ghost" onPress={onRemoveImage} />
+              ) : null}
+            </View>
+          ) : null}
+
+          {imageError ? (
+            <Text variant="caption" className="mb-3 text-red-400">
+              {imageError}
+            </Text>
           ) : null}
 
           {exercise.primary_muscles?.length ? (

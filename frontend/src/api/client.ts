@@ -401,17 +401,29 @@ export interface ProgressPhotoUpload {
   notes?: string;
 }
 
-// Multipart upload of a progress photo. Goes outside `request` because it sends
-// FormData (a local file reference), not JSON — the platform sets the multipart
-// boundary Content-Type itself.
-async function uploadProgressPhoto(input: ProgressPhotoUpload): Promise<ProgressPhoto> {
+/** A local file picked on the device, in the {uri,name,type} shape RN FormData wants. */
+interface PickedFile {
+  uri: string;
+  // expo-image-picker hands back `null` for an asset it can't name or type.
+  mimeType?: string | null;
+  fileName?: string | null;
+}
+
+// Multipart POST. Goes outside `request` because it sends FormData (a local
+// file reference), not JSON — the platform sets the multipart boundary
+// Content-Type itself, so we must not set it here.
+async function postFile<T>(
+  path: string,
+  file: PickedFile,
+  fields: Record<string, string | undefined> = {},
+): Promise<T> {
   const form = new FormData();
-  const mime = input.mimeType || 'image/jpeg';
-  const name = input.fileName || `photo.${mime.split('/')[1] ?? 'jpg'}`;
-  // RN FormData accepts this {uri,name,type} shape for a file part.
-  form.append('file', { uri: input.uri, name, type: mime } as unknown as Blob);
-  if (input.takenAt) form.append('taken_at', input.takenAt);
-  if (input.notes) form.append('notes', input.notes);
+  const mime = file.mimeType || 'image/jpeg';
+  const name = file.fileName || `upload.${mime.split('/')[1] ?? 'jpg'}`;
+  form.append('file', { uri: file.uri, name, type: mime } as unknown as Blob);
+  for (const [key, value] of Object.entries(fields)) {
+    if (value) form.append(key, value);
+  }
 
   const headers: Record<string, string> = { Accept: 'application/json' };
   const token = await getItem(TOKEN_KEY);
@@ -419,7 +431,7 @@ async function uploadProgressPhoto(input: ProgressPhotoUpload): Promise<Progress
 
   let res: Response;
   try {
-    res = await fetch(`${API_BASE}/progress-photos`, { method: 'POST', headers, body: form });
+    res = await fetch(`${API_BASE}${path}`, { method: 'POST', headers, body: form });
   } catch (err) {
     throw new ApiError(0, `Network error: ${(err as Error).message}`);
   }
@@ -432,7 +444,14 @@ async function uploadProgressPhoto(input: ProgressPhotoUpload): Promise<Progress
         : `Upload failed (${res.status})`;
     throw new ApiError(res.status, detail, parsed);
   }
-  return parsed as ProgressPhoto;
+  return parsed as T;
+}
+
+function uploadProgressPhoto(input: ProgressPhotoUpload): Promise<ProgressPhoto> {
+  return postFile<ProgressPhoto>('/progress-photos', input, {
+    taken_at: input.takenAt,
+    notes: input.notes,
+  });
 }
 
 // Source for <Image> that carries the bearer token (the image endpoint is
@@ -570,6 +589,11 @@ export const api = {
     request<Exercise>(`/exercises/${id}`, { method: 'PATCH', body: input }),
   deleteExercise: (id: string) =>
     request<void>(`/exercises/${id}`, { method: 'DELETE' }),
+  /** Give one of your own exercises a picture. Replaces any previous one. */
+  uploadExerciseImage: (id: string, file: PickedFile) =>
+    postFile<Exercise>(`/exercises/${id}/image`, file),
+  deleteExerciseImage: (id: string) =>
+    request<Exercise>(`/exercises/${id}/image`, { method: 'DELETE' }),
 
   // ---- splits (weekly plans) ----
   splits: () => request<Split[]>('/splits'),

@@ -243,10 +243,18 @@ Found while actually training with the app. Ordered by how much they hurt.
       sets and a set taken to failure don't count against you. Rendered by
       `components/workout/ProgressionNudge.tsx`. Known edge: it is computed on
       the server copy, so a set logged offline surfaces the nudge on sync.
-- [ ] **Exercise images** — ~44% of the wger catalog has no image (free-exercise-db
-      backfill got coverage to ~56%). Options: let users upload/replace an image
-      per exercise (also fixes "that Plank photo looks wrong"), or license real
-      demo GIFs (Gym Visual — paid; the only source with true animated GIFs).
+- [~] **Exercise images** — 338 of 828 catalog rows still have no image (40%).
+      **Shipped 2026-08-13:** you can give any exercise *you own* a photo —
+      `POST/DELETE /exercises/{id}/image`, picker on the exercise detail screen.
+      Scoped to your own exercises on purpose: one account must not repaint the
+      shared catalog, the same rule the import path follows. It covers the case
+      that bites most, since the importer turns every unmatched movement into a
+      custom exercise with no picture. Files land in the existing
+      `exercise-media` tree so every `<Image>` renders them unchanged.
+      **Still open:** the 40% gap on *global* catalog rows, and "that Plank photo
+      looks wrong". Needs either a per-user override table (upload against a
+      global exercise) or licensed demo GIFs (Gym Visual — paid; the only source
+      with true animated GIFs).
 - [ ] **Offline beyond sets** — logged sets are queued and auto-sync, but
       starting/finishing a workout and every other write still needs the
       network. Extend the queue if mid-session connectivity proves flaky.
