@@ -361,6 +361,40 @@ Found while actually training with the app. Ordered by how much they hurt.
 - [ ] **Lavish AI** (Tier-1 moat): regenerate in-session UI / re-plan per session without rationing — free on local compute
 
 ### Phase 5 — Polish & power features
+- [~] **Nutrition logging** — *built but never roadmap'd until now.*
+      `nutrition_entry` (label, calories, protein, `eaten_at`), full CRUD at
+      `/api/nutrition`, an AI parser at `/ai/parse-nutrition`, a Nutrition
+      screen and a Home card. Entries are timestamped, not aggregated per day —
+      the client groups by *local* calendar day, since grouping server-side
+      would quietly impose UTC boundaries (see the naive-UTC key decision).
+- [ ] **Food database with default calories / protein** — today every entry is
+      typed from scratch: a free-text label and two numbers you have to know or
+      guess. Give it a searchable food library so "chicken breast, 200g" fills
+      itself in.
+      Worth deciding up front:
+      - **Where the data comes from.** USDA FoodData Central is public domain
+        and the obvious seed (same play as the exercise catalog: mirror it into
+        our own storage, no runtime dependency). Open Food Facts adds branded
+        and barcoded items under ODbL — check attribution terms first.
+      - **Portions are the hard part**, not the numbers. Per-100g is what the
+        data ships as; "a chicken breast", "a scoop", "a slice" is how people
+        eat. Needs a serving/unit model, not just a calories field.
+      - **Your foods beat the database.** Frequently logged and custom items
+        (your protein powder, your usual lunch) should rank above the generic
+        catalog, and a custom food is user-owned — never an edit to the shared
+        library, same rule as custom exercises.
+      - **Feeds the AI too.** `/ai/parse-nutrition` currently invents numbers
+        from the model's own knowledge; resolving parsed foods against a real
+        database makes "chicken and rice" a lookup instead of a guess — the
+        same matcher problem the exercise catalog already solved.
+- [ ] **Coach chat UI redesign** — the chat works but looks like a debug view.
+      Wants a deliberate pass: message bubbles and spacing, how tool calls and
+      the write-confirm gate are presented (currently raw-ish cards mid-stream),
+      streaming/typing affordance, error states now that they carry real
+      guidance, empty state, and getting the composer out of the way of the
+      keyboard. *Specifics TBD — worth Alex listing what actually annoys him
+      before anyone restyles it, since "looks bad" and "is awkward to use" want
+      different fixes.* Related: the broader **UI/UX pass** in Launch prep.
 - [ ] PRs, achievements, streaks
 - [~] Offline-first sync (native): a persisted set-log queue with retries survives restarts/dead zones (`lib/offline.ts`); **conflict resolution not yet built**
 - [ ] Push notifications (rest done, workout reminders) via ntfy/web-push *(no `expo-notifications` yet)*
