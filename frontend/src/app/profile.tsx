@@ -255,7 +255,7 @@ export default function ProfileScreen() {
       </View>
 
       <Text variant="muted" className="mb-5">
-        Your coach reads and writes this. Edit it by hand, or just talk to your coach.
+        Your spotter reads and writes this. Edit it by hand, or just talk to it.
       </Text>
 
       <Text variant="label" className="mb-2">

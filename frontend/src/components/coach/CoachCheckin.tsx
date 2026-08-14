@@ -38,7 +38,7 @@ export function CoachCheckin({ onUpdated, className }: Props) {
       if (e instanceof ApiError && e.status === 502) {
         setError('Coach unavailable — check Settings.');
       } else {
-        setError("Couldn't reach your coach. Try again.");
+        setError("Couldn't reach your spotter. Try again.");
       }
     } finally {
       setBusy(false);
@@ -55,7 +55,7 @@ export function CoachCheckin({ onUpdated, className }: Props) {
         className="flex-row items-center justify-between active:opacity-70">
         <View className="flex-1 pr-2">
           <Text variant="subheading" className="text-brand">
-            🏋️ Check in with your coach
+            🏋️ Check in with your spotter
           </Text>
           <Text variant="caption" className="mt-0.5">
             Tell it how you feel — it updates your athlete profile.
@@ -106,7 +106,7 @@ export function CoachCheckin({ onUpdated, className }: Props) {
 
         {busy ? (
           <Text variant="caption" className="mt-2 text-center">
-            Your coach is thinking… this can take a few seconds.
+            Your spotter is thinking… this can take a few seconds.
           </Text>
         ) : null}
 
@@ -115,7 +115,7 @@ export function CoachCheckin({ onUpdated, className }: Props) {
           accessibilityRole="button"
           className="mt-3 flex-row items-center justify-center active:opacity-60">
           <Text variant="label" className="text-brand">
-            💬 Ask your coach ›
+            💬 Ask your spotter ›
           </Text>
         </Pressable>
       </View>

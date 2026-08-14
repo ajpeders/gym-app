@@ -78,7 +78,7 @@ export function HomeProfileCard() {
         <View className="flex-1">
           <Text variant="heading">Injuries & limitations</Text>
           <Text variant="caption" className="mt-0.5 text-iron-300">
-            The coach works around these. Tap for goals, equipment & more.
+            The spotter works around these. Tap for goals, equipment & more.
           </Text>
         </View>
         <Ionicons name="chevron-forward" size={18} color="#475569" />

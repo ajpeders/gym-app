@@ -20,8 +20,8 @@ export function explainCoachError(raw: string, model: string | null | undefined)
   const isBadRequest = /HTTP 400|status 400/i.test(raw);
   if (isBadRequest && model && !modelSupportsTools(model)) {
     return (
-      `"${model}" can't be used for the coach — it doesn't support tool calling, ` +
-      `which the coach needs to read and log your training. ` +
+      `"${model}" can't be used for the spotter — it doesn't support tool calling, ` +
+      `which it needs to read and log your training. ` +
       `Pick a model that does (Qwen or Llama) in Settings → AI Provider. ` +
       `It still works fine for parsing workout notes.`
     );

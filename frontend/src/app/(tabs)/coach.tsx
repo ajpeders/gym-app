@@ -21,10 +21,13 @@ import { Text } from '@/components/ui/Text';
 import { Button } from '@/components/ui/Button';
 import { Loading } from '@/components/ui/Feedback';
 
+// Only things it can actually do: act on the log, or read it back. "What
+// should I train today?" used to be the first suggestion, which invited exactly
+// the programming advice the spotter is no longer allowed to give.
 const SUGGESTIONS = [
-  'What should I train today?',
   'Log 3x5 squats at 100kg',
-  'How has my bench been trending?',
+  'What did I bench last time?',
+  "Start today's workout",
 ];
 
 let idSeq = 0;
@@ -180,7 +183,33 @@ function TypingBubble() {
       <View className="flex-row items-center rounded-2xl rounded-bl-md border border-iron-800 bg-iron-900/95 px-3.5 py-3">
         <Ionicons name="ellipsis-horizontal" size={18} color="#818cf8" />
         <Text variant="muted" className="ml-2">
-          Coaching…
+          Working…
+        </Text>
+      </View>
+    </View>
+  );
+}
+
+/**
+ * Said once, where someone is about to ask software about their training.
+ *
+ * The spotter runs the app for you; it is deliberately not allowed to program
+ * or advise (see coach_system_prompt). It also runs on whatever model you point
+ * it at, which may be a small local one — so the honest framing is that
+ * anything resembling training advice should come from your own reading and
+ * from people who actually know, not from this.
+ */
+function SpotterDisclaimer() {
+  return (
+    <View className="mb-4 rounded-lg border border-iron-800 bg-iron-900/60 px-3 py-2.5">
+      <View className="flex-row items-start">
+        <Ionicons name="information-circle-outline" size={15} color="#94a3b8" />
+        <Text variant="caption" className="ml-2 flex-1 text-iron-400">
+          This runs your log — it doesn’t write your program. It won’t tell you
+          what to train, and anything it says comes from your own data or whatever
+          model you’ve pointed it at. For how to actually train, do your own
+          research and lean on experienced people. Not medical advice; see a
+          professional for pain or injury.
         </Text>
       </View>
     </View>
@@ -195,10 +224,11 @@ function EmptyIntro({ onPick }: { onPick: (q: string) => void }) {
           <Ionicons name="sparkles" size={25} color="#818cf8" />
         </View>
         <Text variant="heading">
-          What can I help with?
+          What do you need doing?
         </Text>
         <Text variant="muted" className="mt-1">
-          Ask about your training, review progress, or log a set without digging through forms.
+          Log sets, run your session, or look up what you've already lifted — without
+          digging through forms.
         </Text>
       </View>
       <Text variant="eyebrow" className="mb-2">
@@ -369,7 +399,7 @@ export default function CoachScreen() {
             <Ionicons name="sparkles" size={28} color="#818cf8" />
           </View>
           <Text variant="heading" className="text-center">
-            Set up your AI to chat with your coach
+            Set up your AI to use the spotter
           </Text>
           <Text variant="muted" className="mt-2 text-center">
             Add your Ollama server or Claude key in Settings, then come back.
@@ -402,10 +432,11 @@ export default function CoachScreen() {
           {items.length === 0 && !sending ? (
             <>
               <ScreenHeader
-                eyebrow="AI training partner"
-                title="Coach"
-                subtitle="Advice grounded in your splits, history, goals, and limitations."
+                eyebrow="Hands, not opinions"
+                title="Spotter"
+                subtitle="Ask it to log sets, run your session, or look up what you lifted."
               />
+              <SpotterDisclaimer />
               <EmptyIntro onPick={setInput} />
             </>
           ) : (
