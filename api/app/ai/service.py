@@ -9,6 +9,7 @@ from collections.abc import AsyncIterator
 import httpx
 from companion import AnthropicProvider, Message, OllamaProvider, Provider
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from ..config import get_settings
@@ -909,12 +910,28 @@ _PROFILE_FIELDS = (
 
 
 def get_or_create_profile(db: Session, user_id: int) -> AthleteProfile:
+    """Fetch the athlete profile, creating it on first ask.
+
+    Read-then-create races itself: the app requests /api/profile more than once
+    on load, and on the first load after registering both requests found no row
+    and both inserted, so the loser 500'd on the unique index. Losing that race
+    is a normal outcome, not an error — the winner's row is exactly what the
+    loser wanted.
+    """
     p = db.scalar(select(AthleteProfile).where(AthleteProfile.user_id == user_id))
-    if p is None:
-        p = AthleteProfile(user_id=user_id)
-        db.add(p)
+    if p is not None:
+        return p
+    p = AthleteProfile(user_id=user_id)
+    db.add(p)
+    try:
         db.commit()
-        db.refresh(p)
+    except IntegrityError:
+        db.rollback()
+        p = db.scalar(select(AthleteProfile).where(AthleteProfile.user_id == user_id))
+        if p is None:
+            raise  # the constraint that failed wasn't the one we're recovering from
+        return p
+    db.refresh(p)
     return p
 
 

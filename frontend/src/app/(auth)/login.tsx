@@ -9,6 +9,7 @@ import { Text } from '@/components/ui/Text';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { Logo } from '@/components/ui/Logo';
+import { AuthForm } from '@/components/ui/AuthForm';
 import { FormError } from '@/components/ui/Feedback';
 
 export default function LoginScreen() {
@@ -50,13 +51,14 @@ export default function LoginScreen() {
           </Text>
         </View>
 
-        <View className="gap-4">
+        <AuthForm onSubmit={onSubmit} className="gap-4">
           <Input
             label="Email"
             value={email}
             onChangeText={setEmail}
             autoCapitalize="none"
-            autoComplete="email"
+            autoComplete="username"
+            textContentType="username"
             keyboardType="email-address"
             placeholder="you@example.com"
           />
@@ -65,7 +67,10 @@ export default function LoginScreen() {
             value={password}
             onChangeText={setPassword}
             secureTextEntry
-            autoComplete="password"
+            // "password" is not a valid HTML autocomplete value, so browsers
+            // ignored it outright and never offered to fill or save anything.
+            autoComplete="current-password"
+            textContentType="password"
             placeholder="••••••••"
             onSubmitEditing={onSubmit}
           />
@@ -73,7 +78,7 @@ export default function LoginScreen() {
           {error ? <FormError message={error} /> : null}
 
           <Button title="Log in" size="lg" loading={submitting} onPress={onSubmit} />
-        </View>
+        </AuthForm>
 
         <View className="mt-6 flex-row justify-center">
           <Text variant="muted">No account? </Text>

@@ -12,6 +12,7 @@ import { Text } from '@/components/ui/Text';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { shareText } from '@/lib/export';
+import { modelSupportsTools } from '@/lib/ai-errors';
 
 function Segmented<T extends string>({
   options,
@@ -594,6 +595,13 @@ function AiProviderControl({
                           <Text className="font-normal text-iron-500">{` · ${m.size}`}</Text>
                         ) : null}
                       </Text>
+                      {/* Say it here, not after the coach fails with a bare
+                          "ollama returned HTTP 400" that names nothing. */}
+                      {!modelSupportsTools(m.name) ? (
+                        <Text variant="caption" className="mt-0.5 text-amber-400">
+                          No tool calling — parsing only, the coach won't work
+                        </Text>
+                      ) : null}
                     </View>
                     {active ? (
                       <Ionicons name="checkmark-circle" size={18} color="#818cf8" />

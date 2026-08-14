@@ -9,6 +9,7 @@ import { Text } from '@/components/ui/Text';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { Logo } from '@/components/ui/Logo';
+import { AuthForm } from '@/components/ui/AuthForm';
 import { FormError } from '@/components/ui/Feedback';
 
 export default function RegisterScreen() {
@@ -59,7 +60,7 @@ export default function RegisterScreen() {
           </Text>
         </View>
 
-        <View className="gap-4">
+        <AuthForm onSubmit={onSubmit} className="gap-4">
           <Input
             label="Display name"
             value={displayName}
@@ -72,7 +73,8 @@ export default function RegisterScreen() {
             value={email}
             onChangeText={setEmail}
             autoCapitalize="none"
-            autoComplete="email"
+            autoComplete="username"
+            textContentType="username"
             keyboardType="email-address"
             placeholder="you@example.com"
           />
@@ -81,6 +83,10 @@ export default function RegisterScreen() {
             value={password}
             onChangeText={setPassword}
             secureTextEntry
+            // new-password is what tells a manager to *offer to generate*, and
+            // to save the pair rather than trying to autofill an old one.
+            autoComplete="new-password"
+            textContentType="newPassword"
             placeholder="At least 6 characters"
           />
           <Input
@@ -88,6 +94,8 @@ export default function RegisterScreen() {
             value={confirmPassword}
             onChangeText={setConfirmPassword}
             secureTextEntry
+            autoComplete="new-password"
+            textContentType="newPassword"
             placeholder="Re-enter your password"
             onSubmitEditing={onSubmit}
           />
@@ -95,7 +103,7 @@ export default function RegisterScreen() {
           {error ? <FormError message={error} /> : null}
 
           <Button title="Sign up" size="lg" loading={submitting} onPress={onSubmit} />
-        </View>
+        </AuthForm>
 
         <View className="mt-6 flex-row justify-center">
           <Text variant="muted">Already have an account? </Text>

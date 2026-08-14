@@ -8,3 +8,6 @@ __pycache__/
 data/
 *.db
 .env
+
+# Playwright MCP browser snapshots/console logs from debugging sessions
+.playwright-mcp/

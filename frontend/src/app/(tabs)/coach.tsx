@@ -14,6 +14,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { api, ApiError } from '@/api/client';
 import type { CompanionEvent, CompanionMessage } from '@/api/client';
 import { useAiStatus } from '@/hooks/use-ai-status';
+import { useSettings } from '@/state/settings';
+import { explainCoachError } from '@/lib/ai-errors';
 import { Screen, ScreenHeader } from '@/components/ui/Screen';
 import { Text } from '@/components/ui/Text';
 import { Button } from '@/components/ui/Button';
@@ -224,6 +226,11 @@ function EmptyIntro({ onPick }: { onPick: (q: string) => void }) {
 export default function CoachScreen() {
   const router = useRouter();
   const { configured, loading: aiLoading } = useAiStatus();
+  const { settings } = useSettings();
+  // Which model the failure is actually about — the error has to name it, or
+  // the fix ("change your model") is unactionable.
+  const activeModel =
+    settings.ai_provider === 'claude' ? settings.claude_model : settings.ollama_model;
   const [items, setItems] = useState<Item[]>([]);
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
@@ -281,7 +288,12 @@ export default function CoachScreen() {
                 });
                 break;
               case 'error':
-                push({ id: nextId(), kind: 'assistant', content: ev.error, error: true });
+                push({
+                  id: nextId(),
+                  kind: 'assistant',
+                  content: explainCoachError(ev.error, activeModel),
+                  error: true,
+                });
                 break;
               case 'done':
                 if (!ev.pending && assistantText) {

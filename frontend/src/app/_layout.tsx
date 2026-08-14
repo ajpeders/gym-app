@@ -41,20 +41,30 @@ function RootNavigator() {
   const needsOnboarding =
     !!user && !settingsLoading && settings.feature_flags.onboarded === false;
 
+  const inAuthGroup = segments[0] === '(auth)';
+  const onOnboarding = segments[0] === 'onboarding';
+  // Where we are is not yet where we belong. `router.replace` only takes effect
+  // after this render, so without holding the screen the tab screens mount for
+  // a frame and every one of them fires its fetch — four guaranteed 401s in the
+  // console on any signed-out load, from requests whose answers get thrown away.
+  const redirecting =
+    !loading &&
+    ((!user && !inAuthGroup) ||
+      (!!user && needsOnboarding && !onOnboarding) ||
+      (!!user && inAuthGroup && !needsOnboarding));
+
   useEffect(() => {
-    if (loading) return;
-    const inAuthGroup = segments[0] === '(auth)';
-    const onOnboarding = segments[0] === 'onboarding';
-    if (!user && !inAuthGroup) {
+    if (!redirecting) return;
+    if (!user) {
       router.replace('/(auth)/login');
-    } else if (user && needsOnboarding && !onOnboarding) {
+    } else if (needsOnboarding) {
       router.replace('/onboarding');
-    } else if (user && inAuthGroup && !needsOnboarding) {
+    } else {
       router.replace('/(tabs)');
     }
-  }, [user, loading, needsOnboarding, segments, router]);
+  }, [redirecting, user, needsOnboarding, router]);
 
-  if (loading) return <Splash />;
+  if (loading || redirecting) return <Splash />;
 
   return (
     <Stack

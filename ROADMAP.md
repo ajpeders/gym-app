@@ -156,6 +156,19 @@ gym-app/
 ### Phase 3 — AI provider layer + natural-language logging (largely done)
 - [x] Provider abstraction: Ollama ⇄ Claude; pick provider/model in settings *(BYO per-user, no silent default; `/ai/providers`,`/models`,`/test`)*
 - [ ] **On-device AI — iPhone first** (capable phones): run a small model directly on the phone's hardware (iOS: Apple Foundation Models / MLX / Core ML; Android: `llama.rn` / ExecuTorch) — fully private, works offline with no Ollama/Claude needed. Auto-detect support and offer it as a third provider alongside Ollama/Claude. The ultimate "no-setup, no-cost, no-network" local option.
+- [ ] **Recommend the right local model** — a homelab Ollama holds a jumble
+      (coder models, embedding models, roleplay finetunes, vision models), and
+      nothing tells you which are any good for *this* app. Two different
+      requirements: the **coach** needs tool calling, and **parsing** needs
+      reliable structured JSON output. Rank and badge the user's own installed
+      models against both — "recommended", "parsing only", "not suitable" —
+      ideally by probing capability rather than pattern-matching names, and
+      suggest a `ollama pull` when nothing installed is a good fit.
+      *Prompted by hitting it live: selecting `gemma3:27b` made the coach fail
+      with a bare "ollama returned HTTP 400" because Gemma can't tool-call. The
+      stopgap shipped 2026-08-14 is a `No tool calling` badge in the picker plus
+      an error that names the model and the fix (`lib/ai-errors.ts`); the real
+      feature is ranking, not a hardcoded deny-list.*
 - [~] **Bring-your-own-model setup guide** (self-hosted / remote Ollama): backend building blocks exist — `/ai/models` (list + pick), `/ai/test` (round-trip), URL normalization — and the `use-ai-status` hook; **the guided onboarding checklist UI itself is still pending**.
 - [x] **Natural-language logging**: "bench 3x8 @60kg, felt easy" → structured sets *(built)*
 - [x] **Notes → a past day's log**: paste a whole day from a notes app on "Add a past session" and the parser prefills the editable set rows, so an AI-read log can be backdated *(`components/NotesToSets.tsx`; the set-parse prompt handles day headers, one-exercise-per-line, and per-set "weight reps" pairs like `95 10, 90 11`)*
