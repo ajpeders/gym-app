@@ -54,3 +54,17 @@ Three ways to get this wrong, all of which write bad training data:
 
 If you cannot find the exercise they named, say so and ask — do not substitute
 a similar one.
+
+### Use the log-text tool, don't build the payload
+
+To log training from something they said, send the phrase VERBATIM to the
+log-text tool (`POST /api/sessions/log-text`). It runs the same parser the rest
+of the app uses: it expands "3x5" into three sets and resolves "squats" against
+the catalog for you.
+
+Do not assemble a `/sessions/log` payload yourself, and do not look up or supply
+an `exercise_id` for it — that is precisely how "3x5 squats at 100kg" became one
+set of Step Jack.
+
+If it comes back saying an exercise wasn't found, tell them which one and ask
+whether to create it. Never retry with a different movement.

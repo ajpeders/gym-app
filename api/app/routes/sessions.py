@@ -5,10 +5,14 @@ from datetime import datetime, timezone
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from pydantic import BaseModel, Field
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session as SASession
 
 from ..db import get_db
+from ..ai import service as ai_service
+from ..ai.base import AIError
+from ..ai.service import UnmatchedExercises
 from ..idempotency import idempotency_key, replay_or_run
 from ..models import (
     Exercise,
@@ -207,12 +211,54 @@ def create_session(
     return SessionOut.model_validate(session)
 
 
+class SessionLogText(BaseModel):
+    """A phrase to log, e.g. "bench 3x8 @60, then 3x12 lateral raises 10"."""
+
+    text: str = Field(min_length=1)
+    name: Optional[str] = None
+    started_at: Optional[str] = None
+
+
+@router.post("/log-text", response_model=SessionOut, status_code=status.HTTP_201_CREATED)
+async def log_session_from_text(
+    payload: SessionLogText,
+    db: SASession = Depends(get_db),
+    user: User = Depends(get_current_user),
+    key: str | None = Depends(idempotency_key),
+) -> SessionOut:
+    """Log a session from plain text, resolving exercises deterministically.
+
+    The spotter uses this instead of building a /log payload itself. Every
+    exercise id here comes from the catalog matcher, and NxM is expanded by the
+    parser — both of which a small model gets wrong (it sent one set and
+    exercise_id 1, "Step Jack", for "3x5 squats").
+    """
+    try:
+        parsed = await ai_service.log_text(
+            db, user, payload.text, name=payload.name, started_at=payload.started_at
+        )
+    except UnmatchedExercises as exc:
+        # 422, not 400: the phrase was understood, the movement just isn't in
+        # the catalog. The spotter is told to report the names, never substitute.
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    except AIError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+
+    return replay_or_run(
+        db, user, key, lambda: _log_session(parsed, db, user), lambda o: o.model_dump()
+    )
+
+
 @router.post("/log", response_model=SessionOut, status_code=status.HTTP_201_CREATED)
 def log_session(
     payload: SessionLog,
     db: SASession = Depends(get_db),
     user: User = Depends(get_current_user),
 ) -> SessionOut:
+    return _log_session(payload, db, user)
+
+
+def _log_session(payload: SessionLog, db: SASession, user: User) -> SessionOut:
     """Log a whole completed session in one shot (no live session) — for
     recording a session you already did. Created already-finished at the given
     date, with all exercises and their sets, atomically."""

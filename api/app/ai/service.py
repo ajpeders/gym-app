@@ -4,6 +4,7 @@ from __future__ import annotations
 import json
 import re
 import time
+from datetime import datetime
 from collections.abc import AsyncIterator
 
 import httpx
@@ -13,6 +14,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from ..config import get_settings
+from ..schemas import LoggedExerciseIn, LoggedSetIn, SessionLog
 from ..seed.tracking import TIME, infer_tracking_type
 from ..models import (
     AthleteProfile,
@@ -345,6 +347,16 @@ def _load_catalog(db: Session, user_id: int) -> list[CatalogEntry]:
 def _match(
     name: str, catalog: list[CatalogEntry]
 ) -> tuple[int | None, str, str | None]:
+    # An exact catalog name wins before any synonym rewriting. Synonyms exist to
+    # rescue a name that doesn't resolve; letting one override a name that does
+    # sent "squats" to "Barbell Hack Squats" via the "squat" -> "barbell squat"
+    # shorthand, even though the catalog has a plain "Squats".
+    raw = frozenset(_norm(name))
+    if raw:
+        for ex_id, ex_name, toks in catalog:
+            if toks == raw:
+                return ex_id, "exact", ex_name
+
     target = frozenset(_norm_query(name))
     if not target:
         return None, "none", None
@@ -440,6 +452,78 @@ def _match_items(exercises, catalog) -> list[dict]:
             }
         )
     return items
+
+
+class UnmatchedExercises(AIError):
+    """A phrase named a movement the catalog doesn't have.
+
+    Raised instead of logging the rest, because a partial log is silently wrong
+    training data — and substituting a near-match is how "squats" became
+    "Step Jack". The caller reports the names so the user can rename or create
+    the exercise.
+    """
+
+    def __init__(self, names: list[str]) -> None:
+        self.names = names
+        super().__init__(
+            "Couldn't find these in the exercise catalog: " + ", ".join(names)
+        )
+
+
+def session_log_from_items(
+    items: list[dict],
+    name: str | None = None,
+    started_at: str | datetime | None = None,
+) -> SessionLog:
+    """Turn matched parse results into a loggable session.
+
+    All or nothing on matching: the model used to hand-build this payload and
+    guess `exercise_id`, so the point of routing through here is that every id
+    came from `_match` or the log doesn't happen.
+    """
+    loggable = [i for i in items if i.get("sets")]
+    unmatched = [i["exercise_name"] for i in loggable if not i.get("exercise_id")]
+    if unmatched:
+        raise UnmatchedExercises(unmatched)
+    if not loggable:
+        raise UnmatchedExercises([i.get("exercise_name", "?") for i in items] or ["nothing"])
+
+    return SessionLog(
+        name=name,
+        # Left to the server unless the user actually said when. A model asked
+        # for a timestamp will happily invent one two years in the past.
+        started_at=started_at,
+        exercises=[
+            LoggedExerciseIn(
+                exercise_id=int(i["exercise_id"]),
+                sets=[
+                    LoggedSetIn(
+                        reps=s.get("reps"),
+                        weight=s.get("weight"),
+                        rpe=s.get("rpe"),
+                        set_type=s.get("set_type") or "working",
+                    )
+                    for s in i["sets"]
+                ],
+            )
+            for i in loggable
+        ],
+    )
+
+
+async def log_text(
+    db: Session, user: User, text: str, name: str | None = None,
+    started_at: str | None = None,
+) -> SessionLog:
+    """Parse a phrase like "3x5 squats at 100kg" into a loggable session.
+
+    Exists so the spotter never authors training data itself. It hands over the
+    raw phrase; `parse_sets` expands NxM and resolves the movement through
+    `_match`. Measured, a 7B model asked to build this payload sent one set
+    instead of three and `exercise_id: 1` ("Step Jack") for "squats".
+    """
+    parsed = await parse_sets(db, user, text)
+    return session_log_from_items(parsed["items"], name=name, started_at=started_at)
 
 
 async def parse_days(db: Session, user: User, text: str) -> dict:

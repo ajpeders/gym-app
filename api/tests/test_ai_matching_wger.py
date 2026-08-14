@@ -41,7 +41,10 @@ _WGER_NAMES = [
     (726, "Lateral Raises"),
     (761, "Row"),
     (770, "Shoulder Press, Dumbbells"),
+    (374, "Hack Squats"),
+    (654, "Barbell Hack Squats"),
     (785, "Standing Calf Raises"),
+    (787, "Squats"),
     (792, "Leg Press"),
     (811, "Incline Bench Press - Dumbbell"),
 ]
@@ -90,6 +93,15 @@ def test_a_movement_with_no_honest_match_stays_unmatched():
 )
 def test_live_import_names_land_on_the_right_entry(query, expected):
     assert resolve(query) == expected
+
+
+def test_an_exact_catalog_name_beats_a_synonym() -> None:
+    """Synonyms exist to rescue names that don't resolve. The shorthand synonym
+    "squat" -> "barbell squat" was overriding the catalog's own "Squats" entry
+    and landing on "Hack Squats" — a different movement — when logging "3x5
+    squats"."""
+    assert resolve("squats") == "Squats"
+    assert resolve("squat") == "Squats"
 
 
 @pytest.mark.parametrize(
