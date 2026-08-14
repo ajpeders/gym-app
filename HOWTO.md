@@ -89,3 +89,33 @@ See `README.md` → Deploy. In short: fill `services/gym-app/.env` (incl.
 ```sh
 docker compose up -d --build gym-api gym-web
 ```
+
+## Build the app for a phone (EAS)
+
+Expo Go is fine for development, but a real build is needed for distribution —
+and later for Siri / App Intents and on-device AI, neither of which exist in
+Expo Go.
+
+`frontend/eas.json` defines three profiles and `app.json` carries the bundle id
+(`com.forgo.gymapp`) for both platforms. **One step still needs you**, because
+it requires an interactive Expo login:
+
+```sh
+cd frontend
+npx eas-cli login          # interactive — must be run by a human
+npx eas-cli init           # writes extra.eas.projectId into app.json, once
+```
+
+Then build:
+
+```sh
+npx eas-cli build --profile development --platform ios   # dev client, simulator
+npx eas-cli build --profile preview --platform android   # installable APK
+npx eas-cli build --profile production --platform all
+```
+
+**Set the API URL before building.** A device build cannot reach
+`localhost:8000` — that's the laptop, not the phone. Each profile pins
+`EXPO_PUBLIC_API_URL` in `eas.json`; `preview` and `production` point at the
+homelab host, so change them there if the hostname differs. The value is baked
+in at build time, not read at runtime.

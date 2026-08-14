@@ -296,8 +296,14 @@ Found while actually training with the app. Ordered by how much they hurt.
         A self-hosted Sentry/GlitchTip DSN plugs in behind that one function if
         grouping and stack symbolication are ever wanted.
   - [ ] **Accounts / onboarding** — first-run flow for someone who isn't Alex.
-  - [ ] **EAS build + distribution** — needed anyway for Siri/App Intents and
-        on-device AI.
+  - [~] **EAS build + distribution** — *config landed 2026-08-13.* `eas.json`
+        with development / preview / production profiles, `com.forgo.gymapp` as
+        the bundle id on both platforms, and `EXPO_PUBLIC_API_URL` pinned per
+        profile (a device build can't reach `localhost:8000`; the value is baked
+        in at build time). Steps in HOWTO → "Build the app for a phone (EAS)".
+        **Needs a human:** `eas login` + `eas init` are interactive, and
+        `eas init` is what writes `extra.eas.projectId` into `app.json`. No
+        build has been run, so the config is unproven until you run one.
 
 ### Phase 4 — AI insights & coaching (started)
 - [~] **Progress analysis**: `/stats/summary` ships streak, weekly volume, and recent PRs (+ a `progress` screen); **plateaus, per-muscle volume, frequency still to do**

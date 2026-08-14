@@ -8,7 +8,9 @@
     "scheme": "gymapp",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "icon": "./assets/expo.icon"
+      "icon": "./assets/expo.icon",
+      "bundleIdentifier": "com.forgo.gymapp",
+      "supportsTablet": true
     },
     "android": {
       "adaptiveIcon": {
@@ -17,7 +19,8 @@
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.forgo.gymapp"
     },
     "web": {
       "output": "static",
@@ -40,7 +43,7 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "Allow gym-app to access your photos to add progress pictures.",
+          "photosPermission": "Allow gym-app to access your photos to add progress pictures and exercise images.",
           "cameraPermission": "Allow gym-app to use the camera to take progress pictures."
         }
       ]
