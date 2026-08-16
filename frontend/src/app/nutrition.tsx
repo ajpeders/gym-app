@@ -13,7 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { api } from '@/api/client';
 import { aiParseErrorMessage } from '@/api/errors';
-import type { NutritionEntry, ParsedNutritionItem } from '@/api/types';
+import type { Food, NutritionEntry, ParsedNutritionItem } from '@/api/types';
 import { Screen } from '@/components/ui/Screen';
 import { Text } from '@/components/ui/Text';
 import { Card } from '@/components/ui/Card';
@@ -124,6 +124,12 @@ export default function NutritionScreen() {
 
   const [label, setLabel] = useState('');
   const [calories, setCalories] = useState('');
+  // The common-foods shelf: pick one and the macros come with it, so logging a
+  // meal doesn't start with looking up what chicken breast weighs in calories.
+  const [foodQuery, setFoodQuery] = useState('');
+  const [foods, setFoods] = useState<Food[]>([]);
+  const [picked, setPicked] = useState<Food | null>(null);
+  const [amount, setAmount] = useState('100');
   const [protein, setProtein] = useState('');
   const [sentence, setSentence] = useState('');
   const [busy, setBusy] = useState(false);
@@ -182,6 +188,8 @@ export default function NutritionScreen() {
     label?: string | null;
     calories?: number | null;
     protein?: number | null;
+    food?: string;
+    amount?: number;
   }) {
     setBusy(true);
     setActionError(null);
@@ -324,6 +332,89 @@ export default function NutritionScreen() {
                 Set daily targets in your profile to track progress.
               </Text>
             ) : null}
+          </Card>
+
+          {/* common foods */}
+          <Text variant="heading" className="mb-2">
+            Common foods
+          </Text>
+          <Card className="mb-3 rounded-[20px] p-4">
+            <TextInput
+              value={foodQuery}
+              onChangeText={(text) => {
+                setFoodQuery(text);
+                void api
+                  .foods(text)
+                  .then((rows) => setFoods(text.trim() ? rows.slice(0, 6) : []))
+                  .catch(() => setFoods([]));
+              }}
+              placeholder="Search foods — chicken, rice, oats..."
+              placeholderTextColor="#64748b"
+              selectionColor="#5eead4"
+              className={INPUT}
+            />
+
+            {picked ? (
+              <View className="mt-3">
+                <Text variant="label">{picked.name}</Text>
+                <Text variant="caption" className="mt-0.5 text-iron-400">
+                  {picked.calories} cal · {picked.protein}g protein per{' '}
+                  {picked.unit === 'item' ? 'item' : picked.unit}
+                </Text>
+                <View className="mt-2 flex-row items-end gap-2">
+                  <View className="flex-1">
+                    <Text variant="caption" className="mb-1 text-iron-400">
+                      {picked.unit === 'item' ? 'How many' : `How much (${picked.unit.replace('100', '')})`}
+                    </Text>
+                    <TextInput
+                      value={amount}
+                      onChangeText={setAmount}
+                      keyboardType="decimal-pad"
+                      accessibilityLabel="Amount"
+                      placeholder={picked.unit === 'item' ? '1' : '100'}
+                      placeholderTextColor="#64748b"
+                      selectionColor="#5eead4"
+                      className={INPUT}
+                    />
+                  </View>
+                  <Button
+                    title="Log it"
+                    className="flex-1"
+                    loading={busy}
+                    onPress={() => {
+                      const qty = parseFloat(amount);
+                      void addEntry({
+                        food: picked.slug,
+                        amount: Number.isFinite(qty) && qty > 0 ? qty : 1,
+                      }).then(() => {
+                        setPicked(null);
+                        setFoodQuery('');
+                        setFoods([]);
+                      });
+                    }}
+                  />
+                </View>
+              </View>
+            ) : null}
+
+            {foods.map((food) => (
+              <Pressable
+                key={food.slug}
+                accessibilityRole="button"
+                onPress={() => {
+                  setPicked(food);
+                  setAmount(food.unit === 'item' ? '1' : '100');
+                  setFoods([]);
+                }}
+                className="mt-2 flex-row items-center justify-between rounded-lg border border-iron-800 bg-iron-950/60 px-3 py-2 active:opacity-70">
+                <Text variant="label" numberOfLines={1}>
+                  {food.name}
+                </Text>
+                <Text variant="caption" className="text-iron-400">
+                  {food.calories} cal · {food.protein}g
+                </Text>
+              </Pressable>
+            ))}
           </Card>
 
           {/* quick add */}

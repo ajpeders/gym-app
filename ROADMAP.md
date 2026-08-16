@@ -510,7 +510,7 @@ Found while actually training with the app. Ordered by how much they hurt.
       rather than layering a second incompatible model beside them. Existing
       `eaten_at` rows can backfill `local_date` using the device/local timezone
       assumption that the current client already uses.
-- [ ] **Food database with default calories / protein** — after nutrition v1.
+- [x] **Food database with default calories / protein** *(2026-08-16)* — ~70 staples ship as data (`api/app/foods.py`), searchable at `GET /api/nutrition/foods?q=`, and `POST /api/nutrition` now accepts `{food, amount}` and fills in the macros server-side. Curated and small on purpose: the staples are most of what a lifter logs, and the long tail of packaged products is a lookup problem (barcodes, a real food API), not a bigger list. What you type still wins over the shelf — a weighed portion or a label you read yourself is never overwritten — and an unknown food is a 404 rather than an entry logged as zero calories, which would silently make the day's totals wrong. Nutrition screen gets a search-and-amount picker.
       Today every entry is
       typed from scratch: a free-text label and two numbers you have to know or
       guess. Give it a searchable food library so "chicken breast, 200g" fills
@@ -540,7 +540,7 @@ Found while actually training with the app. Ordered by how much they hurt.
 - [ ] PRs, achievements, streaks
 - [x] Offline-first sync (native): a persisted write queue with retries survives restarts/dead zones (`lib/offline.ts`) — sets, session edits, finishing, and starting a workout. **conflict resolution not yet built**
 - [ ] Push notifications (rest done, workout reminders) via ntfy/web-push *(no `expo-notifications` yet)*
-- [ ] Plate / warmup / 1RM calculators
+- [x] Plate / warmup / 1RM calculators *(2026-08-16)* — `GET /api/tools/{plates,warmup,one-rep-max}` and a Calculators screen (History → Calculators). Plates are greedy heaviest-first, which is both optimal for real plate sets and the order you physically load them; a target the plates can't make reports the nearest one and how much you're short rather than failing. Warmups ramp from the empty bar on weights that are actually loadable, and stay short for a light working weight. The max estimate shares `analysis.e1rm`, so it can't drift from the strength trend. All pure and tested (`app/calculators.py`) — this is the maths you'd do standing at the bar, and it must not need a network.
 - [~] Export/import: text + JSON export via native Share sheet (`lib/export.ts`); **CSV + re-import + backup fold-in still to do**
 - [ ] Multi-user profiles (optional)
 - [ ] **Social / OAuth login** ("log in with other apps" — Google / Apple / GitHub) via expo-auth-session; optional alongside the existing email/password auth

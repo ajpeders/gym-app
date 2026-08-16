@@ -30,8 +30,13 @@ import type {
   Settings,
   SettingsUpdate,
   SetInput,
+  Units,
   AdoptedPreset,
   ExerciseStats,
+  Food,
+  OneRepMax,
+  PlateBreakdown,
+  WarmupSet,
   ExerciseTrend,
   PresetSplit,
   MuscleReport,
@@ -725,6 +730,13 @@ export const api = {
 
   // ---- stats ----
   statsSummary: () => request<StatsSummary>('/stats/summary'),
+  foods: (q = '') => request<Food[]>('/nutrition/foods', { query: { q } }),
+  plateBreakdown: (target: number, units: Units) =>
+    request<PlateBreakdown>('/tools/plates', { query: { target, units } }),
+  warmupSets: (weight: number, units: Units) =>
+    request<WarmupSet[]>('/tools/warmup', { query: { weight, units } }),
+  oneRepMax: (weight: number, reps: number) =>
+    request<OneRepMax>('/tools/one-rep-max', { query: { weight, reps } }),
   presetSplits: () => request<PresetSplit[]>('/splits/presets'),
   adoptPreset: (slug: string) =>
     request<AdoptedPreset>(`/splits/presets/${slug}/adopt`, { method: 'POST' }),

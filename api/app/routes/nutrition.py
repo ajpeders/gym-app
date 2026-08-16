@@ -8,8 +8,9 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session as SASession
 
 from ..db import get_db
+from .. import foods as food_library
 from ..models import NutritionEntry, User
-from ..schemas import NutritionEntryCreate, NutritionEntryOut, NutritionEntryUpdate
+from ..schemas import Food, NutritionEntryCreate, NutritionEntryOut, NutritionEntryUpdate
 from ..security import get_current_user
 
 router = APIRouter(prefix="/nutrition", tags=["nutrition"])
@@ -45,18 +46,47 @@ def list_entries(
     return [NutritionEntryOut.model_validate(r) for r in rows]
 
 
+@router.get("/foods", response_model=list[Food])
+def list_foods(
+    q: str = "",
+    user: User = Depends(get_current_user),
+) -> list[Food]:
+    """The common-foods shelf, optionally filtered.
+
+    Curated and small on purpose: the staples are most of what a lifter logs,
+    and the long tail of packaged products is a different problem (barcodes, a
+    real food API) rather than a bigger list.
+    """
+    return [Food(**f) for f in food_library.search(q)]
+
+
 @router.post("", response_model=NutritionEntryOut, status_code=status.HTTP_201_CREATED)
 def create_entry(
     payload: NutritionEntryCreate,
     db: SASession = Depends(get_db),
     user: User = Depends(get_current_user),
 ) -> NutritionEntryOut:
+    label, calories, protein = payload.label, payload.calories, payload.protein
+    if payload.food is not None:
+        food = food_library.get(payload.food)
+        if food is None:
+            # Logging an unknown food as zero calories is worse than refusing:
+            # it silently makes the day's totals wrong.
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail=f"Unknown food {payload.food!r}"
+            )
+        auto_calories, auto_protein, auto_label = food_library.portion(food, payload.amount)
+        # The shelf is a convenience, not an authority.
+        label = label or auto_label
+        calories = calories if calories is not None else auto_calories
+        protein = protein if protein is not None else auto_protein
+
     entry = NutritionEntry(
         owner_id=user.id,
         eaten_at=_resolve_eaten_at(payload.eaten_at),
-        label=payload.label,
-        calories=payload.calories,
-        protein=payload.protein,
+        label=label,
+        calories=calories,
+        protein=protein,
     )
     db.add(entry)
     db.commit()

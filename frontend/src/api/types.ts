@@ -666,6 +666,38 @@ export interface SplitEditProposal {
 }
 
 /** One logged intake — a meal, shake, or snack (GET/POST /nutrition). */
+/** A common food with its per-unit macros (GET /nutrition/foods). */
+export interface Food {
+  slug: string;
+  name: string;
+  category: string;
+  /** '100g' / '100ml' for measured foods, 'item' for the ones people count. */
+  unit: string;
+  calories: number;
+  protein: number;
+}
+
+/** What to hang on each side of the bar (GET /tools/plates). */
+export interface PlateBreakdown {
+  target: number;
+  bar: number;
+  units: Units;
+  per_side: number[];
+  achievable: number;
+  leftover: number;
+  below_bar: boolean;
+}
+
+export interface WarmupSet {
+  weight: number;
+  reps: number;
+}
+
+export interface OneRepMax {
+  estimate: number;
+  percentages: Record<string, number>;
+}
+
 export interface NutritionEntry {
   id: number;
   owner_id: number;
@@ -682,6 +714,10 @@ export interface NutritionEntryInput {
   protein?: number | null;
   /** ISO time it was eaten. Omitted -> now. */
   eaten_at?: string;
+  /** Pick a food off the shelf and the server fills in the macros for
+   * `amount` of it. Anything supplied here still wins. */
+  food?: string;
+  amount?: number;
 }
 
 /** One item parsed from a sentence about food (POST /ai/parse-nutrition). */

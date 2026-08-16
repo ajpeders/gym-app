@@ -210,13 +210,22 @@ export default function HistoryScreen() {
             onPress={() => router.push('/catch-up')}
           />
         </View>
-        <Button
-          title="Insights"
-          variant="secondary"
-          icon="stats-chart-outline"
-          className="mt-2"
-          onPress={() => router.push('/insights')}
-        />
+        <View className="mt-2 flex-row gap-2">
+          <Button
+            title="Insights"
+            variant="secondary"
+            icon="stats-chart-outline"
+            className="flex-1"
+            onPress={() => router.push('/insights')}
+          />
+          <Button
+            title="Calculators"
+            variant="secondary"
+            icon="calculator-outline"
+            className="flex-1"
+            onPress={() => router.push('/calculators')}
+          />
+        </View>
 
         <SectionHeader
           title="History"

@@ -638,12 +638,53 @@ class NutritionEntryOut(BaseModel):
     created_at: datetime
 
 
+class PlateBreakdown(BaseModel):
+    """What to hang on each side of the bar."""
+
+    target: float
+    bar: float
+    units: str = "kg"
+    per_side: list[float] = []
+    # What the plates can actually make, and what that leaves you short.
+    achievable: float
+    leftover: float = 0
+    below_bar: bool = False
+
+
+class WarmupSet(BaseModel):
+    weight: float
+    reps: int
+
+
+class OneRepMax(BaseModel):
+    estimate: float
+    # "90%" -> weight, for training off percentages.
+    percentages: dict[str, float] = {}
+
+
+class Food(BaseModel):
+    """A common food with its per-unit macros. See app/foods.py."""
+
+    slug: str
+    name: str
+    category: str
+    # 100g / 100ml for measured foods, "item" for the ones people count.
+    unit: str
+    calories: int
+    protein: float
+
+
 class NutritionEntryCreate(BaseModel):
     label: Optional[str] = None
     calories: Optional[int] = None
     protein: Optional[float] = None
     # When it was eaten. Omitted -> now, so logging as you go is one step.
     eaten_at: Optional[datetime] = None
+    # Pick a food off the shelf and the server fills in the macros for
+    # `amount` of it. Anything you supply yourself still wins — a weighed
+    # portion or a label you read must not be overwritten by an average.
+    food: Optional[str] = None
+    amount: float = 1
 
 
 class NutritionEntryUpdate(BaseModel):
