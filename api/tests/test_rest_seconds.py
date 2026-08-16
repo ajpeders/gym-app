@@ -66,3 +66,28 @@ def test_rest_seconds_can_be_patched(client, auth):
     )
     assert patched.status_code == 200, patched.text
     assert patched.json()["rest_seconds"] == 120
+
+
+def test_planned_rest_is_snapshotted_onto_the_session(client, auth):
+    """The live timer counts towards the plan's rest, so it has to travel with
+    the session — like every other target."""
+    headers, _, _ = auth
+    ex = client.post(
+        "/api/exercises",
+        headers=headers,
+        json={"name": "E2E Rest Lift", "category": "strength", "equipment": "barbell",
+              "primary_muscles": ["chest"], "instructions": []},
+    ).json()
+    workout = client.post(
+        "/api/workouts",
+        headers=headers,
+        json={
+            "name": "Rest Day",
+            "exercises": [{"exercise_id": ex["id"], "order": 0, "rest_seconds": 120}],
+        },
+    ).json()
+
+    session = client.post(
+        "/api/sessions/start", headers=headers, json={"workout_id": str(workout["id"])}
+    ).json()
+    assert session["exercises"][0]["rest_seconds"] == 120

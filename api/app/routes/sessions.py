@@ -194,6 +194,7 @@ def _start_session(payload: SessionStart, db: SASession, user: User) -> SessionO
                     # Pairing is part of the plan's intent, so it's snapshotted
                     # with the rest of it.
                     superset_group=we.superset_group,
+                    rest_seconds=we.rest_seconds,
                 )
             )
     db.add(session)

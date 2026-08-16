@@ -275,6 +275,8 @@ export interface SessionExercise {
   id: string;
   /** Snapshotted from the plan: which superset this belonged to. */
   superset_group?: string | null;
+  /** Snapshotted from the plan: what the rest timer counts towards. */
+  rest_seconds?: number | null;
   exercise_id: string;
   exercise?: Exercise;
   order: number;
@@ -348,6 +350,10 @@ export interface FeatureFlags {
   /** First-run walkthrough done (or skipped). Lives on the account, not the
    *  device, so a second phone doesn't ask again. */
   onboarded?: boolean;
+  /** Notify when the planned rest is up. Local notification, not push. */
+  rest_alerts?: boolean;
+  /** A nudge on the days the split trains. */
+  training_reminders?: boolean;
 }
 
 export interface Settings {

@@ -13,6 +13,7 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { shareText } from '@/lib/export';
 import { modelSupportsTools } from '@/lib/ai-errors';
+import { cancelReminders, ensurePermission, scheduleWorkoutReminder } from '@/lib/notifications';
 
 function Segmented<T extends string>({
   options,
@@ -71,6 +72,9 @@ function Row({
       <Switch
         value={value}
         onValueChange={onValueChange}
+        // The title is a sibling Text, so without this a screen reader
+        // announces "switch, on" with no idea what it controls.
+        accessibilityLabel={title}
         trackColor={{ false: '#223047', true: '#5eead4' }}
         thumbColor={value ? '#030712' : '#64748b'}
       />
@@ -166,17 +170,37 @@ export default function SettingsScreen() {
           }
         />
         <View className="h-px bg-iron-800" />
+        {/* Local notifications, not push: the phone already knows when the rest
+          * timer is up, and a server round-trip to say so needs a push token,
+          * a service worker and something awake in the homelab. */}
         <Row
-          title="In-set AI prompts"
-          subtitle="Show AI coaching cards between sets (preview)."
-          value={settings.feature_flags.in_set_prompts}
-          onValueChange={(in_set_prompts) =>
+          title="Rest timer alerts"
+          subtitle="Tell me when the planned rest is up, even with the screen off."
+          value={!!settings.feature_flags.rest_alerts}
+          onValueChange={(rest_alerts) => {
+            if (rest_alerts) void ensurePermission();
             patch(() =>
-              update({
-                feature_flags: { ...settings.feature_flags, in_set_prompts },
-              }),
-            )
-          }
+              update({ feature_flags: { ...settings.feature_flags, rest_alerts } }),
+            );
+          }}
+        />
+        <View className="h-px bg-iron-800" />
+        <Row
+          title="Training reminders"
+          subtitle="A nudge at 6pm on the days your split trains."
+          value={!!settings.feature_flags.training_reminders}
+          onValueChange={(training_reminders) => {
+            void (async () => {
+              if (training_reminders && (await ensurePermission())) {
+                await scheduleWorkoutReminder({ hour: 18, minute: 0, weekdays: [] });
+              } else {
+                await cancelReminders();
+              }
+            })();
+            patch(() =>
+              update({ feature_flags: { ...settings.feature_flags, training_reminders } }),
+            );
+          }}
         />
       </Card>
 

@@ -15,6 +15,11 @@ export default defineConfig({
     include: ['src/**/*.test.ts'],
   },
   resolve: {
-    alias: { '@': path.resolve(__dirname, 'src') },
+    alias: {
+      '@': path.resolve(__dirname, 'src'),
+      // React Native's entrypoint is Flow-typed and unparseable by Node. The
+      // pure modules under test only use Platform; see the stub's comment.
+      'react-native': path.resolve(__dirname, 'src/test/react-native-stub.ts'),
+    },
   },
 });

@@ -52,6 +52,7 @@ _ADDED_COLUMNS: list[tuple[str, str, str]] = [
     ("user", "role", "VARCHAR NOT NULL DEFAULT 'user'"),
     ("workout_exercise", "superset_group", "VARCHAR"),
     ("session_exercise", "superset_group", "VARCHAR"),
+    ("session_exercise", "rest_seconds", "INTEGER"),
     ("settings", "openai_api_key", "VARCHAR"),
     ("settings", "openai_model", "VARCHAR"),
 ]

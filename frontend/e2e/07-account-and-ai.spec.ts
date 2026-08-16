@@ -130,3 +130,25 @@ test('the exercise Q&A is offered only when AI is configured', async ({ page, re
   // No provider set up: the box isn't offered at all, rather than failing on tap.
   await expect(page.getByLabel('Question about this exercise')).toHaveCount(0);
 });
+
+test('notification preferences persist on the account, not the device', async ({
+  page,
+  request,
+}) => {
+  const account = await signIn(page, request);
+  const api = authed(request, account.token);
+
+  await page.goto('/');
+  await appReady(page);
+  await page.getByLabel('Open settings').click();
+  await expect(shown(page, 'Rest timer alerts')).toBeVisible({ timeout: 20_000 });
+
+  await page.getByRole('switch', { name: 'Rest timer alerts' }).click();
+  // Whatever the switch does visually, the preference has to reach the server —
+  // a second phone should already know.
+  await expect
+    .poll(async () => (await api.get('/settings')).feature_flags.rest_alerts, {
+      timeout: 20_000,
+    })
+    .toBe(true);
+});

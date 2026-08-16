@@ -395,6 +395,7 @@ class SessionExerciseOut(BaseModel):
     target_duration_seconds: Optional[int] = None
     target_duration_seconds_max: Optional[int] = None
     superset_group: Optional[str] = None
+    rest_seconds: Optional[int] = None
     exercise: Optional[ExerciseOut] = None
     sets: list[SetOut] = []
 

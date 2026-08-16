@@ -8,6 +8,7 @@ import { Text } from '@/components/ui/Text';
 import { Card } from '@/components/ui/Card';
 import { ExerciseThumb } from '@/components/ExerciseThumb';
 import { ProgressionNudge } from '@/components/workout/ProgressionNudge';
+import { notifyNow } from '@/lib/notifications';
 import {
   formatClock,
   formatDurationSeconds,
@@ -62,6 +63,7 @@ export function ActiveExerciseCard({
     return () => clearInterval(id);
   }, [restStartedAt]);
 
+
   function toggleRest() {
     if (restStartedAt == null) {
       setPendingRest(null);
@@ -84,6 +86,18 @@ export function ActiveExerciseCard({
   const [saving, setSaving] = useState(false);
 
   const name = sessionExercise.exercise?.name ?? 'Exercise';
+  // Tell them when the planned rest is up — the phone is in a pocket by then,
+  // which is the entire reason a timer on screen isn't enough. Fires once per
+  // rest, and only if the plan actually specified one.
+  const plannedRest = sessionExercise.rest_seconds ?? null;
+  const notifiedFor = useRef<number | null>(null);
+  useEffect(() => {
+    if (restStartedAt == null || plannedRest == null) return;
+    if (restElapsed < plannedRest) return;
+    if (notifiedFor.current === restStartedAt) return;
+    notifiedFor.current = restStartedAt;
+    void notifyNow('Rest is up', `${name} — next set.`);
+  }, [restStartedAt, restElapsed, plannedRest, name]);
 
   // Target snapshot from the plan workout this session started from, e.g. "3 x 8-12 @ 25kg".
   const targetReps = formatRepRange(

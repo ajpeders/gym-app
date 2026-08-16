@@ -273,6 +273,9 @@ class SessionExercise(Base):
     target_duration_seconds_max: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     # Snapshotted with the rest of the plan's intent.
     superset_group: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    # Planned rest, so the live timer knows what it's counting towards — and can
+    # say when it's up.
+    rest_seconds: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
 
     session: Mapped["Session"] = relationship(back_populates="exercises")
     exercise: Mapped["Exercise"] = relationship()
