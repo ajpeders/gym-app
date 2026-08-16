@@ -130,7 +130,7 @@ export function SplitEditor({ visible, split, saving = false, onSave, onClose }:
           hitSlop={8}
           accessibilityRole="button"
           className="flex-row items-center active:opacity-70">
-          <Ionicons name="add" size={16} color="#818cf8" />
+          <Ionicons name="add" size={16} color="#38bdf8" />
           <Text variant="caption" className="ml-0.5 font-bold text-brand">
             Add rule
           </Text>

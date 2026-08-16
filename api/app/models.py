@@ -58,6 +58,8 @@ class Settings(Base):
     ollama_model: Mapped[Optional[str]] = mapped_column(String, nullable=True)  # per-user
     claude_api_key: Mapped[Optional[str]] = mapped_column(String, nullable=True)  # per-user, write-only
     claude_model: Mapped[Optional[str]] = mapped_column(String, nullable=True)  # per-user
+    openai_api_key: Mapped[Optional[str]] = mapped_column(String, nullable=True)  # per-user, write-only
+    openai_model: Mapped[Optional[str]] = mapped_column(String, nullable=True)  # per-user
     feature_flags: Mapped[dict[str, Any]] = mapped_column(
         JSON, default=lambda: {"quick_buttons": True, "in_set_prompts": False}
     )

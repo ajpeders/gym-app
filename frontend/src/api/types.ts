@@ -1,7 +1,7 @@
 // TypeScript types mirroring the gym-app API contract (base path /api).
 
 export type Units = 'kg' | 'lb';
-export type AiProvider = 'ollama' | 'claude' | 'on-device';
+export type AiProvider = 'ollama' | 'claude' | 'openai' | 'on-device';
 export type SetType = 'working' | 'warmup' | 'drop' | 'failure' | 'normal';
 
 export interface User {
@@ -283,14 +283,15 @@ export interface Settings {
   ai_model: string | null;
   ollama_model?: string | null;
   claude_model?: string | null;
+  openai_model?: string | null;
   ollama_url?: string | null;
 }
 
-// Write-only settings patch. `claude_api_key` is accepted by PATCH /settings
-// (empty string clears it) but is never returned by GET /settings, so it lives
-// here rather than on the read-side `Settings` type.
+// Write-only API keys are accepted by PATCH /settings (empty string clears)
+// but are never returned by GET /settings, so they live only on the write type.
 export interface SettingsUpdate extends Partial<Omit<Settings, 'feature_flags'>> {
   claude_api_key?: string;
+  openai_api_key?: string;
   // PATCH /settings merges feature_flags into the stored dict rather than
   // replacing it, so sending one flag on its own is correct and doesn't need
   // the caller to echo back the others.
@@ -309,7 +310,7 @@ export interface OllamaProviderInfo extends AiProviderInfo {
 }
 
 export interface AiProviders {
-  default: 'ollama' | 'claude';
+  default: 'ollama' | 'claude' | 'openai';
   /** The user's active provider. */
   provider: string;
   /** Whether the user's active provider is usable right now. */
@@ -319,6 +320,7 @@ export interface AiProviders {
   providers: {
     ollama: OllamaProviderInfo;
     claude: AiProviderInfo;
+    openai: AiProviderInfo;
   };
 }
 

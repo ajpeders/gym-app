@@ -30,7 +30,7 @@ export function FormField({
       </View>
       <TextInput
         placeholderTextColor="#64748b"
-        selectionColor="#818cf8"
+        selectionColor="#38bdf8"
         multiline={multiline}
         className={`rounded-lg border bg-iron-900 px-4 py-2.5 text-base text-iron-50 ${
           multiline ? 'min-h-[80px]' : 'min-h-[48px]'

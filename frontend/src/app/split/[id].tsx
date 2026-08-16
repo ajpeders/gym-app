@@ -264,7 +264,7 @@ export default function SplitDetailScreen() {
                       <View className="ml-1 flex-row items-center">
                         {isDone ? (
                           <View className="mr-1 flex-row items-center rounded-full bg-brand/15 px-2 py-1">
-                            <Ionicons name="checkmark-circle" size={13} color="#818cf8" />
+                            <Ionicons name="checkmark-circle" size={13} color="#38bdf8" />
                             <Text variant="caption" className="ml-1 font-bold text-brand">
                               Done
                             </Text>
@@ -331,7 +331,7 @@ export default function SplitDetailScreen() {
                     trailing={
                       isDone ? (
                         <View className="ml-2 flex-row items-center rounded-full bg-brand/15 px-2 py-1">
-                          <Ionicons name="checkmark-circle" size={13} color="#818cf8" />
+                          <Ionicons name="checkmark-circle" size={13} color="#38bdf8" />
                           <Text variant="caption" className="ml-1 font-bold text-brand">
                             Done
                           </Text>
@@ -381,7 +381,7 @@ export default function SplitDetailScreen() {
                   <Ionicons
                     name="checkmark-circle"
                     size={16}
-                    color="#818cf8"
+                    color="#38bdf8"
                     style={{ marginTop: 2 }}
                   />
                   <Text variant="body" className="ml-2 flex-1 text-iron-200">
@@ -411,7 +411,7 @@ export default function SplitDetailScreen() {
               <Pressable
                 onPress={() => void startSession({ workout_id: w.id, name: w.name })}
                 className="mr-2 flex-row items-center rounded-lg bg-brand px-3 py-2 active:bg-brand-600">
-                <Ionicons name="play" size={13} color="#070b12" />
+                <Ionicons name="play" size={13} color="#05080f" />
                 <Text variant="caption" className="ml-1 font-bold text-iron-950">
                   Start
                 </Text>

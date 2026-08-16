@@ -8,7 +8,7 @@ from datetime import datetime
 from collections.abc import AsyncIterator
 
 import httpx
-from companion import AnthropicProvider, Message, OllamaProvider, Provider
+from companion import AnthropicProvider, Message, OllamaProvider, OpenAICompatibleProvider, Provider
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -234,6 +234,8 @@ def _provider_configured(s: Settings | None, provider: str) -> bool:
     exactly what _resolve requires (whitespace-only values are NOT configured)."""
     if provider == "claude":
         return bool(s and s.claude_api_key and s.claude_api_key.strip())
+    if provider == "openai":
+        return bool(s and s.openai_api_key and s.openai_api_key.strip())
     return bool(s and s.ollama_url and _normalize_url(s.ollama_url))
 
 
@@ -243,6 +245,10 @@ def _ollama_model(s: Settings | None, cfg) -> str:
 
 def _claude_model(s: Settings | None, cfg) -> str:
     return (s.claude_model if s and s.claude_model else None) or cfg.claude_model
+
+
+def _openai_model(s: Settings | None, cfg) -> str:
+    return (s.openai_model if s and s.openai_model else None) or cfg.openai_model
 
 
 async def list_models(db: Session, user: User) -> dict:
@@ -290,7 +296,14 @@ def available_providers(db: Session, user: User) -> dict:
     provider = _effective_provider(s, cfg)
     ollama_configured = _provider_configured(s, "ollama")
     claude_configured = _provider_configured(s, "claude")
-    configured = claude_configured if provider == "claude" else ollama_configured
+    openai_configured = _provider_configured(s, "openai")
+    configured = (
+        claude_configured
+        if provider == "claude"
+        else openai_configured
+        if provider == "openai"
+        else ollama_configured
+    )
     return {
         "default": cfg.ai_provider,
         "provider": provider,
@@ -303,6 +316,7 @@ def available_providers(db: Session, user: User) -> dict:
                 "model": _ollama_model(s, cfg),
             },
             "claude": {"configured": claude_configured, "model": _claude_model(s, cfg)},
+            "openai": {"configured": openai_configured, "model": _openai_model(s, cfg)},
         },
     }
 
@@ -320,6 +334,19 @@ def _resolve(db: Session, user: User) -> tuple[Provider, str]:
         )
         p.name = "claude"  # gym's historical label (shown in the UI footer)
         return p, units
+    if provider == "openai":
+        if not _provider_configured(s, "openai"):
+            raise AIError("ChatGPT isn't set up yet — add your OpenAI API key in Settings.")
+        return (
+            OpenAICompatibleProvider(
+                base_url=cfg.openai_base_url,
+                api_key=s.openai_api_key.strip(),
+                model=_openai_model(s, cfg),
+                name="openai",
+                timeout=cfg.ai_timeout,
+            ),
+            units,
+        )
     # No silent default: each user brings their own Ollama. Not set up -> error.
     if not _provider_configured(s, "ollama"):
         raise AIError("Local AI isn't set up yet — add your Ollama server in Settings.")

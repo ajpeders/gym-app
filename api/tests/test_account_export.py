@@ -70,8 +70,19 @@ def test_the_export_says_when_it_was_taken(client, auth):
 
 def test_no_password_hash_ever_leaves(client, auth):
     headers, _, _ = auth
+    client.patch(
+        "/api/settings",
+        headers=headers,
+        json={
+            "ai_provider": "openai",
+            "openai_api_key": "sk-proj-secret-test",
+            "claude_api_key": "sk-ant-secret-test",
+        },
+    )
     body = client.get("/api/auth/me/export", headers=headers).text
     assert "password" not in body.lower()
+    assert "sk-proj-secret-test" not in body
+    assert "sk-ant-secret-test" not in body
 
 
 def test_another_account_is_not_in_your_export(client, auth):

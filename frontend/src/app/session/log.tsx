@@ -286,7 +286,7 @@ export default function LogSessionScreen() {
               onChangeText={setDateStr}
               placeholder="YYYY-MM-DD"
               placeholderTextColor="#64748b"
-              selectionColor="#818cf8"
+              selectionColor="#38bdf8"
               autoCapitalize="none"
               className="rounded-lg border border-iron-700 bg-iron-900 px-4 py-2.5 text-base text-iron-50"
             />
@@ -373,7 +373,7 @@ export default function LogSessionScreen() {
               <Pressable
                 onPress={() => addSet(exIdx)}
                 className="mt-3 flex-row items-center justify-center rounded-md border border-iron-700 py-2 active:opacity-70">
-                <Ionicons name="add" size={16} color="#818cf8" />
+                <Ionicons name="add" size={16} color="#38bdf8" />
                 <Text className="ml-1 font-semibold text-brand">Add set</Text>
               </Pressable>
             </Card>

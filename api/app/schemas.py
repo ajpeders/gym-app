@@ -478,6 +478,7 @@ class SettingsOut(BaseModel):
     ollama_url: Optional[str] = None
     ollama_model: Optional[str] = None
     claude_model: Optional[str] = None
+    openai_model: Optional[str] = None
     feature_flags: dict[str, Any] = {}
 
 
@@ -489,6 +490,8 @@ class SettingsUpdate(BaseModel):
     ollama_model: Optional[str] = None
     claude_api_key: Optional[str] = None  # write-only; never returned in SettingsOut
     claude_model: Optional[str] = None
+    openai_api_key: Optional[str] = None  # write-only; never returned in SettingsOut
+    openai_model: Optional[str] = None
     feature_flags: Optional[dict[str, Any]] = None
 
 

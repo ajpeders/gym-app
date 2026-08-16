@@ -196,7 +196,7 @@ export function ActiveExerciseCard({
               <Ionicons
                 name="information-circle-outline"
                 size={15}
-                color="#818cf8"
+                color="#38bdf8"
                 style={{ marginLeft: 5 }}
               />
             </View>
@@ -218,7 +218,7 @@ export function ActiveExerciseCard({
             accessibilityRole="button"
             accessibilityLabel="Swap exercise"
             className="ml-2 h-9 w-9 items-center justify-center rounded-lg bg-brand/10 active:opacity-60">
-            <Ionicons name="swap-horizontal" size={17} color="#818cf8" />
+            <Ionicons name="swap-horizontal" size={17} color="#38bdf8" />
           </Pressable>
         ) : null}
         <Pressable
@@ -335,7 +335,7 @@ export function ActiveExerciseCard({
               keyboardType="number-pad"
               placeholder={last?.duration_seconds != null ? String(last.duration_seconds) : '30'}
               placeholderTextColor="#64748b"
-              selectionColor="#818cf8"
+              selectionColor="#38bdf8"
               className={numInput}
             />
           </View>
@@ -351,7 +351,7 @@ export function ActiveExerciseCard({
                 keyboardType="decimal-pad"
                 placeholder={last?.weight != null ? String(last.weight) : 'BW'}
                 placeholderTextColor="#64748b"
-                selectionColor="#818cf8"
+                selectionColor="#38bdf8"
                 className={numInput}
               />
             </View>
@@ -365,7 +365,7 @@ export function ActiveExerciseCard({
                 keyboardType="number-pad"
                 placeholder={last?.reps != null ? String(last.reps) : '0'}
                 placeholderTextColor="#64748b"
-                selectionColor="#818cf8"
+                selectionColor="#38bdf8"
                 className={numInput}
               />
             </View>
@@ -381,7 +381,7 @@ export function ActiveExerciseCard({
             keyboardType="decimal-pad"
             placeholder="-"
             placeholderTextColor="#64748b"
-            selectionColor="#818cf8"
+            selectionColor="#38bdf8"
             className={numInput}
           />
         </View>
@@ -406,7 +406,7 @@ export function ActiveExerciseCard({
         <Ionicons
           name={restStartedAt != null ? 'stop-circle-outline' : 'timer-outline'}
           size={16}
-          color={restStartedAt != null ? '#818cf8' : '#94a3b8'}
+          color={restStartedAt != null ? '#38bdf8' : '#94a3b8'}
         />
         <Text
           className={`ml-1.5 text-sm font-bold ${
@@ -426,7 +426,7 @@ export function ActiveExerciseCard({
         onChangeText={setNote}
         placeholder="Note for this set (optional)"
         placeholderTextColor="#64748b"
-        selectionColor="#818cf8"
+        selectionColor="#38bdf8"
         className="mt-2 min-h-[40px] rounded-lg border border-iron-700 bg-iron-950 px-3 py-2 text-sm text-iron-50"
       />
 
@@ -437,7 +437,7 @@ export function ActiveExerciseCard({
             disabled={saving}
             onPress={repeatLast}
             className="flex-1 flex-row items-center justify-center rounded-lg border border-brand/40 bg-brand/10 px-3 py-2 active:opacity-70">
-            <Ionicons name="repeat" size={16} color="#818cf8" />
+            <Ionicons name="repeat" size={16} color="#38bdf8" />
             <Text className="ml-1.5 text-sm font-bold text-brand">
               {isTimed
                 ? formatDurationSeconds(last.duration_seconds)

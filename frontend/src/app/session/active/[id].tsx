@@ -157,7 +157,7 @@ export default function ActiveWorkoutScreen() {
         <Pressable
           onPress={() => router.push(`/log-chat?sessionId=${workout.id}`)}
           className="mb-3 flex-row items-center rounded-2xl border border-brand/40 bg-brand/10 px-3.5 py-3 active:opacity-70">
-          <Ionicons name="chatbubble-ellipses-outline" size={18} color="#818cf8" />
+          <Ionicons name="chatbubble-ellipses-outline" size={18} color="#38bdf8" />
           <View className="ml-2.5 flex-1">
             <Text variant="label" className="text-brand">
               Log by sentence
@@ -173,7 +173,7 @@ export default function ActiveWorkoutScreen() {
         {settings.feature_flags.in_set_prompts ? (
           <Card className="mb-3 border-brand bg-iron-900">
             <View className="flex-row items-center">
-              <Ionicons name="sparkles" size={18} color="#818cf8" />
+              <Ionicons name="sparkles" size={18} color="#38bdf8" />
               <Text variant="label" className="ml-2 text-brand">
                 AI coaching on
               </Text>
@@ -255,7 +255,7 @@ function Stat({
   return (
     <View className="w-[48%] rounded-lg border border-iron-800 bg-iron-900/90 px-3 py-2.5">
       <View className="flex-row items-center">
-        <Ionicons name={icon} size={14} color="#818cf8" />
+        <Ionicons name={icon} size={14} color="#38bdf8" />
         <Text variant="caption" className="ml-1.5 text-iron-400">
           {label}
         </Text>

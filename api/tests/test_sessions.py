@@ -167,6 +167,33 @@ def test_settings_and_stats(client, auth):
     assert isinstance(payload["volume_by_week"], list)
 
 
+def test_openai_provider_settings_are_write_only(client, auth):
+    headers, _, _ = auth
+
+    upd = client.patch(
+        "/api/settings",
+        headers=headers,
+        json={
+            "ai_provider": "openai",
+            "openai_api_key": "sk-proj-secret-test",
+            "openai_model": "gpt-5.6-luna",
+        },
+    )
+    assert upd.status_code == 200, upd.text
+    body = upd.json()
+    assert body["ai_provider"] == "openai"
+    assert body["openai_model"] == "gpt-5.6-luna"
+    assert "openai_api_key" not in body
+
+    providers = client.get("/api/ai/providers", headers=headers)
+    assert providers.status_code == 200, providers.text
+    payload = providers.json()
+    assert payload["provider"] == "openai"
+    assert payload["configured"] is True
+    assert payload["providers"]["openai"]["configured"] is True
+    assert payload["providers"]["openai"]["model"] == "gpt-5.6-luna"
+
+
 def test_metrics_crud(client, auth):
     headers, _, _ = auth
     created = client.post(

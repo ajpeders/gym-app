@@ -336,7 +336,7 @@ export default function NutritionScreen() {
               onChangeText={setLabel}
               placeholder="What did you eat?"
               placeholderTextColor="#64748b"
-              selectionColor="#818cf8"
+              selectionColor="#38bdf8"
               className={INPUT}
             />
             <View className="mt-2 flex-row gap-2">
@@ -350,7 +350,7 @@ export default function NutritionScreen() {
                   keyboardType="number-pad"
                   placeholder="0"
                   placeholderTextColor="#64748b"
-                  selectionColor="#818cf8"
+                  selectionColor="#38bdf8"
                   className={INPUT}
                 />
               </View>
@@ -364,7 +364,7 @@ export default function NutritionScreen() {
                   keyboardType="decimal-pad"
                   placeholder="0"
                   placeholderTextColor="#64748b"
-                  selectionColor="#818cf8"
+                  selectionColor="#38bdf8"
                   className={INPUT}
                 />
               </View>
@@ -387,7 +387,7 @@ export default function NutritionScreen() {
           {/* sentence entry */}
           <Card className="mb-4 rounded-[20px] p-4">
             <View className="mb-2 flex-row items-center">
-              <Ionicons name="sparkles" size={15} color="#818cf8" />
+              <Ionicons name="sparkles" size={15} color="#38bdf8" />
               <Text variant="label" className="ml-1.5 text-brand">
                 Or describe it
               </Text>
@@ -397,7 +397,7 @@ export default function NutritionScreen() {
               onChangeText={setSentence}
               placeholder='e.g. "chicken and rice, about 800 cal 60g protein"'
               placeholderTextColor="#64748b"
-              selectionColor="#818cf8"
+              selectionColor="#38bdf8"
               multiline
               className={`${INPUT} min-h-[60px]`}
               style={{ textAlignVertical: 'top' }}
@@ -522,7 +522,7 @@ export default function NutritionScreen() {
               onChangeText={setEditLabel}
               placeholder="What did you eat?"
               placeholderTextColor="#64748b"
-              selectionColor="#818cf8"
+              selectionColor="#38bdf8"
               className={INPUT}
             />
             <View className="mt-2 flex-row gap-2">
@@ -536,7 +536,7 @@ export default function NutritionScreen() {
                   keyboardType="number-pad"
                   placeholder="0"
                   placeholderTextColor="#64748b"
-                  selectionColor="#818cf8"
+                  selectionColor="#38bdf8"
                   className={INPUT}
                 />
               </View>
@@ -550,7 +550,7 @@ export default function NutritionScreen() {
                   keyboardType="decimal-pad"
                   placeholder="0"
                   placeholderTextColor="#64748b"
-                  selectionColor="#818cf8"
+                  selectionColor="#38bdf8"
                   className={INPUT}
                 />
               </View>
@@ -565,7 +565,7 @@ export default function NutritionScreen() {
                   onChangeText={setEditDate}
                   placeholder="YYYY-MM-DD"
                   placeholderTextColor="#64748b"
-                  selectionColor="#818cf8"
+                  selectionColor="#38bdf8"
                   autoCapitalize="none"
                   className={INPUT}
                 />
@@ -579,7 +579,7 @@ export default function NutritionScreen() {
                   onChangeText={setEditTime}
                   placeholder="HH:MM"
                   placeholderTextColor="#64748b"
-                  selectionColor="#818cf8"
+                  selectionColor="#38bdf8"
                   autoCapitalize="none"
                   className={INPUT}
                 />

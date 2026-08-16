@@ -11,7 +11,7 @@ from pathlib import Path
 
 from fastapi import Request
 
-from companion import AnthropicProvider, Companion, OllamaProvider, Provider
+from companion import AnthropicProvider, Companion, OllamaProvider, OpenAICompatibleProvider, Provider
 
 from ..config import get_settings
 from ..db import SessionLocal
@@ -59,12 +59,23 @@ def _provider_for(s, cfg, kind: str | None = None) -> Provider | None:
     """Build a companion Provider from the user's gym Settings (reuses gym's own
     provider-selection helpers). `kind` overrides the user's default choice
     (per-conversation picker). None = not configured."""
-    if (kind or service._effective_provider(s, cfg)) == "claude":
+    selected = kind or service._effective_provider(s, cfg)
+    if selected == "claude":
         if not service._provider_configured(s, "claude"):
             return None
         return AnthropicProvider(
             api_key=s.claude_api_key.strip(),
             model=service._claude_model(s, cfg),
+            timeout=cfg.ai_timeout,
+        )
+    if selected == "openai":
+        if not service._provider_configured(s, "openai"):
+            return None
+        return OpenAICompatibleProvider(
+            base_url=cfg.openai_base_url,
+            api_key=s.openai_api_key.strip(),
+            model=service._openai_model(s, cfg),
+            name="openai",
             timeout=cfg.ai_timeout,
         )
     if not service._provider_configured(s, "ollama"):
@@ -88,8 +99,8 @@ def resolve_provider(request: Request) -> Provider | None:
     if uid is None:
         raise ValueError("Not signed in.")
     hint = getattr(request.state, "provider_hint", None)
-    if hint is not None and hint not in ("ollama", "claude"):
-        raise ValueError(f"Unknown provider {hint!r} — use 'ollama' or 'claude'.")
+    if hint is not None and hint not in ("ollama", "claude", "openai"):
+        raise ValueError(f"Unknown provider {hint!r} — use 'ollama', 'claude', or 'openai'.")
     db = SessionLocal()
     try:
         user = db.get(User, uid)
@@ -99,11 +110,11 @@ def resolve_provider(request: Request) -> Provider | None:
         if provider is None:
             if hint:
                 raise ValueError(
-                    f"{'Claude' if hint == 'claude' else 'Ollama'} isn't set up — "
+                    f"{'Claude' if hint == 'claude' else 'ChatGPT' if hint == 'openai' else 'Ollama'} isn't set up — "
                     "configure it in Settings first."
                 )
             raise ValueError(
-                "AI isn't set up yet — add your Ollama server or Claude key in Settings."
+                "AI isn't set up yet — add your Ollama server, Claude key, or OpenAI key in Settings."
             )
         return provider
     finally:

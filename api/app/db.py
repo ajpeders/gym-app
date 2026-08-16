@@ -49,6 +49,8 @@ _ADDED_COLUMNS: list[tuple[str, str, str]] = [
     # The DEFAULT backfills existing rows, so every plan that predates rolling
     # splits stays exactly what it already was: rigid.
     ("split", "mode", "VARCHAR NOT NULL DEFAULT 'rigid'"),
+    ("settings", "openai_api_key", "VARCHAR"),
+    ("settings", "openai_model", "VARCHAR"),
 ]
 
 

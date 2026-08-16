@@ -71,8 +71,8 @@ function Row({
       <Switch
         value={value}
         onValueChange={onValueChange}
-        trackColor={{ false: '#243044', true: '#818cf8' }}
-        thumbColor={value ? '#070b12' : '#64748b'}
+        trackColor={{ false: '#223047', true: '#38bdf8' }}
+        thumbColor={value ? '#05080f' : '#64748b'}
       />
     </View>
   );
@@ -124,7 +124,7 @@ export default function SettingsScreen() {
       <Card className="mb-4 rounded-lg p-5" onPress={() => router.push('/profile')}>
         <View className="flex-row items-center justify-between">
           <View className="mr-3 h-12 w-12 items-center justify-center rounded-2xl border border-brand/30 bg-brand/10">
-            <Ionicons name="person-outline" size={21} color="#818cf8" />
+            <Ionicons name="person-outline" size={21} color="#38bdf8" />
           </View>
           <View className="flex-1 pr-3">
             <Text variant="subheading">{user?.display_name ?? 'Your profile'}</Text>
@@ -217,6 +217,7 @@ export default function SettingsScreen() {
 const PROVIDER_OPTIONS: { label: string; value: AiProvider; disabled?: boolean }[] = [
   { label: 'Ollama', value: 'ollama' },
   { label: 'Claude', value: 'claude' },
+  { label: 'ChatGPT', value: 'openai' },
   { label: 'On-device', value: 'on-device', disabled: true },
 ];
 
@@ -228,7 +229,7 @@ function AiProviderControl({
   const { settings, update } = useSettings();
   const [providers, setProviders] = useState<AiProviders | null>(null);
   const [loading, setLoading] = useState(true);
-  const [model, setModel] = useState(settings.claude_model ?? '');
+  const [model, setModel] = useState('');
   const [urlInput, setUrlInput] = useState(settings.ollama_url ?? '');
   // Guards for the Ollama URL field so it commits at most once per edit
   // (onEndEditing + onBlur both fire) and never double-saves.
@@ -237,6 +238,9 @@ function AiProviderControl({
 
   const selected = settings.ai_provider;
   const isOllama = selected === 'ollama';
+  const isClaude = selected === 'claude';
+  const isOpenAI = selected === 'openai';
+  const isCloud = isClaude || isOpenAI;
 
   // Discovered local (Ollama) models.
   const [models, setModels] = useState<AiModelsResult | null>(null);
@@ -274,8 +278,8 @@ function AiProviderControl({
   }, []);
 
   useEffect(() => {
-    setModel(settings.claude_model ?? '');
-  }, [settings.claude_model]);
+    setModel(isOpenAI ? settings.openai_model ?? '' : settings.claude_model ?? '');
+  }, [isOpenAI, settings.claude_model, settings.openai_model]);
 
   useEffect(() => {
     setUrlInput(settings.ollama_url ?? '');
@@ -342,20 +346,29 @@ function AiProviderControl({
     void loadProviders();
   }, [loadProviders]);
 
-  // ---- Claude API key (per-user, write-only) ----
+  // ---- Cloud API key (per-user, write-only) ----
   const claudeConfigured = providers?.providers.claude.configured ?? false;
+  const openaiConfigured = providers?.providers.openai.configured ?? false;
+  const cloudConfigured = isOpenAI ? openaiConfigured : claudeConfigured;
+  const cloudLabel = isOpenAI ? 'ChatGPT' : 'Claude';
+  const cloudKeyName = isOpenAI ? 'OpenAI API key' : 'Claude API key';
+  const cloudKeyPlaceholder = isOpenAI ? 'sk-proj-…' : 'sk-ant-…';
+  const cloudKeyHelp = isOpenAI
+    ? 'Paste your OpenAI API key. This uses the OpenAI API, not your ChatGPT login.'
+    : 'Paste your Anthropic API key (sk-ant-…)';
+  const cloudKeyWhere = isOpenAI ? 'Get one at platform.openai.com' : 'Get one at console.anthropic.com';
   const [keyInput, setKeyInput] = useState('');
   const [keySaving, setKeySaving] = useState(false);
   const [keyReplacing, setKeyReplacing] = useState(false);
   const [keyError, setKeyError] = useState<string | null>(null);
 
-  async function saveClaudeKey() {
+  async function saveCloudKey() {
     const trimmed = keyInput.trim();
     if (trimmed === '') return; // empty Save is a no-op; use Remove to clear.
     setKeySaving(true);
     setKeyError(null);
     try {
-      await update({ claude_api_key: trimmed });
+      await update(isOpenAI ? { openai_api_key: trimmed } : { claude_api_key: trimmed });
       setKeyInput('');
       setKeyReplacing(false);
       // Re-fetch so `configured` flips and gates (Coach/Home) update.
@@ -367,11 +380,11 @@ function AiProviderControl({
     }
   }
 
-  async function removeClaudeKey() {
+  async function removeCloudKey() {
     setKeySaving(true);
     setKeyError(null);
     try {
-      await update({ claude_api_key: '' });
+      await update(isOpenAI ? { openai_api_key: '' } : { claude_api_key: '' });
       setKeyInput('');
       setKeyReplacing(false);
       await loadProviders();
@@ -387,7 +400,9 @@ function AiProviderControl({
       ? providers?.providers.ollama
       : selected === 'claude'
         ? providers?.providers.claude
-        : undefined;
+        : selected === 'openai'
+          ? providers?.providers.openai
+          : undefined;
   const selectedUnconfigured = selectedInfo ? !selectedInfo.configured : false;
   const placeholderModel = selectedInfo?.model ?? 'server default';
   // A hint URL to prefill / suggest for Ollama (there is no auto-applied default).
@@ -397,6 +412,11 @@ function AiProviderControl({
   function commitModel() {
     const trimmed = model.trim();
     const next = trimmed === '' ? null : trimmed;
+    if (isOpenAI) {
+      if (next === (settings.openai_model ?? null)) return;
+      void patch(() => update({ openai_model: next }));
+      return;
+    }
     if (next === (settings.claude_model ?? null)) return;
     void patch(() => update({ claude_model: next }));
   }
@@ -436,7 +456,7 @@ function AiProviderControl({
       <Card className="mb-3 gap-1">
         {loading ? (
           <View className="flex-row items-center py-1">
-            <ActivityIndicator color="#818cf8" />
+            <ActivityIndicator color="#38bdf8" />
             <Text variant="muted" className="ml-2">
               Checking providers…
             </Text>
@@ -446,9 +466,16 @@ function AiProviderControl({
             <ProviderStatus name="Ollama" info={providers.providers.ollama} />
             <View className="h-px bg-iron-800" />
             <ProviderStatus name="Claude" info={providers.providers.claude} />
+            <View className="h-px bg-iron-800" />
+            <ProviderStatus name="ChatGPT" info={providers.providers.openai} />
             {!providers.providers.claude.configured ? (
               <Text variant="caption" className="mt-0.5 text-iron-400">
                 Claude needs your Anthropic API key — add it below.
+              </Text>
+            ) : null}
+            {!providers.providers.openai.configured ? (
+              <Text variant="caption" className="mt-0.5 text-iron-400">
+                ChatGPT needs an OpenAI API key — add it below.
               </Text>
             ) : null}
           </>
@@ -487,6 +514,12 @@ function AiProviderControl({
           <View className="mb-1 mt-1 rounded-lg border border-red-500/40 bg-red-500/10 px-3 py-2">
             <Text className="text-sm font-medium text-red-400">
               Claude isn’t set up yet — add your API key below.
+            </Text>
+          </View>
+        ) : selected === 'openai' ? (
+          <View className="mb-1 mt-1 rounded-lg border border-red-500/40 bg-red-500/10 px-3 py-2">
+            <Text className="text-sm font-medium text-red-400">
+              ChatGPT isn’t set up yet — add your OpenAI API key below.
             </Text>
           </View>
         ) : (
@@ -552,7 +585,7 @@ function AiProviderControl({
 
           {modelsLoading ? (
             <View className="flex-row items-center py-2">
-              <ActivityIndicator color="#818cf8" />
+              <ActivityIndicator color="#38bdf8" />
               <Text variant="muted" className="ml-2">
                 Finding installed models…
               </Text>
@@ -604,7 +637,7 @@ function AiProviderControl({
                       ) : null}
                     </View>
                     {active ? (
-                      <Ionicons name="checkmark-circle" size={18} color="#818cf8" />
+                      <Ionicons name="checkmark-circle" size={18} color="#38bdf8" />
                     ) : null}
                   </Pressable>
                 );
@@ -619,10 +652,10 @@ function AiProviderControl({
         </>
       ) : (
         <>
-        {selected === 'claude' ? (
+        {isCloud ? (
           <Card className="mb-3">
-            <Text className="mb-1.5 text-sm font-bold text-iron-100">Claude API key</Text>
-            {claudeConfigured && !keyReplacing ? (
+            <Text className="mb-1.5 text-sm font-bold text-iron-100">{cloudKeyName}</Text>
+            {cloudConfigured && !keyReplacing ? (
               <>
                 <Text className="text-sm font-bold text-brand">✓ API key saved</Text>
                 <Text variant="caption" className="mt-1 text-iron-400">
@@ -637,7 +670,7 @@ function AiProviderControl({
                     disabled={keySaving}>
                     <Text className="text-sm font-bold text-brand">Replace key</Text>
                   </Pressable>
-                  <Pressable onPress={() => void removeClaudeKey()} disabled={keySaving}>
+                  <Pressable onPress={() => void removeCloudKey()} disabled={keySaving}>
                     <Text className="text-sm font-bold text-red-400">Remove</Text>
                   </Pressable>
                 </View>
@@ -653,15 +686,15 @@ function AiProviderControl({
                   secureTextEntry
                   autoCapitalize="none"
                   autoCorrect={false}
-                  placeholder="sk-ant-…"
+                  placeholder={cloudKeyPlaceholder}
                   placeholderTextColor="#64748b"
                   className="rounded-lg border border-iron-700 bg-iron-900 px-4 py-3 text-base text-iron-50"
                 />
                 <Text variant="caption" className="mt-1.5 text-iron-400">
-                  Paste your Anthropic API key (sk-ant-…)
+                  {cloudKeyHelp}
                 </Text>
                 <Text variant="caption" className="mt-0.5 text-iron-500">
-                  Get one at console.anthropic.com
+                  {cloudKeyWhere}
                 </Text>
                 <View className="mt-2.5 flex-row items-center gap-3">
                   <Button
@@ -669,9 +702,9 @@ function AiProviderControl({
                     size="sm"
                     loading={keySaving}
                     disabled={keyInput.trim() === ''}
-                    onPress={() => void saveClaudeKey()}
+                    onPress={() => void saveCloudKey()}
                   />
-                  {claudeConfigured ? (
+                  {cloudConfigured ? (
                     <Pressable
                       onPress={() => {
                         setKeyInput('');
@@ -691,7 +724,9 @@ function AiProviderControl({
           </Card>
         ) : null}
         <Card className="mb-3">
-          <Text className="mb-1.5 text-sm font-bold text-iron-100">Model override (optional)</Text>
+          <Text className="mb-1.5 text-sm font-bold text-iron-100">
+            {cloudLabel} model override (optional)
+          </Text>
           <TextInput
             value={model}
             onChangeText={setModel}
@@ -718,10 +753,10 @@ function AiProviderControl({
             testing ? 'opacity-60' : ''
           }`}>
           {testing ? (
-            <ActivityIndicator color="#818cf8" />
+            <ActivityIndicator color="#38bdf8" />
           ) : (
             <>
-              <Ionicons name="flash-outline" size={16} color="#818cf8" />
+              <Ionicons name="flash-outline" size={16} color="#38bdf8" />
               <Text className="ml-1.5 text-base font-semibold text-iron-50">Test connection</Text>
             </>
           )}

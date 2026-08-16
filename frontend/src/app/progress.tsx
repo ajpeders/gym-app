@@ -277,7 +277,7 @@ export default function ProgressScreen() {
                 <Ionicons
                   name={overrideDate ? 'ellipse-outline' : 'checkmark-circle'}
                   size={16}
-                  color={overrideDate ? '#64748b' : '#818cf8'}
+                  color={overrideDate ? '#64748b' : '#38bdf8'}
                 />
                 <Text
                   variant="caption"

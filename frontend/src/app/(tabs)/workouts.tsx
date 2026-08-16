@@ -147,7 +147,7 @@ export default function WorkoutsScreen() {
                     <Ionicons
                       name={showPlanPicker ? 'chevron-up' : 'chevron-down'}
                       size={16}
-                      color="#818cf8"
+                      color="#38bdf8"
                     />
                   </Pressable>
 
@@ -176,7 +176,7 @@ export default function WorkoutsScreen() {
                               </Text>
                             </View>
                             {selected ? (
-                              <Ionicons name="checkmark-circle" size={19} color="#818cf8" />
+                              <Ionicons name="checkmark-circle" size={19} color="#38bdf8" />
                             ) : (
                               <Ionicons name="chevron-forward" size={16} color="#475569" />
                             )}
@@ -258,7 +258,7 @@ export default function WorkoutsScreen() {
                   className="mb-3 rounded-lg p-5">
                   <View className="flex-row items-center">
                     <View className="mr-3 h-12 w-12 items-center justify-center rounded-lg border border-brand/30 bg-brand/10">
-                      <Ionicons name="calendar" size={22} color="#818cf8" />
+                      <Ionicons name="calendar" size={22} color="#38bdf8" />
                     </View>
                     <View className="flex-1">
                       <Text variant="subheading" numberOfLines={1}>

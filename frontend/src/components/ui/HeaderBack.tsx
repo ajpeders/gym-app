@@ -17,7 +17,7 @@ export function HeaderBack() {
       accessibilityRole="button"
       accessibilityLabel="Go back"
       className="flex-row items-center pr-3 active:opacity-60">
-      <Ionicons name="chevron-back" size={26} color="#818cf8" />
+      <Ionicons name="chevron-back" size={26} color="#38bdf8" />
     </Pressable>
   );
 }

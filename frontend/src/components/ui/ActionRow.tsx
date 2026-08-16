@@ -39,7 +39,7 @@ export function ActionRow({
       } ${onPress && !disabled ? 'active:bg-brand/10' : ''} ${disabled ? 'opacity-60' : ''}`}>
       {icon ? (
         <View className="mr-3 h-9 w-9 items-center justify-center rounded-lg border border-iron-700 bg-iron-900">
-          <Ionicons name={icon} size={17} color={selected ? '#818cf8' : '#94a3b8'} />
+          <Ionicons name={icon} size={17} color={selected ? '#38bdf8' : '#94a3b8'} />
         </View>
       ) : null}
       <View className="min-w-0 flex-1">

@@ -25,6 +25,9 @@ class Settings(BaseSettings):
     ollama_model: str = "qwen3:8b"
     claude_api_key: str = ""
     claude_model: str = "claude-opus-4-8"  # configurable; claude-haiku-4-5 is the cheap option
+    openai_api_key: str = ""
+    openai_model: str = "gpt-5.6-luna"
+    openai_base_url: str = "https://api.openai.com/v1"
     ai_timeout: float = 120.0  # generous for cold model loads on first request
 
     # Loopback base URL the companion coach uses to call gym's own API as tools.

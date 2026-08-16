@@ -26,7 +26,7 @@ function StatTile({
 }) {
   return (
     <View className="flex-1 rounded-lg border border-iron-800 bg-iron-900 px-3 py-3">
-      <Ionicons name={icon} size={17} color="#818cf8" />
+      <Ionicons name={icon} size={17} color="#38bdf8" />
       <Text variant="heading" className="mt-2" numberOfLines={1}>
         {value}
       </Text>

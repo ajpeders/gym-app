@@ -28,11 +28,11 @@ export default function TabsLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
-        headerStyle: { backgroundColor: '#070b12' },
+        headerStyle: { backgroundColor: '#05080f' },
         headerTintColor: '#f8fafc',
         headerTitleStyle: { fontWeight: '900' },
         headerShadowVisible: false,
-        tabBarActiveTintColor: '#818cf8',
+        tabBarActiveTintColor: '#38bdf8',
         tabBarInactiveTintColor: '#94a3b8',
         tabBarShowLabel: true,
         tabBarStyle: {
@@ -42,7 +42,7 @@ export default function TabsLayout() {
           height: 70,
           backgroundColor: '#090e18',
           borderColor: 'transparent',
-          borderTopColor: '#243044',
+          borderTopColor: '#223047',
           borderWidth: 0,
           borderTopWidth: 1,
           paddingTop: 7,

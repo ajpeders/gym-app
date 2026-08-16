@@ -44,7 +44,7 @@ function QuickLink({
       }`}>
       <View className="flex-row items-start">
         <View className="h-10 w-10 items-center justify-center rounded-lg border border-brand/25 bg-brand/10">
-          <Ionicons name={icon} size={18} color="#818cf8" />
+          <Ionicons name={icon} size={18} color="#38bdf8" />
         </View>
         <Ionicons
           name="arrow-up-outline"
@@ -75,7 +75,7 @@ function StatTile({
   return (
     <View className="flex-1 rounded-lg border border-iron-700 bg-iron-950 px-3 py-2">
       <View className="flex-row items-center">
-        <Ionicons name={icon} size={15} color="#818cf8" />
+        <Ionicons name={icon} size={15} color="#38bdf8" />
         <Text variant="label" className="ml-1.5 text-brand" numberOfLines={1}>
           {value}
         </Text>
@@ -214,7 +214,7 @@ export default function HomeScreen() {
           <Card elevated className="mb-4 border-brand/35 bg-iron-900 p-4">
             <View className="flex-row items-center">
               <View className="mr-3 h-12 w-12 items-center justify-center rounded-lg bg-brand">
-                <Ionicons name="barbell" size={23} color="#070b12" />
+                <Ionicons name="barbell" size={23} color="#05080f" />
               </View>
               <View className="flex-1">
                 <View className="mb-1 self-start rounded-full bg-brand px-2 py-0.5">
