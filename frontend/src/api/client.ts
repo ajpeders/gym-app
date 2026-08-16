@@ -634,8 +634,12 @@ export const api = {
   session: (id: string) => request<Session>(`/sessions/${id}`),
   // The session in progress, or null. Finds one this device doesn't remember.
   activeSession: () => request<Session | null>('/sessions/active'),
-  startSession: (input: { workout_id?: string; name?: string; started_at?: string }) =>
-    request<Session>('/sessions/start', { method: 'POST', body: input }),
+  // The idempotency key matters most here: a replayed start would otherwise
+  // close the session you're standing in and open a second one.
+  startSession: (
+    input: { workout_id?: string; name?: string; started_at?: string },
+    idempotencyKey?: string,
+  ) => request<Session>('/sessions/start', { method: 'POST', body: input, idempotencyKey }),
   logSession: (input: SessionLogInput) =>
     request<Session>('/sessions/log', { method: 'POST', body: input }),
   updateSession: (id: string, input: Partial<Pick<Session, 'name' | 'notes'>>) =>

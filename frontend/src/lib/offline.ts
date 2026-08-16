@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-import type { SetInput, Session, SessionSet } from '@/api/types';
+import type { SetInput, Session, SessionSet, Workout } from '@/api/types';
 
 /**
  * Offline support for logging.
@@ -17,6 +17,8 @@ import type { SetInput, Session, SessionSet } from '@/api/types';
 
 const QUEUE_KEY = 'gymapp.offline.setQueue';
 const CACHE_KEY = 'gymapp.offline.session';
+const IDMAP_KEY = 'gymapp.offline.sessionIds';
+const PLANS_KEY = 'gymapp.offline.plans';
 
 interface QueuedBase {
   /** Local-only id; for a set, also the optimistic row's id until it syncs. */
@@ -47,6 +49,12 @@ export interface QueuedSet extends QueuedBase {
  */
 export type QueuedOp =
   | QueuedSet
+  | (QueuedBase & {
+      kind: 'start';
+      workoutId?: string | null;
+      name?: string | null;
+      startedAt: string;
+    })
   | (QueuedBase & { kind: 'addExercise'; exerciseId: string })
   | (QueuedBase & { kind: 'swap'; weId: string; exerciseId: string })
   | (QueuedBase & { kind: 'removeExercise'; weId: string })
@@ -87,6 +95,13 @@ function nextLocalId(): string {
 
 /** What a caller supplies; the queue fills in ids, timestamp and attempts. */
 export type QueuedOpInput =
+  | {
+      kind: 'start';
+      sessionId: string;
+      workoutId?: string | null;
+      name?: string | null;
+      startedAt: string;
+    }
   | { kind: 'addExercise'; sessionId: string; exerciseId: string }
   | { kind: 'swap'; sessionId: string; weId: string; exerciseId: string }
   | { kind: 'removeExercise'; sessionId: string; weId: string }
@@ -198,6 +213,145 @@ export async function flushQueue(
   return { synced, remaining: remaining.length };
 }
 
+// --- local session ids (starting a workout with no signal) ---
+//
+// A session started offline has no server id yet, but the screen, the router,
+// the queue and the resume-on-launch path all need to call it something right
+// now. So it gets a local id that NEVER changes: rewriting it across all four
+// once the server answers is the bug factory this avoids. The server id is
+// recorded alongside it and swapped in at the moment of each API call, which
+// makes the local id a permanent alias for the session.
+
+let idMap: Record<string, string> | null = null;
+// Server id -> local id. The overlay runs synchronously during render and has
+// to recognise a row it still knows by its local name, so the reverse lookup
+// can't be async.
+const aliasByServerId: Record<string, string> = {};
+
+export function isLocalSessionId(id: string | null | undefined): boolean {
+  return typeof id === 'string' && id.startsWith('local-sess-');
+}
+
+export function newLocalSessionId(): string {
+  seq += 1;
+  return `local-sess-${Date.now()}-${seq}`;
+}
+
+async function readIdMap(): Promise<Record<string, string>> {
+  if (idMap) return idMap;
+  try {
+    const raw = await AsyncStorage.getItem(IDMAP_KEY);
+    idMap = raw ? (JSON.parse(raw) as Record<string, string>) : {};
+  } catch {
+    idMap = {};
+  }
+  for (const [local, server] of Object.entries(idMap)) aliasByServerId[server] = local;
+  return idMap;
+}
+
+/** Record the server id a local id turned out to have — a session from an
+ * offline start, or one of the exercise rows inside it. */
+export async function rememberId(localId: string, serverId: string): Promise<void> {
+  const map = { ...(await readIdMap()), [localId]: String(serverId) };
+  idMap = map;
+  aliasByServerId[String(serverId)] = localId;
+  try {
+    await AsyncStorage.setItem(IDMAP_KEY, JSON.stringify(map));
+  } catch {
+    // In-memory still serves this launch; a lost map only costs a re-start.
+  }
+}
+
+/** The id to actually send to the server. Unmapped ids pass straight through,
+ * so this is safe to call on every id everywhere. */
+export async function resolveId(id: string): Promise<string> {
+  if (typeof id !== 'string' || !id.startsWith('local-')) return id;
+  return (await readIdMap())[id] ?? id;
+}
+
+/** Map a synced session's exercise rows onto the local ids sets were logged
+ * against. The server snapshots the plan in order, so position is the join —
+ * without this, every set logged before the start synced would 404 and be
+ * dropped, which is the one outcome the offline queue exists to prevent. */
+export async function rememberRowIds(localSessionId: string, serverRowIds: string[]): Promise<void> {
+  for (const [i, serverId] of serverRowIds.entries()) {
+    await rememberId(`local-we-${localSessionId}-${i}`, String(serverId));
+  }
+}
+
+/** The local id a server row used to be called, if this app run created it. */
+export function localAliasFor(serverId: string): string | undefined {
+  return aliasByServerId[String(serverId)];
+}
+
+// --- plan cache (so a workout can be started with no signal) ---
+//
+// Starting from a plan day needs that day's exercises and targets. They're
+// cached whenever a screen lists them, which is the realistic path: you look at
+// Home or your split before you get to the gym, then the signal dies.
+
+export async function cachePlans(workouts: Workout[]): Promise<void> {
+  if (workouts.length === 0) return;
+  try {
+    const raw = await AsyncStorage.getItem(PLANS_KEY);
+    const existing = raw ? (JSON.parse(raw) as Record<string, Workout>) : {};
+    for (const w of workouts) existing[String(w.id)] = w;
+    await AsyncStorage.setItem(PLANS_KEY, JSON.stringify(existing));
+  } catch {
+    /* best effort */
+  }
+}
+
+export async function readCachedPlan(workoutId: string): Promise<Workout | null> {
+  try {
+    const raw = await AsyncStorage.getItem(PLANS_KEY);
+    if (!raw) return null;
+    return (JSON.parse(raw) as Record<string, Workout>)[String(workoutId)] ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * The session to show for a start that hasn't reached the server yet.
+ *
+ * Built from the cached plan so the screen looks exactly like an online start —
+ * same exercises, same targets — rather than an empty shell you have to
+ * rebuild by hand in a basement.
+ */
+export function localSession(
+  localId: string,
+  input: { workout_id?: string; name?: string; started_at?: string },
+  plan: Workout | null,
+): Session {
+  return {
+    id: localId,
+    name: input.name ?? plan?.name ?? 'Session',
+    source_workout_id: input.workout_id != null ? Number(input.workout_id) : null,
+    started_at: input.started_at ?? new Date().toISOString(),
+    finished_at: null,
+    notes: null,
+    exercises: (plan?.exercises ?? []).map((pe, i) => ({
+      // Local row ids: sets logged against them queue under these and are
+      // re-pointed at the real rows when the start syncs and the session is
+      // re-read from the server.
+      id: `local-we-${localId}-${i}`,
+      exercise_id: String(pe.exercise_id),
+      exercise: pe.exercise,
+      order: pe.order ?? i,
+      notes: pe.notes ?? null,
+      target_sets: pe.target_sets ?? null,
+      target_reps: pe.target_reps ?? null,
+      target_reps_max: pe.target_reps_max ?? null,
+      target_weight: pe.target_weight ?? null,
+      target_weight_max: pe.target_weight_max ?? null,
+      target_duration_seconds: pe.target_duration_seconds ?? null,
+      target_duration_seconds_max: pe.target_duration_seconds_max ?? null,
+      sets: [],
+    })),
+  };
+}
+
 // --- active session cache (so the screen renders offline) ---
 
 export async function cacheSession(w: Session): Promise<void> {
@@ -255,7 +409,7 @@ export function withPendingSets(w: Session, pending: QueuedSet[]): Session {
   if (pending.length === 0) return w;
   const byWe = new Map<string, QueuedSet[]>();
   for (const p of pending) {
-    if (p.sessionId !== w.id) continue;
+    if (p.sessionId !== w.id && localAliasFor(w.id) !== p.sessionId) continue;
     byWe.set(p.weId, [...(byWe.get(p.weId) ?? []), p]);
   }
   if (byWe.size === 0) return w;
@@ -263,8 +417,12 @@ export function withPendingSets(w: Session, pending: QueuedSet[]): Session {
   return {
     ...w,
     exercises: w.exercises.map((we) => {
-      const extra = byWe.get(we.id);
-      if (!extra?.length) return we;
+      // Sets logged before the session's start synced were queued against the
+      // row's local id; the server copy calls it something else. Both names
+      // have to find their sets or they blink off the screen mid-sync.
+      const alias = localAliasFor(we.id);
+      const extra = [...(byWe.get(we.id) ?? []), ...(alias ? (byWe.get(alias) ?? []) : [])];
+      if (!extra.length) return we;
       const optimistic: SessionSet[] = extra.map((p) => ({
         id: p.localId,
         reps: p.input.reps ?? null,

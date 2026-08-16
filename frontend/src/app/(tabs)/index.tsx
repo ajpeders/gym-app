@@ -5,6 +5,7 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
 import { api } from '@/api/client';
+import { cachePlans } from '@/lib/offline';
 import type { Split, StatsSummary, TodayWorkout, Workout } from '@/api/types';
 import { useAuth } from '@/state/auth';
 import { useActiveWorkout } from '@/state/active-workout';
@@ -221,6 +222,10 @@ export default function HomeScreen() {
       setWorkouts(workoutList);
       setToday(todayList);
       setStats(summary);
+      // Keep the plan on the device: starting a workout offline builds the
+      // session from this cache, and Home is the screen you check before you
+      // leave for the gym.
+      void cachePlans([...workoutList, ...splitList.flatMap((s) => s.workouts)]);
     } finally {
       setRefreshing(false);
     }

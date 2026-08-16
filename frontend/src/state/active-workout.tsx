@@ -12,9 +12,16 @@ import {
   enqueueOp,
   enqueueSet,
   flushQueue,
+  isLocalSessionId,
+  localSession,
+  newLocalSessionId,
   pendingCount as queuedCount,
   pendingSets,
+  readCachedPlan,
   readCachedSession,
+  rememberId,
+  rememberRowIds,
+  resolveId,
   withPendingSets,
   withPendingSetsSync,
   type QueuedOp,
@@ -68,9 +75,16 @@ export function ActiveWorkoutProvider({ children }: { children: React.ReactNode 
       if (!stored) return;
       setActiveId(stored);
       try {
-        const w = await api.session(stored);
+        const serverId = await resolveId(stored);
+        if (isLocalSessionId(serverId)) {
+          // Started offline and still unsynced: the cache is the only copy.
+          const cached = await readCachedSession(stored);
+          if (cached) setWorkout(await overlay(cached));
+          return;
+        }
+        const w = await api.session(serverId);
         if (w.finished_at == null) {
-          await applyWorkout(w);
+          await applyWorkout(isLocalSessionId(stored) ? { ...w, id: stored } : w);
         } else {
           await deleteItem(ACTIVE_KEY);
           setActiveId(null);
@@ -146,11 +160,37 @@ export function ActiveWorkoutProvider({ children }: { children: React.ReactNode 
     }
   }, []);
 
+  /**
+   * Start a session, with or without a network.
+   *
+   * Offline it gets a local id and a session built from the cached plan, so the
+   * gym floor experience is identical — the alternative was being unable to
+   * begin a workout at all in the one place phones have no signal. The local id
+   * is permanent (see lib/offline.ts); the server id is swapped in per call.
+   */
   const start = useCallback(
     async (input: { workout_id?: string; name?: string; started_at?: string }) => {
-      const w = await api.startSession(input);
-      await setActive(w);
-      return w;
+      try {
+        const w = await api.startSession(input);
+        await setActive(w);
+        return w;
+      } catch (err) {
+        if ((err as { status?: number })?.status !== 0) throw err;
+        const localId = newLocalSessionId();
+        const startedAt = input.started_at ?? new Date().toISOString();
+        const plan = input.workout_id ? await readCachedPlan(input.workout_id) : null;
+        const w = localSession(localId, { ...input, started_at: startedAt }, plan);
+        await enqueueOp({
+          kind: 'start',
+          sessionId: localId,
+          workoutId: input.workout_id ?? null,
+          name: input.name ?? null,
+          startedAt,
+        });
+        await setActive(w);
+        setPendingCount(await queuedCount());
+        return w;
+      }
     },
     [setActive],
   );
@@ -160,8 +200,8 @@ export function ActiveWorkoutProvider({ children }: { children: React.ReactNode 
       setLoading(true);
       setActiveId(id);
       try {
-        const w = await api.session(id);
-        await applyWorkout(w);
+        const w = await api.session(await resolveId(id));
+        await applyWorkout(isLocalSessionId(id) ? { ...w, id } : w);
         if (w.finished_at == null) await setItem(ACTIVE_KEY, id);
       } catch {
         // Offline: render from cache so the session is still usable.
@@ -176,8 +216,13 @@ export function ActiveWorkoutProvider({ children }: { children: React.ReactNode 
 
   const refresh = useCallback(async () => {
     if (!activeId) return;
+    const serverId = await resolveId(activeId);
+    // A start that hasn't synced yet has nothing to read back — asking would
+    // 404 and blank a session the user is standing in the middle of.
+    if (isLocalSessionId(serverId)) return;
     try {
-      await applyWorkout(await api.session(activeId));
+      const w = await api.session(serverId);
+      await applyWorkout(isLocalSessionId(activeId) ? { ...w, id: activeId } : w);
     } catch {
       // Stay on the cached + pending view rather than blanking the screen.
       const cached = await readCachedSession(activeId);
@@ -196,6 +241,15 @@ export function ActiveWorkoutProvider({ children }: { children: React.ReactNode 
    */
   const sendOrQueue = useCallback(
     async (attempt: () => Promise<unknown>, queued: () => Promise<void>) => {
+      // A session the server has never heard of can only be written to by
+      // queueing — attempting first would 404, and a 404 is treated as
+      // permanent, which would silently throw the write away.
+      if (activeId && isLocalSessionId(await resolveId(activeId))) {
+        await queued();
+        setPendingCount(await queuedCount());
+        await refresh();
+        return;
+      }
       try {
         await attempt();
       } catch (err) {
@@ -205,7 +259,7 @@ export function ActiveWorkoutProvider({ children }: { children: React.ReactNode 
       }
       await refresh();
     },
-    [refresh],
+    [activeId, refresh],
   );
 
   const addExercise = useCallback(
@@ -246,28 +300,47 @@ export function ActiveWorkoutProvider({ children }: { children: React.ReactNode 
     syncing.current = true;
     try {
       const send = async (e: QueuedOp) => {
+        // Local ids are translated here and nowhere else — this is the single
+        // seam between what the app calls a session and what the server does.
+        const sid = await resolveId(e.sessionId);
         switch (e.kind) {
-          case 'addExercise':
-            await api.addSessionExercise(e.sessionId, { exercise_id: e.exerciseId }, e.opId);
+          case 'start': {
+            const created = await api.startSession(
+              {
+                workout_id: e.workoutId ?? undefined,
+                name: e.name ?? undefined,
+                started_at: e.startedAt,
+              },
+              e.opId,
+            );
+            await rememberId(e.sessionId, created.id);
+            await rememberRowIds(e.sessionId, created.exercises.map((we) => we.id));
             return;
+          }
+          case 'addExercise': {
+            const row = await api.addSessionExercise(sid, { exercise_id: e.exerciseId }, e.opId);
+            // Sets logged against the optimistic row must find the real one.
+            await rememberId(e.localId, row.id);
+            return;
+          }
           case 'swap':
-            await api.swapSessionExercise(e.sessionId, e.weId, e.exerciseId);
+            await api.swapSessionExercise(sid, await resolveId(e.weId), e.exerciseId);
             return;
           case 'removeExercise':
-            await api.deleteSessionExercise(e.sessionId, e.weId);
+            await api.deleteSessionExercise(sid, await resolveId(e.weId));
             return;
           case 'removeSet':
-            await api.deleteSet(e.sessionId, e.weId, e.setId);
+            await api.deleteSet(sid, await resolveId(e.weId), e.setId);
             return;
           case 'finish':
-            await api.finishSession(e.sessionId, e.finishedAt);
+            await api.finishSession(sid, e.finishedAt);
             return;
           default:
             // Stamp with when the set was actually logged, not when it synced —
             // otherwise a whole offline session collapses onto one timestamp.
             await api.addSet(
-              e.sessionId,
-              e.weId,
+              sid,
+              await resolveId(e.weId),
               {
                 ...e.input,
                 completed_at: e.input.completed_at ?? new Date(e.createdAt).toISOString(),
@@ -281,7 +354,10 @@ export function ActiveWorkoutProvider({ children }: { children: React.ReactNode 
       // Only re-read the server when something actually landed.
       if (synced > 0 && activeId) {
         try {
-          await applyWorkout(await api.session(activeId));
+          const serverId = await resolveId(activeId);
+          if (isLocalSessionId(serverId)) return; // start still queued
+          const w = await api.session(serverId);
+          await applyWorkout(isLocalSessionId(activeId) ? { ...w, id: activeId } : w);
         } catch {
           /* still offline — keep showing what we have */
         }
@@ -354,7 +430,11 @@ export function ActiveWorkoutProvider({ children }: { children: React.ReactNode 
     // op. The server keeps the first finish it sees and won't restamp.
     const finishedAt = new Date().toISOString();
     try {
-      await api.finishSession(activeId, finishedAt);
+      const serverId = await resolveId(activeId);
+      // Still unsynced: there is nothing to finish yet, so the finish rides the
+      // queue behind its own start.
+      if (isLocalSessionId(serverId)) throw { status: 0 };
+      await api.finishSession(serverId, finishedAt);
     } catch (err) {
       if ((err as { status?: number })?.status !== 0) throw err;
       // Offline: you're done regardless. Queue it and clear the screen rather
@@ -369,7 +449,9 @@ export function ActiveWorkoutProvider({ children }: { children: React.ReactNode 
     if (!activeId) return;
     try {
       await dropSessionFromQueue(activeId);
-      await api.deleteSession(activeId);
+      const serverId = await resolveId(activeId);
+      // Never reached the server, so dropping the queue already discarded it.
+      if (!isLocalSessionId(serverId)) await api.deleteSession(serverId);
     } finally {
       setPendingCount(0);
       await setActive(null);

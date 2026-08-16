@@ -4,6 +4,7 @@ import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-rou
 import { Ionicons } from '@expo/vector-icons';
 
 import { api } from '@/api/client';
+import { cachePlans } from '@/lib/offline';
 import type { Split, SplitEditProposal, SplitInput, TodayWorkout, Workout } from '@/api/types';
 import { useStartSession } from '@/hooks/use-start-session';
 import { useAiStatus } from '@/hooks/use-ai-status';
@@ -43,6 +44,7 @@ export default function SplitDetailScreen() {
       ]);
       setSplit(s);
       setToday(t);
+      void cachePlans(s.workouts);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load split');
     } finally {
