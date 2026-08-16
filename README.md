@@ -28,9 +28,9 @@ EXPO_PUBLIC_API_URL=http://localhost:8000 npx expo start
 Three suites, all run in CI (`.forgejo/workflows/ci.yml`):
 
 ```sh
-cd api      && .venv/bin/python -m pytest -q   # 213 API tests
-cd frontend && npm test                        # unit: the offline write queue
-cd frontend && npm run e2e                     # 27 journeys, real stack in a browser
+cd api      && .venv/bin/python -m pytest -q   # 362 API tests
+cd frontend && npm test                        # unit: offline queue, superset labels
+cd frontend && npm run e2e                     # 57 journeys, real stack in a browser
 ```
 
 `npm run e2e` builds the web bundle, starts an API against a throwaway copy of

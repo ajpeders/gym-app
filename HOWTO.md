@@ -102,6 +102,31 @@ If `api/data/gym.db` doesn't exist the API starts with an empty catalog and the
 suite creates the exercises it needs, which is how it runs in CI. Locally the
 copied database gives it the real 828-row catalog to search.
 
+## Make yourself an admin
+
+The operator view (accounts, crash reports, AI health, catalog state) needs
+`role = "admin"`. On an install that has none yet, set the bootstrap address:
+
+```sh
+# in the API's environment
+GYM_ADMIN_EMAIL=you@example.com
+```
+
+That account is treated as an admin from its next request, and can promote
+others by setting `role` directly. It exists so granting the *first* admin
+doesn't mean editing SQLite inside the container — which is the problem the
+admin view is there to remove.
+
+## Import a history from Hevy or Strong
+
+Export the CSV from that app, then paste it into **Import → "Coming from Hevy
+or Strong?"**. The format is detected from the header row; sessions keep the
+dates they happened on and warmups stay warmups. Movements the catalog can't
+place are listed back to you rather than dropped.
+
+`GET /api/sessions/export.csv` writes the same shape back out, so the export
+can be re-imported — into this app, or as a way out of it.
+
 ## Add a database column
 
 There's no Alembic. `init_db()` (in `api/app/db.py`) calls `create_all()` for new

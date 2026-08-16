@@ -39,6 +39,14 @@ api/app/
   models.py      # ORM models (single module)
   schemas.py     # Pydantic request/response DTOs
   progression.py # "top of the rep range on every set" — pure, derived, unstored
+  overload.py    # what that earns you next time, in equipment-shaped increments
+  analysis.py    # volume per muscle, coverage, balance, e1RM, readiness, milestones
+  calculators.py # plates, warmup ramps, estimated max — the sums you'd do at the bar
+  rotation.py    # where a rolling split has got to, from the log rather than the date
+  csv_io.py      # read a history out of Hevy/Strong, and write one back
+  presets.py     # well-known programs as data (PPL, 5x5, ...) — adopted as copies
+  foods.py       # common foods with their macros, so logging a meal isn't data entry
+  accounts.py    # one delete path for both callers, plus the orphan sweep
   idempotency.py # remembers a write's answer so the offline queue can replay it
   routes/        # one APIRouter per resource — /splits (+ /splits/today),
                  #   /workouts, /sessions, /exercises, /metrics, /ai, ...
@@ -186,6 +194,21 @@ falling back. Keys are write-only — accepted by PATCH `/settings`, never retur
   computed field costs no route changes and can't drift from the sets it
   describes — the trade is that it reflects the *server's* copy, so a set logged
   offline moves the nudge only once the queue drains.
+- **Count it, don't generate it.** Everything numeric an athlete is shown is
+  arithmetic over their own logged sets: weekly volume per muscle and its
+  landmarks, push:pull balance, estimated 1RM and its trend, tonnage, readiness,
+  milestones, and what to put on the bar next time. The AI's job is to
+  *interpret* those numbers or to propose structure (a program, an answer about
+  a movement); it is never the thing that produces a number. A model that
+  invents "you're at 14 sets for chest" is worse than no number at all, and
+  every one of these lives in a pure module (`analysis.py`, `overload.py`,
+  `calculators.py`, `rotation.py`) tested without a database.
+- **Deleting an account is one function, not two.** `app/accounts.py` is shared
+  by the owner's own delete and the operator's, because SQLite reuses user ids —
+  a row left behind by one path gets adopted by the next person to sign up.
+  Foreign keys are enabled explicitly (SQLite ignores them otherwise, which
+  makes `ON DELETE CASCADE` decoration), and a boot sweep clears orphans left by
+  the older behaviour.
 - **A user's data never edits the shared catalog.** Imports create custom
   exercises rather than rewriting global rows, and an uploaded exercise image is
   allowed only on an exercise you own. `GET /auth/me/export` mirrors what

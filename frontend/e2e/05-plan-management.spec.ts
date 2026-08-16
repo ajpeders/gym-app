@@ -32,8 +32,14 @@ test('a split can be created, filled with a day, and made active', async ({ page
   // The search debounces, so wait for the row rather than for a fixed time.
   await expect(shown(page, target.name)).toBeVisible({ timeout: 20_000 });
   await shown(page, target.name).click();
+  // The picker is a sheet; wait for it to hand back before hitting Save.
+  await expect(page.getByRole('button', { name: /Save workout/ })).toBeVisible({
+    timeout: 20_000,
+  });
 
   await page.getByRole('button', { name: /Save workout/ }).click();
+  // Saving navigates away; reading the API before that races the request.
+  await page.waitForURL(/workouts|\/$/, { timeout: 30_000 });
 
   const workouts = await api.get('/workouts');
   expect(workouts.map((w: { name: string }) => w.name)).toContain('Chest Day');

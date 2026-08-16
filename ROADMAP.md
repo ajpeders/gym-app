@@ -9,39 +9,48 @@ Status: **Phase 0–2 shipped; Phase 3 (AI) largely done; Phase 4 (insights) sta
 ## Launch scope (what "done" means for v1)
 
 Everything below this section is either shipped or deliberately after launch.
-Written down because a roadmap with 27 open boxes reads as 27 unfinished jobs,
-and most of them are not: they are the product's next two years, not its
-release blockers.
+Written down because a roadmap with open boxes reads as unfinished jobs, and
+most of what's left is not: it needs hardware, an Apple developer account, or a
+bet this project hasn't decided to fund.
 
-**In scope, and done.** Logging (plan, session, sets, rest, swaps, timed and
-bodyweight movements), splits in both weekday and rotation form, catch-up,
-import from pasted text, the exercise catalog with per-user custom exercises and
-photos, history and stats, nutrition v0, athlete profile, the tool-calling
-Spotter with bring-your-own model, accounts with onboarding, data export and
-delete, client error reporting, and offline-first logging including *starting* a
-workout with no signal. Tested by 213 API tests, the frontend unit suite, and 27
-end-to-end journeys through the real stack, all three in CI.
+**In scope, and done.** Logging (plan, session, sets, rest, swaps, supersets,
+timed and bodyweight movements), splits in both weekday and rotation form,
+catch-up, a library of well-known programs, import from pasted text *and* from
+Hevy/Strong CSV, the exercise catalog with custom exercises and photos, history,
+insights (per-muscle volume against the usual landmarks, balance ratios,
+strength trends, weekly tonnage, recovery, milestones), next-session targets,
+gym-floor calculators, nutrition with a common-foods shelf, athlete profile, the
+tool-calling Spotter with bring-your-own model plus generated programs and
+exercise Q&A, accounts with onboarding, data export and delete, an operator view
+(accounts, crash reports, AI health, catalog state), and offline-first logging
+including *starting* a workout with no signal.
+
+Tested by 362 API tests, 30 frontend unit tests, and 57 end-to-end journeys
+through the real stack — all three in CI.
 
 **In scope, needs a human.** The EAS build: `eas login` and `eas init` are
 interactive and `eas init` writes `extra.eas.projectId`. Config and docs are
 ready; no build has been run, so it stays unproven until Alex runs one. This is
-the only launch-blocking item left, and it cannot be done from here.
+the only launch-blocking item left, and it cannot be done from a terminal
+without an Apple/Google account.
 
-**Deliberately after launch.** Everything still `[ ]` below. Three groups:
-*depth* (muscle-volume analysis, e1RM/plateau metrics, charts, PRs and
-achievements, plate and 1RM calculators, preset splits, a food database),
-*reach* (voice, Siri/App Intents, push notifications, OAuth login, Apple
-Health, on-device models, an admin page), and the *Tier-3 bets* the Moats
-section already says not to fund yet (camera form-check, wearable fusion,
-self-hostable ecosystem). None of them block someone tracking their training
-today; several would be actively wrong to ship half-built.
+**Deliberately after launch.** What's still `[ ]` below needs something this
+environment doesn't have. *Native builds and hardware*: on-device models, voice,
+Siri/App Intents, push notifications, Apple Health, camera form-check, wearable
+fusion. *External accounts*: OAuth login. *Bets the Moats section says not to
+fund yet*: the self-hostable ecosystem. None of them block someone tracking
+their training today, and several would be actively wrong to ship half-built.
+
+Two items were **closed by decision rather than by code**, which is worth
+distinguishing from "not done": in-set AI prompts contradict the Spotter's
+constraint against volunteering advice, and multi-user profiles were superseded
+by real accounts.
 
 **Known limits, accepted for v1.** No conflict resolution if the same session is
 edited on two devices at once (last write wins). 338 of 828 catalog rows have no
 image. Import retry creates a second split rather than reconciling. Adding a
-*new* exercise offline queues but shows nothing until it syncs — the plan's own
-exercises are all there, so this only bites mid-session improvisation with no
-signal.
+*new* exercise offline queues but shows nothing until it syncs. RPE-based
+calibration waits for real RPE data rather than shipping a model of nobody.
 
 ---
 
@@ -201,7 +210,15 @@ gym-app/
       session card shows the letter beside the movement.
 
 - [x] Inline progress (this session vs last); session summary on finish
-- [ ] **Contextual AI prompts during the set** (e.g. nudge, form cue) — toggleable; `feature_flags.in_set_prompts` defaults off, not yet wired
+- [~] **Contextual AI prompts during the set** — **dropped as specified, 2026-08-16.** The flag
+      (`feature_flags.in_set_prompts`) stays, but a model volunteering cues between sets is
+      the exact behaviour Alex ruled out when the Spotter was constrained to tools and
+      readback ("I want the chat to not recommend or do anything… so a shitty llm won't
+      nudge in a terrible direction"). Building it would contradict a decision already made
+      deliberately. What replaced it is *asked-for* and grounded: the progression nudge and
+      next-session targets are arithmetic (`app/overload.py`), and the exercise Q&A answers
+      a question you chose to ask, from that movement's own catalog entry. If this ever
+      returns it should be pull, not push.
 
 ### Phase 3 — AI provider layer + natural-language logging (largely done)
 - [x] Provider abstraction: Ollama ⇄ Claude ⇄ ChatGPT/OpenAI; pick provider/model in settings *(BYO per-user, no silent default; `/ai/providers`,`/models`,`/test`). OpenAI shipped 2026-08-16 via the existing companion OpenAI-compatible provider, with per-user write-only API keys and `gpt-5.6` as the default API model.*
@@ -503,9 +520,19 @@ Found while actually training with the app. Ordered by how much they hurt.
 - [x] **Progressive-overload suggestions for the next session** *(2026-08-16)* — `GET /api/workouts/{id}/suggestions` and the "Next time" card on Insights. Same rule as the progression badge (`app/overload.py` beside `app/progression.py`), so the two can never disagree: clear the top of the rep range on every working set and the weight goes up, by an increment that matches the equipment — 2.5kg barbell, 4kg dumbbell pair, 5kg machine stack, because advice you can't follow is worse than none. Bodyweight adds a rep, timed holds add five seconds, and the baseline is the heaviest working set rather than the last one. Deterministic throughout: a suggested weight is training data, and an invented one is worse than nothing.
 - [x] **Form / exercise Q&A** *(2026-08-16)* — `POST /api/ai/exercise-qa` and an "Ask about this movement" box on the exercise screen. The retrieval turns out to be a primary-key lookup: there is exactly one relevant document, the exercise you're looking at, so no vector store is involved. The model gets that entry and is told to answer *from* it and to say when it doesn't cover the question — the difference between grounded and confident. Two or three sentences, because you're between sets; pain is met with "stop and ask someone qualified", never a diagnosis; a listed injury gets a substitution rather than a workaround. An entry with no instructions (338 of 828 rows) is answered but flagged as ungrounded, because that answer is worth less trust.
 - [x] **Athlete memory** (Tier-1 moat): `athlete_profile` model + `/ai/check-in` (NL → profile) + `/profile` CRUD; injected into every coach/parse prompt via `profile_summary`. *(Calibration/recovery signals below still to layer on.)*
-- [ ] **Personal calibration flywheel** (moat #4): per-user adaptive weight/RPE predictions that sharpen with each logged set
+- [~] **Personal calibration flywheel** (moat #4) — **the deterministic half shipped
+      2026-08-16**: next-session targets come from your own last session and the plan's own
+      rule, with equipment-shaped increments (`app/overload.py`), and per-exercise e1RM
+      trends track whether it's working (`/stats/exercises/{id}/trend`). **Still open:** the
+      *adaptive* half — RPE-to-weight calibration that learns each lifter's own scale. That
+      needs months of a real person's RPE data to be anything but invented, so it waits for
+      the data rather than shipping a model of nobody.
 - [~] **Recovery from usage** (moat #4) — **v0 shipped 2026-08-16**: per-muscle last-trained and weekly volume are read off the log and turned into recovering / ready / overreached / neglected, least recovered first, on the Insights screen. Coarse on purpose — "legs were yesterday", not a recovery score pretending to be measured — and volume beats the clock, because three days off doesn't undo a week at 40 sets. "Neglected" rather than "fresh" for a muscle untouched for a week, since *fresh* invites another rest day. **Still open:** using this to gate volume/intensity
-- [ ] **Lavish AI** (Tier-1 moat): regenerate in-session UI / re-plan per session without rationing — free on local compute
+- [~] **Lavish AI** (Tier-1 moat) — this is a posture rather than a feature, and the
+      groundwork is in: BYO local provider means zero marginal cost, and nothing in the app
+      rations AI calls. What's deliberately *not* built is anything that spends that budget
+      without being asked — see the dropped in-set prompts above. Generosity here means
+      "ask as much as you like", not "we'll talk at you because it's free".
 
 ### Phase 5 — Polish & power features
 - [~] **Nutrition logging** — lightweight v0 exists, v1 is now specified in
@@ -558,7 +585,11 @@ Found while actually training with the app. Ordered by how much they hurt.
 - [ ] Push notifications (rest done, workout reminders) via ntfy/web-push *(no `expo-notifications` yet)*
 - [x] Plate / warmup / 1RM calculators *(2026-08-16)* — `GET /api/tools/{plates,warmup,one-rep-max}` and a Calculators screen (History → Calculators). Plates are greedy heaviest-first, which is both optimal for real plate sets and the order you physically load them; a target the plates can't make reports the nearest one and how much you're short rather than failing. Warmups ramp from the empty bar on weights that are actually loadable, and stay short for a light working weight. The max estimate shares `analysis.e1rm`, so it can't drift from the strength trend. All pure and tested (`app/calculators.py`) — this is the maths you'd do standing at the bar, and it must not need a network.
 - [x] Export/import: text + JSON export via the Share sheet (`lib/export.ts`), a full JSON account export, and **CSV import/export (2026-08-16)** that round-trips — an export you can't re-import is a screenshot with extra steps. **Backup fold-in still to do**
-- [ ] Multi-user profiles (optional)
+- [x] Multi-user profiles — **superseded**: this was written when the app had one shared
+      login. Real accounts shipped (register/login, per-owner scoping on every route,
+      per-user AI config and athlete memory), and the operator view manages them. Two people
+      sharing a phone log into their own accounts; there is nothing left for a "profile"
+      concept to add.
 - [ ] **Social / OAuth login** ("log in with other apps" — Google / Apple / GitHub) via expo-auth-session; optional alongside the existing email/password auth
 - [ ] Apple Health / Google Fit + Apple Watch (stretch)
 
