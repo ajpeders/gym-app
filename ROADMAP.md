@@ -6,6 +6,26 @@
 
 Status: **Phases 0–4 shipped; launch-ready bar the EAS build** · Last updated: 2026-08-16
 
+## Finishing the launch — the two steps only you can take
+
+Everything else is done and verified. These need credentials this project
+doesn't have:
+
+1. **Ship a build.** `cd frontend && npx eas-cli login && npx eas-cli init`
+   (interactive; `init` writes `extra.eas.projectId`), then
+   `npx eas-cli build --profile preview --platform android` for an installable
+   APK. Config is checked in and CI already runs `expo-doctor` and
+   `expo prebuild`, which is what an EAS build does first — so this should be
+   the boring part.
+2. *(Optional)* **Social sign-in.** Create a Google or GitHub OAuth client and
+   set `GYM_GOOGLE_CLIENT_ID` / `GYM_GOOGLE_CLIENT_SECRET` (or the GitHub pair).
+   The buttons appear on their own once the server advertises a provider —
+   HOWTO has the redirect URI.
+
+Three items below are still open and each says why in place: on-device AI needs
+a native runtime, Apple Health needs HealthKit and an Apple account, and camera
+form-check is deliberately unfunded.
+
 ## Launch scope (what "done" means for v1)
 
 Everything below this section is either shipped or deliberately after launch.
