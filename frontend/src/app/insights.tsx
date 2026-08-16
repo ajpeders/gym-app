@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { api } from '@/api/client';
 import type {
+  Achievement,
   MuscleCoverage,
   MuscleReport,
   OverloadSuggestion,
@@ -141,6 +142,7 @@ export default function InsightsScreen() {
   const [nextUp, setNextUp] = useState<{ name: string; suggestions: OverloadSuggestion[] } | null>(
     null,
   );
+  const [awards, setAwards] = useState<Achievement[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -148,13 +150,15 @@ export default function InsightsScreen() {
     setLoading(true);
     setError(null);
     try {
-      const [r, s, today] = await Promise.all([
+      const [r, s, today, earned] = await Promise.all([
         api.muscleReport(weeks),
         api.statsSummary(),
         api.splitToday().catch(() => [] as TodayWorkout[]),
+        api.achievements().catch(() => [] as Achievement[]),
       ]);
       setReport(r);
       setSummary(s);
+      setAwards(earned);
       // Whatever the plan says is due — today's day in a weekday split, the
       // next one round in a rotation.
       const due = today.find((w) => w.up_next || w.scheduled_today) ?? today[0];
@@ -275,6 +279,38 @@ export default function InsightsScreen() {
               Total load moved — reps times weight, summed over each week.
             </Text>
             <VolumeChart weeks={summary.volume_by_week as { week: string; volume: number }[]} />
+          </Card>
+        ) : null}
+
+        {awards.length > 0 ? (
+          <Card className="mb-4">
+            <Text variant="heading">Milestones</Text>
+            <Text variant="muted" className="mb-3 mt-0.5">
+              Nothing here is awarded — each one is just something your log already says.
+            </Text>
+            {awards.map((award) => (
+              <View key={award.slug} className="mb-2.5 last:mb-0">
+                <View className="flex-row items-center justify-between">
+                  <Text variant="label" className={award.earned ? 'text-brand' : ''}>
+                    {award.earned ? '✓ ' : ''}
+                    {award.name}
+                  </Text>
+                  <Text variant="caption" className="text-iron-400">
+                    {award.earned
+                      ? award.blurb
+                      : `${Math.round(award.progress)} of ${Math.round(award.target)}`}
+                  </Text>
+                </View>
+                {!award.earned ? (
+                  <View className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-iron-800">
+                    <View
+                      className="h-full rounded-full bg-iron-600"
+                      style={{ width: `${Math.min(100, (award.progress / award.target) * 100)}%` }}
+                    />
+                  </View>
+                ) : null}
+              </View>
+            ))}
           </Card>
         ) : null}
 

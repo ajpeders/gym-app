@@ -625,6 +625,18 @@ class ExerciseTrend(BaseModel):
     total_tonnage: float = 0
 
 
+class Achievement(BaseModel):
+    """A restatement of what the log already says. Nothing is stored."""
+
+    slug: str
+    name: str
+    blurb: str
+    metric: str
+    target: float
+    progress: float
+    earned: bool
+
+
 class OverloadSuggestion(BaseModel):
     """What to put on the bar next time for one exercise in a plan day."""
 

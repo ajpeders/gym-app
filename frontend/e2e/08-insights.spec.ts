@@ -151,3 +151,21 @@ test('insights are reachable from history', async ({ page, request }) => {
   await page.getByRole('button', { name: 'Insights' }).click();
   await expect(shown(page, 'Volume by muscle')).toBeVisible({ timeout: 30_000 });
 });
+
+test('milestones describe the log rather than awarding anything', async ({ page, request }) => {
+  const account = await signIn(page, request);
+  const api = authed(request, account.token);
+  const lift = await customExercise(api, 'E2E Milestone Lift', ['chest']);
+
+  await api.post('/sessions/log', {
+    name: 'One',
+    started_at: new Date(Date.now() - 86_400_000).toISOString(),
+    exercises: [{ exercise_id: lift.id, sets: [{ reps: 5, weight: 100, set_type: 'working' }] }],
+  });
+
+  await page.goto('/insights');
+  await expect(shown(page, 'Milestones')).toBeVisible({ timeout: 30_000 });
+  await expect(shown(page, /✓ First session/)).toBeVisible();
+  // Unearned ones show progress instead of hiding — "1 of 10", not a padlock.
+  await expect(shown(page, /1 of 10/)).toBeVisible();
+});

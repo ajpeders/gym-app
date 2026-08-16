@@ -671,6 +671,17 @@ export interface ExerciseTrend {
   total_tonnage: number;
 }
 
+/** A restatement of what the log already says (GET /stats/achievements). */
+export interface Achievement {
+  slug: string;
+  name: string;
+  blurb: string;
+  metric: string;
+  target: number;
+  progress: number;
+  earned: boolean;
+}
+
 /** What to put on the bar next time, derived from the plan + the last session. */
 export interface OverloadSuggestion {
   exercise_id: number;

@@ -31,6 +31,7 @@ import type {
   SettingsUpdate,
   SetInput,
   Units,
+  Achievement,
   AdminOverview,
   AdminUser,
   AdoptedPreset,
@@ -752,6 +753,7 @@ export const api = {
   presetSplits: () => request<PresetSplit[]>('/splits/presets'),
   adoptPreset: (slug: string) =>
     request<AdoptedPreset>(`/splits/presets/${slug}/adopt`, { method: 'POST' }),
+  achievements: () => request<Achievement[]>('/stats/achievements'),
   muscleReport: (weeks = 4) => request<MuscleReport>('/stats/muscles', { query: { weeks } }),
   exerciseTrend: (exerciseId: string, days = 180) =>
     request<ExerciseTrend>(`/stats/exercises/${exerciseId}/trend`, { query: { days } }),

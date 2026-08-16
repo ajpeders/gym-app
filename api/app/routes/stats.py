@@ -7,7 +7,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session as SASession
 
 from ..db import get_db
@@ -20,6 +20,7 @@ from ..models import (
 )
 from .. import analysis
 from ..schemas import (
+    Achievement,
     BalanceRatio,
     ExerciseStats,
     ExerciseTrend,
@@ -305,3 +306,70 @@ def exercise_trend(
         best_e1rm=max(estimates) if estimates else None,
         total_tonnage=round(sum(p.tonnage for p in points), 2),
     )
+
+
+@router.get("/achievements", response_model=list[Achievement])
+def achievements(
+    db: SASession = Depends(get_db), user: User = Depends(get_current_user)
+) -> list[Achievement]:
+    """What the athlete's own log adds up to.
+
+    Everything is computed here from sets: nothing is stored, nothing is
+    granted, and an achievement can't be earned by anything except training.
+    Unearned ones come back with their progress rather than being hidden.
+    """
+    rows = db.execute(
+        select(
+            Session.started_at,
+            SessionExercise.exercise_id,
+            SetEntry.reps,
+            SetEntry.weight,
+            SetEntry.set_type,
+        )
+        .join(SessionExercise, SessionExercise.session_id == Session.id)
+        .join(SetEntry, SetEntry.session_exercise_id == SessionExercise.id)
+        .where(Session.owner_id == user.id, SetEntry.completed.is_(True))
+        .order_by(Session.started_at)
+    ).all()
+
+    session_count = db.scalar(
+        select(func.count()).select_from(Session).where(Session.owner_id == user.id)
+    ) or 0
+
+    total_tonnage = 0.0
+    best_by_exercise: dict[int, float] = {}
+    prs = 0
+    days: set = set()
+    for started_at, exercise_id, reps, weight, set_type in rows:
+        days.add(started_at.date())
+        total_tonnage += analysis.tonnage([{"reps": reps, "weight": weight, "set_type": set_type}])
+        if weight is None:
+            continue
+        previous = best_by_exercise.get(exercise_id)
+        # A PR is beating a weight you had already lifted — the first time you
+        # ever do a movement isn't one, or every new exercise would be a PR.
+        if previous is not None and weight > previous:
+            prs += 1
+        if previous is None or weight > previous:
+            best_by_exercise[exercise_id] = weight
+
+    # The *longest* run of consecutive days, not the current one: an
+    # achievement you lose by resting is a reason not to rest.
+    streak = longest = 0
+    previous_day = None
+    for day in sorted(days):
+        streak = streak + 1 if previous_day is not None and (day - previous_day).days == 1 else 1
+        longest = max(longest, streak)
+        previous_day = day
+
+    return [
+        Achievement(**row)
+        for row in analysis.achievements(
+            {
+                "sessions": session_count,
+                "streak": longest,
+                "tonnage": round(total_tonnage, 2),
+                "prs": prs,
+            }
+        )
+    ]

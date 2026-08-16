@@ -175,3 +175,55 @@ def trend_direction(series: list[float], threshold: float = 0.02) -> str:
     if change < -threshold:
         return "down"
     return "flat"
+
+
+# --- achievements ----------------------------------------------------------
+#
+# Derived, never granted. Every one of these is a restatement of what the log
+# already says, which is what keeps them from becoming the point — you can't
+# earn one by anything other than training. Deliberately few: a wall of sixty
+# badges is noise, and what actually matters to a lifter is showing up, keeping
+# it up, and lifting more than before.
+
+ACHIEVEMENTS: list[dict] = [
+    {"slug": "first-session", "name": "First session", "metric": "sessions", "target": 1,
+     "blurb": "You started."},
+    {"slug": "sessions-10", "name": "Ten sessions", "metric": "sessions", "target": 10,
+     "blurb": "Past the point where most people stop."},
+    {"slug": "sessions-50", "name": "Fifty sessions", "metric": "sessions", "target": 50,
+     "blurb": "This is a habit now."},
+    {"slug": "sessions-100", "name": "A hundred sessions", "metric": "sessions", "target": 100,
+     "blurb": "Three figures."},
+    {"slug": "streak-3", "name": "Three days running", "metric": "streak", "target": 3,
+     "blurb": "Three consecutive days trained."},
+    {"slug": "streak-7", "name": "A full week", "metric": "streak", "target": 7,
+     "blurb": "Seven consecutive days trained."},
+    {"slug": "tonnage-5k", "name": "Five tonnes", "metric": "tonnage", "target": 5_000,
+     "blurb": "Total load moved across every set."},
+    {"slug": "tonnage-100k", "name": "A hundred tonnes", "metric": "tonnage", "target": 100_000,
+     "blurb": "Total load moved across every set."},
+    {"slug": "first-pr", "name": "First PR", "metric": "prs", "target": 1,
+     "blurb": "You beat a weight you'd already lifted."},
+    {"slug": "prs-10", "name": "Ten PRs", "metric": "prs", "target": 10,
+     "blurb": "Ten times heavier than before."},
+]
+
+
+def achievements(metrics: dict[str, float]) -> list[dict]:
+    """Score every achievement against the athlete's own numbers.
+
+    Unearned ones are returned *with their progress* rather than hidden: "7 of
+    10" is motivating in a way a locked padlock isn't, and an empty screen is
+    the worst thing to show someone who just logged their first session.
+    """
+    out = []
+    for spec in ACHIEVEMENTS:
+        value = metrics.get(spec["metric"], 0)
+        out.append(
+            {
+                **spec,
+                "progress": round(min(value, spec["target"]), 2),
+                "earned": value >= spec["target"],
+            }
+        )
+    return out
