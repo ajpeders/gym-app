@@ -8,6 +8,14 @@ import { appReady, authed, findExercise, seedPlan, signIn } from './helpers';
 const shown = (page: Page, text: string | RegExp) =>
   page.getByText(text).locator('visible=true').first();
 
+/** The library's search box — the placeholder carries the catalog size, and the
+ * picker sheet has one of its own, so match on the shape rather than the text. */
+const searchCatalog = (page: Page, term: string) =>
+  page.getByPlaceholder(/Search \d* ?exercises|e\.g\. Half-kneeling/i)
+    .locator('visible=true')
+    .first()
+    .fill(term);
+
 test('the catalog can be searched and an exercise inspected', async ({ page, request }) => {
   const account = await signIn(page, request);
   // Whatever the catalog holds here — the full wger set locally, a single
@@ -17,7 +25,7 @@ test('the catalog can be searched and an exercise inspected', async ({ page, req
   await page.goto('/exercises');
   await expect(shown(page, /of \d+ exercises/)).toBeVisible({ timeout: 30_000 });
 
-  await page.getByPlaceholder('Search exercises').locator('visible=true').first().fill(target.name);
+  await searchCatalog(page, target.name);
   await expect(shown(page, target.name)).toBeVisible({ timeout: 20_000 });
 
   await shown(page, target.name).click();
@@ -39,7 +47,7 @@ test('a custom exercise is created and is usable in a workout', async ({ page, r
   expect(created.is_custom).toBe(true);
 
   await page.goto('/exercises');
-  await page.getByPlaceholder('Search exercises').locator('visible=true').first().fill('Sandbag');
+  await searchCatalog(page, 'Sandbag');
   await expect(shown(page, 'Sandbag Carry E2E')).toBeVisible({ timeout: 20_000 });
 
   // And it behaves like any other exercise once it's in a plan.

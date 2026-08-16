@@ -106,8 +106,10 @@ test('settings offer the providers and never silently pick one', async ({ page, 
   await appReady(page);
   await page.getByLabel('Open settings').click();
   await expect(shown(page, 'AI Provider')).toBeVisible({ timeout: 20_000 });
-  // Nothing is configured, and the screen says so rather than implying a default.
-  await expect(shown(page, /not configured/i)).toBeVisible();
+  // Nothing is configured, and each provider says so ("Set up", not "Ready")
+  // rather than the screen implying a working default.
+  await expect(shown(page, /^Set up$/)).toBeVisible();
+  await expect(page.getByText('Ready').locator('visible=true')).toHaveCount(0);
 
   // Units are the one setting that changes every number in the app.
   const before = (await api.get('/settings')).units;

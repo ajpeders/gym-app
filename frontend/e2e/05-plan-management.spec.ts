@@ -28,7 +28,7 @@ test('a split can be created, filled with a day, and made active', async ({ page
   await page.getByRole('button', { name: /Add exercise/ }).first().click();
 
   // Pick a known exercise out of the browser sheet.
-  await page.getByPlaceholder('Search exercises').locator('visible=true').first().fill(target.name);
+  await page.getByPlaceholder(/Search \d* ?exercises/i).locator('visible=true').first().fill(target.name);
   await page.waitForTimeout(1500);
   await shown(page, target.name).click();
 
