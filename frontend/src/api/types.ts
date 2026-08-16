@@ -654,11 +654,20 @@ export interface BalanceRatio {
   balanced: boolean;
 }
 
+/** How recovered a muscle is, inferred from the log's own timing. */
+export interface MuscleReadiness {
+  muscle: string;
+  days_since: number | null;
+  weekly_sets: number;
+  status: 'recovering' | 'overreached' | 'neglected' | 'ready';
+}
+
 export interface MuscleReport {
   weeks: number;
   total_hard_sets: number;
   coverage: MuscleCoverage[];
   ratios: BalanceRatio[];
+  readiness: MuscleReadiness[];
 }
 
 export interface TrendPoint {

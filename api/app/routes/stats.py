@@ -25,6 +25,7 @@ from ..schemas import (
     ExerciseStats,
     ExerciseTrend,
     MuscleCoverage,
+    MuscleReadiness,
     MuscleReport,
     StatsSummary,
     TrendPoint,
@@ -216,6 +217,7 @@ def muscle_report(
             Exercise.primary_muscles,
             Exercise.secondary_muscles,
             SetEntry.set_type,
+            Session.started_at,
         )
         .join(Session, Session.id == SessionExercise.session_id)
         .join(Exercise, Exercise.id == SessionExercise.exercise_id)
@@ -230,11 +232,22 @@ def muscle_report(
     # One entry per logged exercise, carrying its sets — the shape app/analysis
     # works in, so the credit rules live in one tested place.
     entries: dict[int, dict] = {}
-    for se_id, primary, secondary, set_type in rows:
+    # When each muscle was last worked, for the readiness read below.
+    last_trained: dict[str, datetime] = {}
+    for se_id, primary, secondary, set_type, started_at in rows:
         entry = entries.setdefault(
             se_id, {"primary": primary or [], "secondary": secondary or [], "sets": []}
         )
         entry["sets"].append({"set_type": set_type})
+        for muscle in list(primary or []) + list(secondary or []):
+            if muscle not in last_trained or started_at > last_trained[muscle]:
+                last_trained[muscle] = started_at
+
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
+    days_since = {
+        muscle: max(0.0, (now - when).total_seconds() / 86400)
+        for muscle, when in last_trained.items()
+    }
 
     volume = analysis.hard_sets_by_muscle(list(entries.values()))
     return MuscleReport(
@@ -242,6 +255,9 @@ def muscle_report(
         total_hard_sets=round(sum(volume.values()), 2),
         coverage=[MuscleCoverage(**row) for row in analysis.coverage(volume, weeks)],
         ratios=[BalanceRatio(**row) for row in analysis.balance_ratios(volume)],
+        readiness=[
+            MuscleReadiness(**row) for row in analysis.readiness(days_since, volume, weeks)
+        ],
     )
 
 

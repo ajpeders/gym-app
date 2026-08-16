@@ -167,3 +167,29 @@ def test_suggestions_are_scoped_to_the_owner(client, auth, auth2):
     assert client.get(
         f"/api/workouts/{workout['id']}/suggestions", headers=other_headers
     ).status_code == 404
+
+
+def test_readiness_reads_when_each_muscle_was_last_trained(client, auth):
+    """Inferred from the log's own timing — no wearable, no self-report."""
+    headers, _, _ = auth
+    chest = _exercise(client, headers, "E2E Fly", ["chest"])
+    legs = _exercise(client, headers, "E2E Lunge", ["quadriceps"])
+    _log(client, headers, chest["id"], [_set()], days_ago=0)
+    _log(client, headers, legs["id"], [_set()], days_ago=3)
+
+    body = client.get("/api/stats/muscles?weeks=1", headers=headers).json()
+    by_muscle = {r["muscle"]: r for r in body["readiness"]}
+    assert by_muscle["chest"]["status"] == "recovering"
+    assert by_muscle["quadriceps"]["status"] == "ready"
+    # Never trained at all reads as neglected, with no date to show.
+    assert by_muscle["calves"]["days_since"] is None
+    assert by_muscle["calves"]["status"] == "neglected"
+
+
+def test_the_least_recovered_muscle_is_listed_first(client, auth):
+    headers, _, _ = auth
+    chest = _exercise(client, headers, "E2E Press Today", ["chest"])
+    _log(client, headers, chest["id"], [_set()], days_ago=0)
+
+    body = client.get("/api/stats/muscles?weeks=1", headers=headers).json()
+    assert body["readiness"][0]["muscle"] == "chest"

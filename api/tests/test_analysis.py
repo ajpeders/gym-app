@@ -22,6 +22,7 @@ from app.analysis import (
     coverage,
     e1rm,
     hard_sets_by_muscle,
+    readiness,
     tonnage,
     trend_direction,
 )
@@ -154,3 +155,42 @@ def test_trend_reads_the_direction_of_travel() -> None:
     # Noise around a level is not a trend — this is what makes a plateau
     # distinguishable from progress.
     assert trend_direction([100.0, 101.0, 100.0, 100.5]) == "flat"
+
+
+# --- readiness -------------------------------------------------------------
+
+def test_a_muscle_trained_today_is_still_recovering() -> None:
+    rows = readiness({"chest": 0.5}, {"chest": 12.0}, weeks=1)
+    chest = next(r for r in rows if r["muscle"] == "chest")
+    assert chest["status"] == "recovering"
+    assert chest["days_since"] == 0.5
+
+
+def test_two_days_is_enough_for_most_muscles() -> None:
+    rows = readiness({"chest": 2.0}, {"chest": 12.0}, weeks=1)
+    assert next(r for r in rows if r["muscle"] == "chest")["status"] == "ready"
+
+
+def test_a_muscle_untouched_for_a_week_reads_as_detrained_not_fresh() -> None:
+    """"Fresh" invites another rest day; the useful signal is that it's been
+    dropped from the plan."""
+    rows = readiness({"chest": 9.0}, {"chest": 0.0}, weeks=1)
+    assert next(r for r in rows if r["muscle"] == "chest")["status"] == "neglected"
+
+
+def test_volume_past_what_you_recover_from_overrides_the_clock() -> None:
+    """Three days off doesn't fix a week at 40 sets."""
+    rows = readiness({"chest": 3.0}, {"chest": 40.0}, weeks=1)
+    assert next(r for r in rows if r["muscle"] == "chest")["status"] == "overreached"
+
+
+def test_a_muscle_never_trained_is_reported_without_a_date() -> None:
+    rows = readiness({}, {}, weeks=1)
+    chest = next(r for r in rows if r["muscle"] == "chest")
+    assert chest["days_since"] is None
+    assert chest["status"] == "neglected"
+
+
+def test_the_least_recovered_muscles_come_first() -> None:
+    rows = readiness({"chest": 0.2, "back": 3.0}, {"chest": 10.0, "back": 10.0}, weeks=1)
+    assert rows[0]["muscle"] == "chest"

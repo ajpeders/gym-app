@@ -227,3 +227,60 @@ def achievements(metrics: dict[str, float]) -> list[dict]:
             }
         )
     return out
+
+
+# --- readiness -------------------------------------------------------------
+#
+# Inferred from the log's own timing rather than from a wearable: when each
+# muscle was last trained and how much it took that week. Deliberately coarse —
+# this is "your legs were yesterday" and "your back hasn't been touched in ten
+# days", not a recovery score pretending to be measured.
+
+# Days of rest before a muscle is worth loading hard again. A rough consensus
+# figure; individual recovery varies more than any table admits, which is why
+# the output is advisory wording rather than a permission slip.
+_RECOVERY_DAYS = 1.5
+# Past this, the muscle isn't rested — it's been dropped from the plan.
+_NEGLECTED_DAYS = 7.0
+
+
+def readiness(
+    days_since: dict[str, float], weekly_volume: dict[str, float], weeks: int = 1
+) -> list[dict]:
+    """Per-muscle recovery state, least recovered first.
+
+    `days_since` is days since each muscle was last trained; `weekly_volume` is
+    hard sets over the window, which is what lets a muscle read as overreached
+    despite three days off — three days doesn't undo a week at 40 sets.
+    """
+    weeks = max(1, weeks)
+    rows: list[dict] = []
+    for muscle, (_mev, _mav, mrv) in LANDMARKS.items():
+        since = days_since.get(muscle)
+        weekly = round(weekly_volume.get(muscle, 0.0) / weeks, 2)
+
+        if weekly > mrv:
+            # Volume beats the clock: this is the one case where more rest is
+            # the answer rather than another session.
+            status = "overreached"
+        elif since is None or since >= _NEGLECTED_DAYS:
+            status = "neglected"
+        elif since < _RECOVERY_DAYS:
+            status = "recovering"
+        else:
+            status = "ready"
+
+        rows.append(
+            {
+                "muscle": muscle,
+                "days_since": round(since, 2) if since is not None else None,
+                "weekly_sets": weekly,
+                "status": status,
+            }
+        )
+
+    # Least recovered first: what you shouldn't train today is more actionable
+    # than what you could.
+    order = {"recovering": 0, "overreached": 1, "neglected": 2, "ready": 3}
+    rows.sort(key=lambda r: (order[r["status"]], r["days_since"] if r["days_since"] is not None else 999))
+    return rows

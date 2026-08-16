@@ -603,6 +603,16 @@ class BalanceRatio(BaseModel):
     balanced: bool = False
 
 
+class MuscleReadiness(BaseModel):
+    """How recovered one muscle is, inferred from the log's own timing."""
+
+    muscle: str
+    days_since: Optional[float] = None
+    weekly_sets: float = 0
+    # recovering | overreached | neglected | ready
+    status: str
+
+
 class MuscleReport(BaseModel):
     """Where the training volume actually went, over the last `weeks` weeks."""
 
@@ -610,6 +620,9 @@ class MuscleReport(BaseModel):
     total_hard_sets: float
     coverage: list[MuscleCoverage] = []
     ratios: list[BalanceRatio] = []
+    # Least recovered first — what not to train today is more actionable than
+    # what you could.
+    readiness: list[MuscleReadiness] = []
 
 
 class TrendPoint(BaseModel):

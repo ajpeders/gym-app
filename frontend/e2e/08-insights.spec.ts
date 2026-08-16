@@ -169,3 +169,22 @@ test('milestones describe the log rather than awarding anything', async ({ page,
   // Unearned ones show progress instead of hiding — "1 of 10", not a padlock.
   await expect(shown(page, /1 of 10/)).toBeVisible();
 });
+
+test('recovery is read from when each muscle was last trained', async ({ page, request }) => {
+  const account = await signIn(page, request);
+  const api = authed(request, account.token);
+  const fly = await customExercise(api, 'E2E Fly', ['chest']);
+
+  await api.post('/sessions/log', {
+    name: 'Chest',
+    started_at: new Date().toISOString(),
+    exercises: [{ exercise_id: fly.id, sets: [{ reps: 10, weight: 20, set_type: 'working' }] }],
+  });
+
+  await page.goto('/insights');
+  await expect(shown(page, 'Recovery')).toBeVisible({ timeout: 30_000 });
+  await expect(shown(page, /Chest/)).toBeVisible();
+  await expect(shown(page, /Trained recently/)).toBeVisible();
+  // And muscles that haven't been touched are named, not just the tired ones.
+  await expect(shown(page, /Not trained lately/)).toBeVisible();
+});

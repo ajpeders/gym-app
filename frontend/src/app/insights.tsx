@@ -7,6 +7,7 @@ import { api } from '@/api/client';
 import type {
   Achievement,
   MuscleCoverage,
+  MuscleReadiness,
   MuscleReport,
   OverloadSuggestion,
   StatsSummary,
@@ -27,6 +28,13 @@ import { titleCase } from '@/lib/format';
  */
 
 const WINDOWS = [1, 4, 12];
+
+const READINESS: Record<MuscleReadiness['status'], string> = {
+  recovering: 'Trained recently',
+  overreached: 'More volume than you recover from',
+  neglected: 'Not trained lately',
+  ready: 'Ready',
+};
 
 const STATUS: Record<MuscleCoverage['status'], { label: string; tint: string; bar: string }> = {
   missing: { label: 'Nothing logged', tint: 'text-red-300', bar: 'bg-red-500/70' },
@@ -254,6 +262,32 @@ export default function InsightsScreen() {
             </Text>
           </Card>
         ) : null}
+
+        <Card className="mb-4">
+          <Text variant="heading">Recovery</Text>
+          <Text variant="muted" className="mb-3 mt-0.5">
+            Read off when you last trained each muscle and how much it took. Coarse on
+            purpose — this is &quot;legs were yesterday&quot;, not a recovery score
+            pretending to be measured.
+          </Text>
+          {report.readiness
+            .filter((r) => r.status !== 'ready')
+            .slice(0, 6)
+            .map((r) => (
+              <View key={r.muscle} className="mb-2 flex-row items-center justify-between">
+                <Text variant="label">{titleCase(r.muscle)}</Text>
+                <Text
+                  variant="caption"
+                  className={r.status === 'ready' ? 'text-brand' : 'text-iron-300'}>
+                  {READINESS[r.status]}
+                  {r.days_since != null ? ` · ${Math.round(r.days_since)}d ago` : ''}
+                </Text>
+              </View>
+            ))}
+          {report.readiness.every((r) => r.status === 'ready') ? (
+            <Text variant="muted">Everything&apos;s had time to recover.</Text>
+          ) : null}
+        </Card>
 
         <Card className="mb-4">
           <Text variant="heading">Balance</Text>

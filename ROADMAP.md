@@ -504,7 +504,7 @@ Found while actually training with the app. Ordered by how much they hurt.
 - [ ] **Form / exercise Q&A** chat coach (RAG over exercise DB)
 - [x] **Athlete memory** (Tier-1 moat): `athlete_profile` model + `/ai/check-in` (NL → profile) + `/profile` CRUD; injected into every coach/parse prompt via `profile_summary`. *(Calibration/recovery signals below still to layer on.)*
 - [ ] **Personal calibration flywheel** (moat #4): per-user adaptive weight/RPE predictions that sharpen with each logged set
-- [ ] **Recovery from usage** (moat #4): infer readiness from in-app timing (inter-session gaps, per-muscle last-trained) to gate volume/intensity
+- [~] **Recovery from usage** (moat #4) — **v0 shipped 2026-08-16**: per-muscle last-trained and weekly volume are read off the log and turned into recovering / ready / overreached / neglected, least recovered first, on the Insights screen. Coarse on purpose — "legs were yesterday", not a recovery score pretending to be measured — and volume beats the clock, because three days off doesn't undo a week at 40 sets. "Neglected" rather than "fresh" for a muscle untouched for a week, since *fresh* invites another rest day. **Still open:** using this to gate volume/intensity
 - [ ] **Lavish AI** (Tier-1 moat): regenerate in-session UI / re-plan per session without rationing — free on local compute
 
 ### Phase 5 — Polish & power features
