@@ -127,6 +127,25 @@ place are listed back to you rather than dropped.
 `GET /api/sessions/export.csv` writes the same shape back out, so the export
 can be re-imported — into this app, or as a way out of it.
 
+## Log a set with Siri (or the Android equivalent)
+
+There's no native App Intent, and there doesn't need to be one: the app answers
+deep links, and Shortcuts can open a URL.
+
+1. Shortcuts → new shortcut → **Dictate Text**.
+2. Add **URL**, set it to `gymapp://log-chat?text=` and append the dictated text
+   (Shortcuts' "Text" action with the variable inserted works).
+3. Add **Open URLs**.
+4. Name it "Log a set". "Hey Siri, log a set" now dictates, opens the app and
+   parses the phrase — no tap.
+
+The same URL works from anywhere: a home-screen shortcut, an NFC tag on your
+gym bag, Tasker on Android. On the web build it's `/log-chat?text=…`.
+
+The phrase goes through the same parser as typing it, so "bench three by eight
+at sixty" becomes three sets. A shortcut that fires twice logs once — the
+screen sends a deep-linked phrase exactly once per arrival.
+
 ## Add a database column
 
 There's no Alembic. `init_db()` (in `api/app/db.py`) calls `create_all()` for new

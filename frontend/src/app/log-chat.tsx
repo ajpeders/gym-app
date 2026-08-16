@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
@@ -12,6 +12,7 @@ import { useActiveWorkout } from '@/state/active-workout';
 import { Text } from '@/components/ui/Text';
 import { Button } from '@/components/ui/Button';
 import { formatLoad, titleCase } from '@/lib/format';
+import { isAvailable, listen, type Listener } from '@/lib/speech';
 
 /** The parse endpoint reports "working" sets; the set log API uses "normal". */
 function toSetType(t: string): SetType {
@@ -48,7 +49,13 @@ export default function LogChatScreen() {
   const { activeId, start, refresh } = useActiveWorkout();
   // Logging into a specific session (opened from the active-session screen)
   // rather than whichever session happens to be active.
-  const { sessionId: sessionParam } = useLocalSearchParams<{ sessionId?: string }>();
+  // `text` arrives from a deep link — `gymapp://log-chat?text=bench%203x8%4060`.
+  // That's what makes "Hey Siri, log bench three by eight" possible without a
+  // native App Intent: a Shortcut opens the URL and this screen does the rest.
+  const { sessionId: sessionParam, text: textParam } = useLocalSearchParams<{
+    sessionId?: string;
+    text?: string;
+  }>();
 
   const [turns, setTurns] = useState<Turn[]>([]);
   const [input, setInput] = useState('');
@@ -61,6 +68,42 @@ export default function LogChatScreen() {
   const scrollToEnd = useCallback(() => {
     requestAnimationFrame(() => scrollRef.current?.scrollToEnd({ animated: true }));
   }, []);
+
+  // Send a deep-linked phrase once, on arrival. Parsing it automatically is the
+  // point — a Shortcut that dumped the text into a box and waited for a tap
+  // would be slower than typing it.
+  // Voice input, where the platform can do it.
+  const [listening, setListening] = useState(false);
+  const [speechAvailable] = useState(() => isAvailable());
+  const listener = useRef<Listener | null>(null);
+
+  function toggleListening() {
+    if (listening) {
+      listener.current?.stop();
+      return;
+    }
+    setError(null);
+    setListening(true);
+    listener.current = listen({
+      // Straight into the parser: a transcript that lands in the box and waits
+      // for a tap is slower than typing, which defeats the point.
+      onTranscript: (text) => void send(text),
+      onError: (reason) => setError(reason),
+      onEnd: () => setListening(false),
+    });
+    if (!listener.current) setListening(false);
+  }
+
+  const sentDeepLink = useRef(false);
+  useEffect(() => {
+    const incoming = typeof textParam === 'string' ? textParam.trim() : '';
+    if (!incoming || sentDeepLink.current) return;
+    sentDeepLink.current = true;
+    void send(incoming);
+    // `send` is stable enough for this one-shot; re-running on every render
+    // would re-log the set.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [textParam]);
 
   async function send(raw: string) {
     const text = raw.trim();
@@ -287,6 +330,21 @@ export default function LogChatScreen() {
               className="max-h-32 min-h-[44px] flex-1 rounded-lg border border-iron-700 bg-iron-900 px-4 py-2.5 text-base text-iron-50"
               style={{ textAlignVertical: 'center' }}
             />
+            {/* Speak it instead. The parser already turns "bench three by
+              * eight at sixty" into sets — this only supplies the words, and
+              * only where the platform can hear them. */}
+            {speechAvailable ? (
+              <Pressable
+                onPress={toggleListening}
+                disabled={busy}
+                accessibilityRole="button"
+                accessibilityLabel={listening ? 'Stop listening' : 'Speak your sets'}
+                className={`ml-2 h-11 w-11 items-center justify-center rounded-lg ${
+                  listening ? 'bg-red-500/80' : 'bg-iron-800'
+                }`}>
+                <Ionicons name={listening ? 'stop' : 'mic'} size={19} color="#e2e8f0" />
+              </Pressable>
+            ) : null}
             <Pressable
               onPress={() => void send(input)}
               disabled={!input.trim() || busy}

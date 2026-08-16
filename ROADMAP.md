@@ -351,8 +351,28 @@ gym-app/
 - [x] **Swap an exercise, keep the sets** *(2026-08-03)* — `PATCH /sessions/{id}/exercises/{se_id}` repoints a logged row at a different movement without touching its sets or order, for the machine-was-taken case. Available live (swap button on the exercise card) and on a past session, which gained an edit mode (swap / add / remove) — it was read-only before.
 - [x] **Paste several days at once** — `POST /ai/parse-days` splits a multi-day paste on day headers and returns each day's matched sets with the header echoed verbatim; the client resolves "Thursday"/"Jul 30" against the device calendar (`lib/day-label.ts`) and writes one backdated session per day.
 - [x] **Routine import from notes**: paste a multi-day program → structured routines *(built)*
-- [ ] **Voice companion** (moat #5): speak to the AI, not just type — voice → NL logging, and a spoken pre-session check-in that updates the athlete profile ("shoulder's tight, going lighter"); on-device speech where available
-- [ ] **Siri / App Intents (iOS)** (moat #5): "Hey Siri, tell my coach my shoulder's tight" / "Hey Siri, log bench 3x8 @60" → hands-free check-in + logging without opening the app, via App Intents + Shortcuts (needs an EAS dev/native build — not available in Expo Go)
+- [~] **Voice companion** (moat #5) — **speaking instead of typing shipped
+      2026-08-16** on every platform that can hear: the mic button on the
+      log-by-text screen runs the platform's own recogniser (Web Speech on
+      Chrome/Edge/Safari and Android Chrome) and feeds the transcript straight
+      into the existing parser, so "bench three by eight at sixty" logs three
+      sets. Nothing is recorded by us. Where the platform has no recogniser —
+      Firefox, Expo Go — the button is absent rather than present and dead.
+      **Still open:** a *spoken* pre-session check-in that talks back, and
+      on-device recognition in a native build; both need a real build and, for
+      the reply half, a decision about a model talking unprompted (see the
+      dropped in-set prompts).
+
+- [~] **Siri / App Intents (iOS)** (moat #5) — **hands-free logging works now,
+      via Shortcuts rather than a native intent** *(2026-08-16)*: the app answers
+      `gymapp://log-chat?text=…` and parses the phrase on arrival, so a
+      three-action Shortcut (Dictate → URL → Open) gives "Hey Siri, log a set"
+      without a native build. Recipe in HOWTO. The same link works from a
+      home-screen shortcut, an NFC tag, or Tasker on Android.
+      **Still open:** a real App Intent, which would let Siri answer *without*
+      opening the app — that needs a native module and an Apple developer
+      account, neither of which exists here yet.
+
 - [~] Robustness: Pydantic schema validation ✅, per-request `latency_ms` display ✅, no-silent-default errors ✅; **automatic output repair loop + provider fallback still basic**
 - [x] **Exercise→catalog matching v2**: stemming, stopwords, phrase synonyms (chest press → bench press) + abbreviation expansion (db/bb/ohp/rdl) and a conservative two-sided-overlap fallback *(`ai/service.py` `_stem`/`_match`)*
 - [x] **Tool-calling companion coach**: `companion` package mounted at `/api/companion` — reads + logs training by calling gym's own API as tools (write-confirm gate), grounded in athlete profile + history *(added since last plan)*
