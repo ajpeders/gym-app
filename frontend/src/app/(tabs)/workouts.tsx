@@ -10,8 +10,8 @@ import { Text } from '@/components/ui/Text';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Loading, EmptyState } from '@/components/ui/Feedback';
-import { ActionRow } from '@/components/ui/ActionRow';
 import { WeekCalendar, type WeekCalendarItem } from '@/components/ui/WeekCalendar';
+import { useStartSession } from '@/hooks/use-start-session';
 
 const WEEK_DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
@@ -33,8 +33,62 @@ function dateKey(date: Date) {
   ).padStart(2, '0')}`;
 }
 
+function WorkoutDayCard({
+  workout,
+  meta,
+  onOpen,
+  onStart,
+  starting,
+}: {
+  workout: Workout;
+  meta?: string;
+  onOpen: () => void;
+  onStart: () => void;
+  starting: boolean;
+}) {
+  return (
+    <View className="mb-2 rounded-2xl border border-iron-800 bg-iron-900/80 p-3.5">
+      <Pressable onPress={onOpen} accessibilityRole="button" className="active:opacity-80">
+        <View className="flex-row items-center">
+          <View className="mr-3 h-11 w-11 items-center justify-center rounded-2xl border border-brand/25 bg-brand/10">
+            <Ionicons name="barbell-outline" size={19} color="#5eead4" />
+          </View>
+          <View className="min-w-0 flex-1">
+            <Text variant="subheading" numberOfLines={1}>
+              {workout.name}
+            </Text>
+            <Text variant="caption" className="mt-0.5 text-iron-400" numberOfLines={1}>
+              {workout.exercises.length} exercises{meta ? ` · ${meta}` : ''}
+            </Text>
+          </View>
+          <Ionicons name="chevron-forward" size={17} color="#64748b" />
+        </View>
+      </Pressable>
+      <View className="mt-3 flex-row gap-2">
+        <Button
+          title="Start"
+          size="sm"
+          icon="play"
+          className="flex-1"
+          loading={starting}
+          onPress={onStart}
+        />
+        <Button
+          title="Edit"
+          size="sm"
+          variant="secondary"
+          icon="create-outline"
+          className="flex-1"
+          onPress={onOpen}
+        />
+      </View>
+    </View>
+  );
+}
+
 export default function WorkoutsScreen() {
   const router = useRouter();
+  const { startSession, starting } = useStartSession();
   const [splits, setSplits] = useState<Split[]>([]);
   const [workouts, setWorkouts] = useState<Workout[]>([]);
   const [progressPhotos, setProgressPhotos] = useState<ProgressPhoto[]>([]);
@@ -90,14 +144,14 @@ export default function WorkoutsScreen() {
           />
         }>
         <ScreenHeader
-          eyebrow="Splits"
+          eyebrow="Plan builder"
           title="Splits"
-          subtitle="Organize your week into workout days, or import an existing program."
+          subtitle="Pick a program, start a day, or edit your weekly calendar."
         />
 
         <View className="mb-5 flex-row gap-2">
           <Button
-            title="Import split"
+            title="Import"
             variant="secondary"
             icon="document-text-outline"
             className="flex-1"
@@ -230,17 +284,18 @@ export default function WorkoutsScreen() {
                     })}
                   />
 
-                  <View className="mt-3 border-t border-iron-800 px-1 pt-3">
+                  <View className="mt-3 border-t border-iron-800 pt-3">
                     {activePlan.workouts
                       .filter((workout) => !workout.floating)
                       .sort((a, b) => a.order - b.order)
                       .map((workout) => (
-                        <ActionRow
+                        <WorkoutDayCard
                           key={workout.id}
-                          onPress={() => router.push(`/workout/${workout.id}`)}
-                          title={workout.name}
-                          subtitle={`${workout.exercises.length} exercises`}
                           meta={workout.weekdays.map((day) => WEEK_DAYS[day]?.slice(0, 3)).join('/')}
+                          workout={workout}
+                          starting={starting}
+                          onOpen={() => router.push(`/workout/${workout.id}`)}
+                          onStart={() => void startSession({ workout_id: String(workout.id) })}
                         />
                       ))}
                   </View>

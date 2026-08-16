@@ -18,7 +18,7 @@ import { titleCase } from '@/lib/format';
 export default function ExerciseDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  const { activeId, addExercise } = useActiveWorkout();
+  const { activeId, addExercise, start, load } = useActiveWorkout();
 
   const [exercise, setExercise] = useState<Exercise | null>(null);
   const [loading, setLoading] = useState(true);
@@ -93,6 +93,19 @@ export default function ExerciseDetailScreen() {
     try {
       await addExercise(exercise.id);
       router.back();
+    } finally {
+      setAdding(false);
+    }
+  }
+
+  async function onStartWithExercise() {
+    if (!exercise) return;
+    setAdding(true);
+    try {
+      const session = await start({ name: exercise.name });
+      await api.addSessionExercise(session.id, { exercise_id: exercise.id });
+      await load(session.id);
+      router.push(`/session/active/${session.id}`);
     } finally {
       setAdding(false);
     }
@@ -204,7 +217,15 @@ export default function ExerciseDetailScreen() {
               loading={adding}
               onPress={onAddToWorkout}
             />
-          ) : null}
+          ) : (
+            <Button
+              title="Start with this exercise"
+              size="lg"
+              icon="play"
+              loading={adding}
+              onPress={onStartWithExercise}
+            />
+          )}
         </ScrollView>
       )}
     </Screen>

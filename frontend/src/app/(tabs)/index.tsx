@@ -87,6 +87,110 @@ function StatTile({
   );
 }
 
+function PrimaryWorkoutCard({
+  workout,
+  label,
+  icon,
+  starting,
+  onOpen,
+  onStart,
+}: {
+  workout: Workout | null;
+  label: string;
+  icon: IoniconName;
+  starting: boolean;
+  onOpen: () => void;
+  onStart?: () => void;
+}) {
+  if (!workout) {
+    return (
+      <Card elevated className="border-iron-800 bg-iron-900 p-4">
+        <View className="flex-row items-center">
+          <View className="mr-3 h-14 w-14 items-center justify-center rounded-3xl border border-iron-700 bg-iron-850">
+            <Ionicons name="calendar-clear-outline" size={25} color="#94a3b8" />
+          </View>
+          <View className="min-w-0 flex-1">
+            <Text variant="eyebrow">Nothing queued</Text>
+            <Text variant="heading" className="mt-1" numberOfLines={1}>
+              Pick a day
+            </Text>
+            <Text variant="muted" className="mt-1 text-iron-300">
+              Open your split or start with any exercise.
+            </Text>
+          </View>
+        </View>
+        <Button title="Choose workout" icon="calendar-outline" className="mt-4" onPress={onOpen} />
+      </Card>
+    );
+  }
+
+  return (
+    <Card elevated className="border-brand/25 bg-brand/10 p-4">
+      <Pressable onPress={onOpen} accessibilityRole="button" className="active:opacity-80">
+        <View className="flex-row items-center">
+          <View className="mr-3 h-16 w-16 items-center justify-center rounded-3xl bg-brand">
+            <Ionicons name={icon} size={29} color="#030712" />
+          </View>
+          <View className="min-w-0 flex-1">
+            <Text variant="eyebrow">{label}</Text>
+            <Text variant="heading" className="mt-1" numberOfLines={1}>
+              {workout.name}
+            </Text>
+            <Text variant="muted" className="mt-1 text-iron-200">
+              {workout.exercises.length} exercises · tap for details
+            </Text>
+          </View>
+          <Ionicons name="chevron-forward" size={18} color="#94a3b8" />
+        </View>
+      </Pressable>
+      {onStart ? (
+        <Button
+          title="Start now"
+          icon="play"
+          size="lg"
+          className="mt-4"
+          loading={starting}
+          onPress={onStart}
+        />
+      ) : null}
+    </Card>
+  );
+}
+
+function WorkoutOption({
+  workout,
+  meta,
+  onPress,
+}: {
+  workout: Workout;
+  meta?: string;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      className="min-w-[210px] rounded-2xl border border-iron-800 bg-iron-900/85 p-3.5 active:bg-iron-850">
+      <View className="mb-3 flex-row items-center justify-between">
+        <View className="h-9 w-9 items-center justify-center rounded-2xl border border-brand/25 bg-brand/10">
+          <Ionicons name="barbell-outline" size={17} color="#5eead4" />
+        </View>
+        {meta ? (
+          <Text variant="caption" className="ml-2 max-w-[120px] text-right text-iron-400" numberOfLines={1}>
+            {meta}
+          </Text>
+        ) : null}
+      </View>
+      <Text variant="subheading" numberOfLines={1}>
+        {workout.name}
+      </Text>
+      <Text variant="caption" className="mt-1 text-iron-400">
+        {workout.exercises.length} exercises
+      </Text>
+    </Pressable>
+  );
+}
+
 function workoutById(workouts: Workout[], id: string | number | undefined | null): Workout | null {
   if (id == null) return null;
   return workouts.find((workout) => String(workout.id) === String(id)) ?? null;
@@ -213,7 +317,7 @@ export default function HomeScreen() {
         {active ? (
           <Card elevated className="mb-4 border-brand/35 bg-iron-900 p-4">
             <View className="flex-row items-center">
-              <View className="mr-3 h-12 w-12 items-center justify-center rounded-lg bg-brand">
+              <View className="mr-3 h-12 w-12 items-center justify-center rounded-2xl bg-brand">
                 <Ionicons name="barbell" size={23} color="#030712" />
               </View>
               <View className="flex-1">
@@ -240,100 +344,72 @@ export default function HomeScreen() {
           </Card>
         ) : null}
 
-        <SectionHeader
-          title="Plan"
-          subtitle="Use the active split, or switch to another program when it fits."
-          className="mt-0"
+        <SectionHeader title="Start" subtitle="Your fastest paths are right here." className="mt-0" />
+        <PrimaryWorkoutCard
+          workout={primaryToday}
+          label={dueLabel}
+          icon={
+            rolling
+              ? 'repeat-outline'
+              : scheduledToday.length > 0
+                ? 'today-outline'
+                : 'refresh-outline'
+          }
+          starting={starting}
+          onOpen={() =>
+            primaryToday
+              ? router.push(`/workout/${primaryToday.id}`)
+              : activeSplit
+                ? router.push(`/split/${activeSplit.id}`)
+                : router.push('/workout-import')
+          }
+          onStart={primaryToday ? () => void onStartWorkout(primaryToday) : undefined}
         />
-        <Card elevated className="border-brand/20 bg-iron-900 p-4">
+
+        <View className="mt-3 flex-row gap-3">
+          <QuickLink
+            icon="add-circle-outline"
+            title="Any exercise"
+            subtitle="Blank session, then search."
+            disabled={blankStarting}
+            onPress={() => void startBlankSession()}
+          />
+          <QuickLink
+            icon="chatbubble-ellipses-outline"
+            title="Log by text"
+            subtitle="Type what you did."
+            onPress={() => router.push('/log-chat')}
+          />
+        </View>
+
+        <View className="mt-3 flex-row gap-3">
+          <QuickLink
+            icon="fitness-outline"
+            title="Exercises"
+            subtitle="Find a movement fast."
+            onPress={() => router.push('/exercises')}
+          />
+          <QuickLink
+            icon="restaurant-outline"
+            title="Food"
+            subtitle="Calories and protein."
+            onPress={() => router.push('/nutrition')}
+          />
+        </View>
+
+        <SectionHeader
+          title="Plan context"
+          subtitle="See the split you’re on, then jump into another day if needed."
+        />
+        <Card elevated className="p-4">
           <View className="flex-row gap-2">
-            <StatTile
-              icon="calendar-outline"
-              value={activeSplit?.name ?? 'None'}
-              label="Active split"
-            />
+            <StatTile icon="calendar-outline" value={activeSplit?.name ?? 'None'} label="Active split" />
             <StatTile
               icon="fitness-outline"
               value={String(activeSplit?.workouts.length ?? 0)}
               label="Workout days"
             />
           </View>
-
-          <View className="mt-4 rounded-3xl border border-brand/25 bg-brand/10 p-4">
-            <View className="mb-3 flex-row items-center justify-between">
-              <View className="rounded-full border border-brand/30 bg-iron-950/80 px-3 py-1">
-                <Text variant="caption" className="font-black uppercase tracking-[2px] text-brand">
-                  Up next
-                </Text>
-              </View>
-              <Text variant="caption" className="text-iron-300">
-                {dueLabel}
-              </Text>
-            </View>
-            {primaryToday ? (
-              <Pressable
-                onPress={() => router.push(`/workout/${primaryToday.id}`)}
-                accessibilityRole="button"
-                className="active:opacity-80">
-                <View className="flex-row items-center">
-                  <View className="mr-3 h-14 w-14 items-center justify-center rounded-2xl bg-brand">
-                    <Ionicons
-                      name={
-                        rolling
-                          ? 'repeat-outline'
-                          : scheduledToday.length > 0
-                            ? 'today-outline'
-                            : 'refresh-outline'
-                      }
-                      size={25}
-                      color="#030712"
-                    />
-                  </View>
-                  <View className="min-w-0 flex-1">
-                    <Text variant="heading" numberOfLines={1}>
-                      {primaryToday.name}
-                    </Text>
-                    <Text variant="muted" className="mt-0.5 text-iron-200">
-                      {primaryToday.exercises.length} exercises in this workout
-                    </Text>
-                  </View>
-                  <Ionicons name="chevron-forward" size={18} color="#94a3b8" />
-                </View>
-              </Pressable>
-            ) : (
-              <Pressable
-                onPress={() =>
-                  activeSplit ? router.push(`/split/${activeSplit.id}`) : router.push('/workout-import')
-                }
-                accessibilityRole="button"
-                className="active:opacity-80">
-                <View className="flex-row items-center">
-                  <View className="mr-3 h-14 w-14 items-center justify-center rounded-2xl border border-iron-700 bg-iron-850">
-                    <Ionicons name="bed-outline" size={25} color="#94a3b8" />
-                  </View>
-                  <View className="min-w-0 flex-1">
-                    <Text variant="heading" numberOfLines={1}>
-                      {rolling ? 'Nothing in rotation' : 'Open day'}
-                    </Text>
-                    <Text variant="muted" className="mt-0.5 text-iron-200">
-                      {activeSplit ? 'Pick a day from your split.' : 'Import or create a split to start.'}
-                    </Text>
-                  </View>
-                  <Ionicons name="chevron-forward" size={18} color="#94a3b8" />
-                </View>
-              </Pressable>
-            )}
-          </View>
-
-          {primaryToday ? (
-            <Button
-              title={rolling ? 'Start next in rotation' : "Start today's plan"}
-              icon="play"
-              className="mt-3"
-              loading={starting}
-              onPress={() => void onStartWorkout(primaryToday)}
-            />
-          ) : null}
           <View className="mt-3 flex-row gap-2">
             <Button
               title={activeSplit ? 'Open split' : 'Import split'}
@@ -354,98 +430,60 @@ export default function HomeScreen() {
           </View>
         </Card>
 
-        {otherSplits.length > 0 ? (
-          <>
-            <SectionHeader title="Other splits" subtitle="Switch context without changing your main split." />
-            <Card className="p-2">
-              {otherSplits.slice(0, 4).map((split) => (
-                <ActionRow
-                  key={split.id}
-                  title={split.name}
-                  subtitle={`${split.workouts.length} workout day${
-                    split.workouts.length === 1 ? '' : 's'
-                  }`}
-                  icon="calendar-clear-outline"
-                  onPress={() => router.push(`/split/${split.id}`)}
-                />
-              ))}
-              {otherSplits.length > 4 ? (
-                <Button
-                  title="View all splits"
-                  variant="secondary"
-                  className="mt-2"
-                  onPress={() => router.push('/workouts')}
-                />
-              ) : null}
-            </Card>
-          </>
-        ) : null}
-
         {shownWorkouts.length > 0 ? (
           <>
-            <SectionHeader title="Workout days" subtitle="Open any saved day before starting it." />
-            <Card className="p-2">
+            <SectionHeader title="Quick pick" subtitle="Saved workout days without opening the planner." />
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              className="-mx-4"
+              contentContainerClassName="gap-3 px-4">
               {shownWorkouts.map((workout) => {
                 const splitName = splitNameForWorkout(splits, workout);
                 return (
-                  <ActionRow
+                  <WorkoutOption
                     key={workout.id}
-                    title={workout.name}
-                    subtitle={`${workout.exercises.length} exercises${
-                      splitName ? ` - ${splitName}` : ''
-                    }`}
-                    meta={scheduleText(workout)}
-                    icon="barbell-outline"
+                    workout={workout}
+                    meta={splitName ?? scheduleText(workout)}
                     onPress={() => router.push(`/workout/${workout.id}`)}
                   />
                 );
               })}
-              {workouts.length > shownWorkouts.length + (primaryToday ? 1 : 0) ? (
-                <Button
-                  title="Browse all workout days"
-                  variant="secondary"
-                  className="mt-2"
-                  onPress={() => router.push('/workouts')}
+              <Pressable
+                onPress={() => router.push('/workouts')}
+                accessibilityRole="button"
+                className="min-w-[150px] items-center justify-center rounded-2xl border border-iron-800 bg-iron-900/70 p-3.5 active:bg-iron-850">
+                <Ionicons name="grid-outline" size={22} color="#5eead4" />
+                <Text variant="label" className="mt-2 text-brand">
+                  View all
+                </Text>
+              </Pressable>
+            </ScrollView>
+          </>
+        ) : null}
+
+        {otherSplits.length > 0 ? (
+          <>
+            <SectionHeader title="Other splits" subtitle="Switch programs when today doesn’t fit." />
+            <Card className="p-2">
+              {otherSplits.slice(0, 3).map((split) => (
+                <ActionRow
+                  key={split.id}
+                  title={split.name}
+                  subtitle={`${split.workouts.length} workout day${split.workouts.length === 1 ? '' : 's'}`}
+                  icon="calendar-clear-outline"
+                  onPress={() => router.push(`/split/${split.id}`)}
                 />
+              ))}
+              {otherSplits.length > 3 ? (
+                <Button title="All splits" variant="secondary" className="mt-2" onPress={() => router.push('/workouts')} />
               ) : null}
             </Card>
           </>
         ) : null}
 
-        <SectionHeader title="Start from scratch" subtitle="Pick a stored exercise or log in plain English." />
-        <View className="flex-row gap-3">
-          <QuickLink
-            icon="add-circle-outline"
-            title="Any exercise"
-            subtitle="Start a blank session and add from your library."
-            disabled={blankStarting}
-            onPress={() => void startBlankSession()}
-          />
-          <QuickLink
-            icon="chatbubble-ellipses-outline"
-            title="Log sentence"
-            subtitle="Type what you did and let AI structure it."
-            onPress={() => router.push('/log-chat')}
-          />
-        </View>
-
-        <View className="mt-3 flex-row gap-3">
-          <QuickLink
-            icon="fitness-outline"
-            title="Exercise library"
-            subtitle="Browse movements, muscles, and equipment."
-            onPress={() => router.push('/exercises')}
-          />
-          <QuickLink
-            icon="camera-outline"
-            title="Progress photos"
-            subtitle="Compare photos over time."
-            onPress={() => router.push('/progress')}
-          />
-        </View>
-
-        <HomeNutritionCard />
         <HomeProfileCard />
+        <HomeNutritionCard />
       </ScrollView>
     </Screen>
   );

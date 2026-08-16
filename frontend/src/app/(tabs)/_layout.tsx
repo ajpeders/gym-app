@@ -8,6 +8,7 @@ type IoniconName = React.ComponentProps<typeof Ionicons>['name'];
 const ICONS: Record<string, [IoniconName, IoniconName]> = {
   index: ['home', 'home-outline'],
   workouts: ['calendar', 'calendar-outline'],
+  exercises: ['search', 'search-outline'],
   history: ['time', 'time-outline'],
   coach: ['chatbubbles', 'chatbubbles-outline'],
 };
@@ -16,7 +17,7 @@ function tabIcon(name: keyof typeof ICONS) {
   return ({ color, size, focused }: { color: string; size: number; focused: boolean }) => {
     const [active, inactive] = ICONS[name];
     return (
-      <View className="h-8 w-12 items-center justify-center">
+      <View className="h-8 w-10 items-center justify-center">
         <Ionicons name={focused ? active : inactive} size={size ?? 22} color={color} />
       </View>
     );
@@ -39,25 +40,29 @@ export default function TabsLayout() {
           alignSelf: 'center',
           width: '100%',
           maxWidth: 760,
-          height: 70,
+          height: 72,
           backgroundColor: '#090e18',
           borderColor: 'transparent',
           borderTopColor: '#223047',
           borderWidth: 0,
           borderTopWidth: 1,
-          paddingTop: 7,
+          paddingTop: 8,
           paddingBottom: 8,
         },
         tabBarItemStyle: {
-          marginHorizontal: 2,
+          marginHorizontal: 0,
           borderRadius: 8,
         },
-        tabBarLabelStyle: { fontSize: 11, fontWeight: '700', marginTop: 1 },
+        tabBarLabelStyle: { fontSize: 10, fontWeight: '800', marginTop: 1 },
       }}>
       <Tabs.Screen name="index" options={{ title: 'Home', tabBarIcon: tabIcon('index') }} />
       <Tabs.Screen
         name="workouts"
         options={{ title: 'Splits', tabBarIcon: tabIcon('workouts') }}
+      />
+      <Tabs.Screen
+        name="exercises"
+        options={{ title: 'Exercises', tabBarIcon: tabIcon('exercises') }}
       />
       <Tabs.Screen
         name="history"
@@ -66,7 +71,6 @@ export default function TabsLayout() {
       <Tabs.Screen name="coach" options={{ title: 'Spotter', tabBarIcon: tabIcon('coach') }} />
 
       <Tabs.Screen name="settings" options={{ href: null }} />
-      <Tabs.Screen name="exercises" options={{ href: null }} />
     </Tabs>
   );
 }
