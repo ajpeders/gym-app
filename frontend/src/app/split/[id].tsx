@@ -206,11 +206,11 @@ export default function SplitDetailScreen() {
     ordered.filter((w) => !w.floating && w.weekdays.includes(day));
 
   return (
-    <Screen scroll={false} padded={false}>
+    <Screen scroll={false} padded={false} edges={['left', 'right']}>
       <Stack.Screen
         options={{
           headerShown: true,
-          title: split.name,
+          title: 'Split',
           headerRight: () => (
             <Pressable onPress={() => setEditing(true)} hitSlop={8} className="active:opacity-70">
               <Text className="font-bold text-brand">Edit</Text>

@@ -242,8 +242,8 @@ export default function ProfileScreen() {
   const heightUnit = settings.units === 'lb' ? 'in' : 'cm';
 
   return (
-    <Screen>
-      <Stack.Screen options={{ headerShown: true, title: 'Your profile' }} />
+    <Screen edges={['left', 'right']}>
+      <Stack.Screen options={{ headerShown: true, title: 'Profile' }} />
 
       <View className="mb-4 mt-2 flex-row items-center justify-between">
         <Text variant="title">About you</Text>

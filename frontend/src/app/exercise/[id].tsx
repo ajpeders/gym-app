@@ -114,8 +114,8 @@ export default function ExerciseDetailScreen() {
   const imgWidth = Math.min(Dimensions.get('window').width - 32, 480);
 
   return (
-    <Screen scroll={false} padded={false}>
-      <Stack.Screen options={{ headerShown: true, title: exercise?.name ?? 'Exercise' }} />
+    <Screen scroll={false} padded={false} edges={['left', 'right']}>
+      <Stack.Screen options={{ headerShown: true, title: 'Exercise' }} />
       {loading ? (
         <Loading />
       ) : error || !exercise ? (

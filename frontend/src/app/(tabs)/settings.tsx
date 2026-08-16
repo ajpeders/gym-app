@@ -180,7 +180,10 @@ export default function SettingsScreen() {
         />
       </Card>
 
-      <SectionHeader title="AI Provider" />
+      <SectionHeader
+        title="AI setup"
+        subtitle="Choose the provider used for imports, text logging, and Spotter."
+      />
       <AiProviderControl patch={patch} />
 
       <SectionHeader title="Your data" />
@@ -214,11 +217,12 @@ export default function SettingsScreen() {
   );
 }
 
-const PROVIDER_OPTIONS: { label: string; value: AiProvider; disabled?: boolean }[] = [
+type ConfigurableAiProvider = Exclude<AiProvider, 'on-device'>;
+
+const PROVIDER_OPTIONS: { label: string; value: ConfigurableAiProvider }[] = [
   { label: 'Ollama', value: 'ollama' },
   { label: 'Claude', value: 'claude' },
   { label: 'ChatGPT', value: 'openai' },
-  { label: 'On-device', value: 'on-device', disabled: true },
 ];
 
 function AiProviderControl({
@@ -419,96 +423,64 @@ function AiProviderControl({
     void patch(() => update({ claude_model: next }));
   }
 
-  function ProviderStatus({
-    name,
-    info,
-  }: {
-    name: string;
-    info?: { configured: boolean; model: string };
-  }) {
-    return (
-      <View className="flex-row items-center justify-between py-1">
-        <View className="flex-1 pr-3">
-          <Text variant="subheading">{name}</Text>
-          <Text variant="caption" className="mt-0.5">
-            {info ? `model: ${info.model}` : 'unavailable'}
-          </Text>
-        </View>
-        {info ? (
-          info.configured ? (
-            <Text variant="caption" className="font-bold text-green-400">
-              ● ready
-            </Text>
-          ) : (
-            <Text variant="caption" className="font-bold text-iron-400">
-              ○ not configured
-            </Text>
-          )
-        ) : null}
-      </View>
-    );
-  }
-
   return (
     <>
-      <Card className="mb-3 gap-1">
-        {loading ? (
-          <View className="flex-row items-center py-1">
-            <ActivityIndicator color="#5eead4" />
-            <Text variant="muted" className="ml-2">
-              Checking providers…
-            </Text>
-          </View>
-        ) : providers ? (
-          <>
-            <ProviderStatus name="Ollama" info={providers.providers.ollama} />
-            <View className="h-px bg-iron-800" />
-            <ProviderStatus name="Claude" info={providers.providers.claude} />
-            <View className="h-px bg-iron-800" />
-            <ProviderStatus name="ChatGPT" info={providers.providers.openai} />
-            {!providers.providers.claude.configured ? (
-              <Text variant="caption" className="mt-0.5 text-iron-400">
-                Claude needs your Anthropic API key — add it below.
-              </Text>
-            ) : null}
-            {!providers.providers.openai.configured ? (
-              <Text variant="caption" className="mt-0.5 text-iron-400">
-                ChatGPT needs an OpenAI API key — add it below.
-              </Text>
-            ) : null}
-          </>
-        ) : (
-          <Text variant="muted">Couldn’t reach the AI service.</Text>
-        )}
-      </Card>
-
       <Card className="mb-3">
-        <Text variant="eyebrow">AI engine</Text>
-        <Text variant="muted" className="mb-3 mt-1">
-          Pick the model provider that powers imports, plain-English logging,
-          and Spotter chat.
-        </Text>
-        <View className="flex-row rounded-2xl border border-iron-700 bg-iron-950 p-1">
+        <View className="flex-row rounded-xl border border-iron-700 bg-iron-950 p-1">
           {PROVIDER_OPTIONS.map((opt) => {
             const active = opt.value === selected;
+            const info = providers?.providers[opt.value];
             return (
               <Pressable
                 key={opt.value}
-                disabled={opt.disabled}
                 onPress={() => patch(() => update({ ai_provider: opt.value }))}
-                className={`flex-1 items-center rounded-xl py-2.5 ${active ? 'bg-brand' : ''} ${
-                  opt.disabled ? 'opacity-40' : ''
-                }`}>
+                className={`flex-1 items-center rounded-lg py-2.5 ${active ? 'bg-brand' : ''}`}>
                 <Text
                   className={`text-sm font-bold ${active ? 'text-iron-950' : 'text-iron-400'}`}>
                   {opt.label}
                 </Text>
-                {opt.disabled ? (
-                  <Text className="text-[10px] text-iron-500">soon</Text>
+                {!loading && info ? (
+                  <View className="mt-1 flex-row items-center">
+                    <View
+                      className={`mr-1 h-1.5 w-1.5 rounded-full ${
+                        info.configured
+                          ? active
+                            ? 'bg-iron-950'
+                            : 'bg-green-400'
+                          : active
+                            ? 'bg-iron-700'
+                            : 'bg-iron-600'
+                      }`}
+                    />
+                    <Text
+                      className={`text-[10px] font-semibold ${
+                        active ? 'text-iron-800' : 'text-iron-500'
+                      }`}>
+                      {info.configured ? 'Ready' : 'Set up'}
+                    </Text>
+                  </View>
                 ) : null}
               </Pressable>
             );
           })}
+        </View>
+        <View className="mt-3 flex-row items-center">
+          {loading ? (
+            <ActivityIndicator size="small" color="#5eead4" />
+          ) : (
+            <Ionicons
+              name={selectedInfo?.configured ? 'checkmark-circle' : 'alert-circle-outline'}
+              size={17}
+              color={selectedInfo?.configured ? '#22c55e' : '#94a3b8'}
+            />
+          )}
+          <Text variant="caption" className="ml-2 flex-1 text-iron-300">
+            {loading
+              ? 'Checking the selected provider…'
+              : selectedInfo
+                ? `${selectedInfo.configured ? 'Ready' : 'Not set up'} · ${selectedInfo.model}`
+                : 'Provider status unavailable'}
+          </Text>
         </View>
       </Card>
 
@@ -551,10 +523,6 @@ function AiProviderControl({
           </View>
         </Card>
       ) : null}
-
-      <Text variant="caption" className="mb-2 mt-1">
-        The active provider powers imports, set parsing, and Spotter chat.
-      </Text>
 
       {isOllama ? (
         <>

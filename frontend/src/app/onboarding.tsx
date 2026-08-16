@@ -75,12 +75,12 @@ export default function OnboardingScreen() {
       </Text>
       <Card className="mb-4">
         <Text variant="body">
-          The app reads pasted workout notes, logs in plain English and coaches
-          you — but it never assumes a model. You bring your own: a local Ollama
-          on your network, or a Claude API key. Everything else works without it.
+          The app reads pasted workout notes, logs in plain English, and coaches
+          you. Connect a local Ollama server or use a Claude or OpenAI API key.
+          Everything else works without AI.
         </Text>
         <Button
-          title="Set up a model"
+          title="Set up AI"
           variant="secondary"
           className="mt-3"
           onPress={() => void finish('/(tabs)/settings')}
@@ -97,20 +97,14 @@ export default function OnboardingScreen() {
           you go.
         </Text>
         <Button
-          title="Paste my plan"
+          title="Import my plan"
           variant="secondary"
           className="mt-3"
           onPress={() => void finish('/workout-import')}
         />
       </Card>
 
-      <Button title="Start training" size="lg" loading={busy} onPress={() => void finish()} />
-      <Button
-        title="Skip for now"
-        variant="ghost"
-        className="mt-2"
-        onPress={() => void finish()}
-      />
+      <Button title="Continue to app" size="lg" loading={busy} onPress={() => void finish()} />
 
       <View className="mt-6 flex-row items-start">
         <Ionicons name="lock-closed-outline" size={14} color="#64748b" />

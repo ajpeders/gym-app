@@ -101,11 +101,11 @@ export default function SessionDetailScreen() {
     ) ?? 0;
 
   return (
-    <Screen scroll={false} padded={false}>
+    <Screen scroll={false} padded={false} edges={['left', 'right']}>
       <Stack.Screen
         options={{
           headerShown: true,
-          title: session?.name ?? 'Session',
+          title: 'Session',
           headerRight: () =>
             session ? (
               <View className="flex-row items-center">

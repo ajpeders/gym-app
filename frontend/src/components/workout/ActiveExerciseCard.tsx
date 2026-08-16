@@ -29,7 +29,7 @@ interface Props {
 }
 
 const numInput =
-  'min-h-[44px] w-16 rounded-lg border border-iron-700 bg-iron-950 px-2 py-2 text-center text-base text-iron-50';
+  'min-h-[44px] w-full rounded-lg border border-iron-700 bg-iron-950 px-2 py-2 text-center text-base text-iron-50';
 
 export function ActiveExerciseCard({
   sessionExercise,
@@ -287,10 +287,6 @@ export function ActiveExerciseCard({
                     color="#94a3b8"
                     style={{ marginRight: 4 }}
                   />
-                ) : s.completed_at ? (
-                  <Text variant="caption" className="mr-1 text-iron-500">
-                    {formatTimeOfDay(s.completed_at)}
-                  </Text>
                 ) : null}
                 <Pressable
                   onPress={() => onRemoveSet(s.id)}
@@ -304,6 +300,11 @@ export function ActiveExerciseCard({
               {s.rest_seconds != null ? (
                 <Text variant="caption" className="mt-1 pl-10 text-iron-500">
                   {formatClock(s.rest_seconds)} rest before
+                </Text>
+              ) : null}
+              {s.completed_at ? (
+                <Text variant="caption" className="mt-1 pl-10 text-iron-500">
+                  Logged {formatTimeOfDay(s.completed_at)}
                 </Text>
               ) : null}
               {s.notes ? (
@@ -325,7 +326,7 @@ export function ActiveExerciseCard({
       {/* input row */}
       <View className="mt-3 flex-row items-end gap-2">
         {isTimed ? (
-          <View>
+          <View className="flex-1">
             <Text variant="caption" className="mb-1">
               Time (sec)
             </Text>
@@ -341,7 +342,7 @@ export function ActiveExerciseCard({
           </View>
         ) : (
           <>
-            <View>
+            <View className="flex-1">
               <Text variant="caption" className="mb-1">
                 {isBodyweight ? `+Wt (${units})` : `Weight (${units})`}
               </Text>
@@ -355,7 +356,7 @@ export function ActiveExerciseCard({
                 className={numInput}
               />
             </View>
-            <View>
+            <View className="flex-1">
               <Text variant="caption" className="mb-1">
                 Reps
               </Text>
@@ -371,7 +372,7 @@ export function ActiveExerciseCard({
             </View>
           </>
         )}
-        <View>
+        <View className="flex-1">
           <Text variant="caption" className="mb-1">
             RPE
           </Text>
@@ -389,7 +390,9 @@ export function ActiveExerciseCard({
           disabled={saving}
           onPress={addFromInputs}
           className="min-h-[44px] flex-1 items-center justify-center rounded-lg bg-brand px-3 py-3 active:bg-brand-600">
-          <Text className="font-bold text-iron-950">Log set</Text>
+          <Text numberOfLines={1} className="text-sm font-bold text-iron-950">
+            Log set
+          </Text>
         </Pressable>
       </View>
 
