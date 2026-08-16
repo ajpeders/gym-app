@@ -4,7 +4,7 @@
 > a local (Ollama) or frontier (Claude) model. Native-first (Expo / React
 > Native) with a web build from the same codebase.
 
-Status: **Phase 0–2 shipped; Phase 3 (AI) largely done; Phase 4 (insights) started; prepping for launch** · Last updated: 2026-08-14
+Status: **Phase 0–2 shipped; Phase 3 (AI) largely done; Phase 4 (insights) started; prepping for launch** · Last updated: 2026-08-16
 
 > Reconciled against the codebase on 2026-08-14. Deviations from the original plan
 > now in reality: **Alembic was dropped** for hand-rolled additive column
@@ -176,45 +176,26 @@ gym-app/
       dependency — and note this is the first thing in the app that would let
       one account read another's data, so scope it deliberately: aggregate and
       operational data, not other people's training logs.
-- [ ] **Rolling / cycle-based splits** — scheduling assumes a *calendar week*:
-      a workout claims weekdays, "done" is measured per week, and catch-up
-      builds its scheduled column from those weekdays. Someone training a
-      rotation (Push/Pull/Legs, repeat, rest whenever they need it) has no fixed
-      weekdays at all.
-      Marking every workout `floating` gets you halfway — floating days are
-      offered every day rather than dropped — but three things break:
-      1. **No cycle position.** All floating days are offered equally; nothing
-         knows Pull follows Push. Needs a notion of "next in rotation", derived
-         from the last logged session's `source_workout_id` and the workouts'
-         `order`, rather than from the calendar.
-      2. **`_done_this_week` is the wrong question.** A cycle drifts across week
-         boundaries by design, so a weekly reset makes the flag meaningless.
-         Wants "done since the cycle last came round".
-      3. **Catch-up shows nothing scheduled** (`/splits/catchup` reads
-         `w.weekdays`, which floating days don't have), so gap detection
-         silently has nothing to compare against — the failure mode is an empty
-         column rather than an error.
-      **Make it an explicit choice on the split, not an emergent property of
-      flags.** `split.mode` = `rigid | rolling`, picked when you create or edit
-      a split, because it changes what "today", "missed" and "done" each mean —
-      three separate pieces of logic, not one toggle:
-      - **Rigid** (what exists today) — days claim weekdays, Home shows what
-        today's date calls for, a passed day is *missed*, "done" resets weekly.
-        Right for anyone who trains Mon/Wed/Fri and wants to be told when they
-        slipped.
-      - **Rolling** — days are an ordered rotation with no dates. Home shows
-        *next in the cycle*, nothing is ever "missed" (you can't miss a day that
-        was never scheduled), and "done" means since the cycle last came round.
-      The mode should drive the UI, not just the backend: the weekday picker is
-      meaningless in rolling mode and should be replaced by rotation order, and
-      the Catch up screen needs to compare against the cycle rather than against
-      weekdays or it goes blank (above).
-      Existing splits migrate to `rigid`, which is what they already are, so
-      nobody's plan changes under them. Worth allowing a switch either way after
-      the fact — moving to rolling is exactly what prompted this, and going back
-      should be equally easy.
-      *Raised 2026-08-14 by Alex moving to a rolling split because his rest days
-      are unpredictable — the common case, not an edge one.*
+- [x] **Rolling / cycle-based splits** — `split.mode` = `rigid | rolling`, an
+      explicit choice on the plan rather than something faked with `floating` on
+      every day, because it changes what today, missed and done each mean.
+      **Rigid** is unchanged: weekdays schedule the plan, a passed day is a
+      makeup, "done" resets weekly. **Rolling** is an ordered rotation with no
+      dates — `/splits/today` returns the whole rotation with `up_next` on
+      wherever the log has got to, nothing is ever `missed`, and
+      `done_this_cycle` replaces the weekly flag so a cycle that drifts across
+      Sunday stays intact. `/splits/catchup` replays the rotation per day
+      instead of reading `weekdays`, so the scheduled column no longer goes
+      blank. Position is derived from the log every time (`app/rotation.py`),
+      never stored, so editing or deleting a session self-corrects it.
+      In the app: the split editor picks the mode, the week grid becomes an
+      ordered rotation list with reorder arrows and an "Up next" marker, the
+      weekday picker disappears from a rolling day's editor, and Home says
+      "next in rotation". Existing splits migrated to `rigid` via the column
+      default; switching either way is one tap. The coach skill file knows the
+      modes so "push/pull/legs, rest whenever" creates a rolling split.
+      *Shipped 2026-08-16, raised 2026-08-14 by Alex moving to a rolling split
+      because his rest days are unpredictable — the common case, not an edge one.*
 - [ ] **Preset splits (well-known programs) as a shared library** — ship a set of
       established programs (PPL, Upper/Lower, Full Body 3x, 5/3/1, Starting
       Strength, GZCLP, nSuns, Arnold, Bro split) as first-class presets, stored

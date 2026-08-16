@@ -5,7 +5,7 @@ import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-rou
 import { Ionicons } from '@expo/vector-icons';
 
 import { api } from '@/api/client';
-import type { Workout, WorkoutInput } from '@/api/types';
+import type { SplitMode, Workout, WorkoutInput } from '@/api/types';
 import { useSettings } from '@/state/settings';
 import { WorkoutEditor, type DraftExercise } from '@/components/WorkoutEditor';
 import { Loading, ErrorState } from '@/components/ui/Feedback';
@@ -49,6 +49,8 @@ export default function EditWorkoutScreen() {
   const router = useRouter();
   const { settings } = useSettings();
   const [workout, setWorkout] = useState<Workout | null>(null);
+  // The owning split's mode decides whether this day has a weekday at all.
+  const [splitMode, setSplitMode] = useState<SplitMode>('rigid');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -58,7 +60,18 @@ export default function EditWorkoutScreen() {
     setLoading(true);
     setError(null);
     try {
-      setWorkout(await api.workout(id));
+      const loaded = await api.workout(id);
+      setWorkout(loaded);
+      if (loaded.split_id != null) {
+        // A failure here only costs the rolling-mode wording, so it must not
+        // block editing the workout.
+        setSplitMode(
+          await api
+            .split(String(loaded.split_id))
+            .then((s) => s.mode)
+            .catch(() => 'rigid' as SplitMode),
+        );
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load workout');
     } finally {
@@ -116,6 +129,7 @@ export default function EditWorkoutScreen() {
       initialExercises={toDraft(workout)}
       initialWeekdays={workout.weekdays}
       initialFloating={workout.floating}
+      splitMode={splitMode}
       saving={saving}
       onSave={onSave}
       onDelete={onDelete}

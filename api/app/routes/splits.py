@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session as SASession
 
 from ..db import get_db
 from ..models import Session, Split, User, Workout
+from ..rotation import done_this_cycle, up_next
 from ..schemas import (
     CatchupDay,
     CatchupSession,
@@ -51,6 +52,7 @@ def create_split(
     split = Split(
         owner_id=user.id,
         name=payload.name,
+        mode=payload.mode,
         rules=payload.rules,
         notes=payload.notes,
     )
@@ -74,6 +76,54 @@ def _done_this_week(db: SASession, user_id: int, workout_id: int, now: datetime)
     ).limit(1)) is not None
 
 
+def _rotation_history(
+    db: SASession, user_id: int, rotation: list[int], before: datetime | None = None
+) -> list[int]:
+    """Workout ids of this split's recent sessions, most recent first.
+
+    Only the current pass matters (see app/rotation.py), so this stops well
+    short of the full history — one more than a full lap is enough to see where
+    the pass began.
+    """
+    if not rotation:
+        return []
+    q = select(Session.source_workout_id).where(
+        Session.owner_id == user_id,
+        Session.source_workout_id.in_(rotation),
+    )
+    if before is not None:
+        q = q.where(Session.started_at < before)
+    return list(
+        db.scalars(
+            q.order_by(Session.started_at.desc(), Session.id.desc()).limit(len(rotation) + 1)
+        ).all()
+    )
+
+
+def _today_rolling(db: SASession, user: User, active: Split) -> list[TodayWorkout]:
+    """A rolling split's answer to "what now": the whole rotation, with the
+    next day flagged. Nothing is scheduled or missed — there are no dates to be
+    late against — so every day stays available and the cycle, not the
+    calendar, says which one is up."""
+    rotation = [w.id for w in active.workouts]
+    history = _rotation_history(db, user.id, rotation)
+    nxt = up_next(rotation, history)
+    done = done_this_cycle(rotation, history)
+    now = datetime.now(timezone.utc)
+    return [
+        TodayWorkout(
+            id=w.id,
+            name=w.name,
+            floating=w.floating,
+            weekdays=w.weekdays or [],
+            done_this_week=_done_this_week(db, user.id, w.id, now),
+            up_next=w.id == nxt,
+            done_this_cycle=w.id in done,
+        )
+        for w in active.workouts
+    ]
+
+
 @router.get("/today", response_model=list[TodayWorkout])
 def today(db: SASession = Depends(get_db), user: User = Depends(get_current_user)):
     """What the athlete could train right now, from the active split.
@@ -88,12 +138,18 @@ def today(db: SASession = Depends(get_db), user: User = Depends(get_current_user
       old filter asked whether today was in that empty list.
 
     Days still upcoming later this week are omitted — they aren't due yet.
+
+    All of that is the *rigid* reading, where the calendar schedules the plan.
+    A rolling split has no weekdays to read, so it takes a different path
+    entirely — see `_today_rolling`.
     """
     now = datetime.now(timezone.utc)
     weekday = (now.weekday() + 1) % 7  # 0=Sun..6=Sat
     active = db.scalar(select(Split).where(Split.owner_id == user.id, Split.is_active.is_(True)))
     if active is None:
         return []
+    if active.mode == "rolling":
+        return _today_rolling(db, user, active)
 
     rows: list[TodayWorkout] = []
     for w in active.workouts:
@@ -169,13 +225,25 @@ def catchup(
         )
 
     active = db.scalar(select(Split).where(Split.owner_id == user.id, Split.is_active.is_(True)))
+    rolling = active is not None and active.mode == "rolling"
     scheduled_by_weekday: dict[int, list[CatchupWorkout]] = {}
-    if active is not None:
+    if active is not None and not rolling:
         for w in active.workouts:
             for wd in w.weekdays or []:
                 scheduled_by_weekday.setdefault(wd, []).append(
                     CatchupWorkout(id=w.id, name=w.name)
                 )
+
+    # A rolling split schedules nothing by weekday, so reading `weekdays` here
+    # leaves the column permanently empty and gap detection has nothing to
+    # compare against. What a rolling day was "for" is wherever the rotation
+    # had got to by then, so replay the cycle forward through the window.
+    rotation: list[int] = []
+    by_workout: dict[int, CatchupWorkout] = {}
+    day_starts: dict[str, datetime] = {}
+    if rolling:
+        rotation = [w.id for w in active.workouts]
+        by_workout = {w.id: CatchupWorkout(id=w.id, name=w.name) for w in active.workouts}
 
     out: list[CatchupDay] = []
     for i in range(days):
@@ -183,15 +251,30 @@ def catchup(
         key = d.isoformat()
         weekday = (d.weekday() + 1) % 7  # 0=Sun..6=Sat
         sessions = by_date.get(key, [])
+        if rolling:
+            day_starts[key] = datetime.combine(d, datetime.min.time()) + shift
+            scheduled = []
+        else:
+            scheduled = scheduled_by_weekday.get(weekday, [])
         out.append(
             CatchupDay(
                 date=key,
                 weekday=weekday,
-                scheduled=scheduled_by_weekday.get(weekday, []),
+                scheduled=scheduled,
                 sessions=sessions,
                 logged=bool(sessions),
             )
         )
+
+    if rolling:
+        for row in out:
+            # Where the rotation stood at the start of that day — for a logged
+            # day that is the day it was credited to, for an unlogged one it is
+            # what was outstanding.
+            history = _rotation_history(db, user.id, rotation, before=day_starts[row.date])
+            due = up_next(rotation, history)
+            if due is not None and due in by_workout:
+                row.scheduled = [by_workout[due]]
     return out
 
 
@@ -214,6 +297,8 @@ def update_split(
     split = _get_owned(db, split_id, user)
     if payload.name is not None:
         split.name = payload.name
+    if payload.mode is not None:
+        split.mode = payload.mode
     if payload.rules is not None:
         split.rules = payload.rules
     if payload.notes is not None:

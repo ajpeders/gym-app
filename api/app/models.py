@@ -142,6 +142,12 @@ class Split(Base):
         ForeignKey("user.id", ondelete="CASCADE"), nullable=False
     )
     name: Mapped[str] = mapped_column(String, nullable=False)
+    # How the plan is scheduled. "rigid" = days claim weekdays and the calendar
+    # decides; "rolling" = an ordered rotation with no dates, where position
+    # comes from what was logged (see app/rotation.py). It changes what today,
+    # missed and done each mean, so it's a choice on the plan rather than
+    # something inferred from every day happening to be `floating`.
+    mode: Mapped[str] = mapped_column(String, default="rigid", server_default="rigid")
     # Plan-level progression rules: list of short strings.
     rules: Mapped[list[Any]] = mapped_column(JSON, default=list)
     notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)

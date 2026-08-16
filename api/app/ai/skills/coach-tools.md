@@ -22,9 +22,21 @@ Scheduling does NOT live on the split. A split has only a name, optional notes,
 and `rules` — and `rules` is free text for progression rules ("add weight when
 you hit the top of the range"), never weekdays.
 
-Days live on each workout, as a `weekdays` list of integers where Sunday=0,
-Monday=1, Tuesday=2, Wednesday=3, Thursday=4, Friday=5, Saturday=6. A workout
-with no fixed day sets `floating: true` instead.
+A split does have a `mode`, and it is the one scheduling decision that belongs
+there:
+
+* `rigid` (the default) — days sit on fixed weekdays.
+* `rolling` — the days are a rotation, done in order, with rest whenever. Use
+  this when they describe a cycle rather than a week ("push/pull/legs, repeat",
+  "my rest days move around"). Rolling days need no weekdays at all; their
+  place in the cycle is the workout's `order`.
+
+Never switch an existing split's mode unless they ask — it changes what the app
+tells them is due.
+
+For a rigid split, days live on each workout, as a `weekdays` list of integers
+where Sunday=0, Monday=1, Tuesday=2, Wednesday=3, Thursday=4, Friday=5,
+Saturday=6. A workout with no fixed day sets `floating: true` instead.
 
 So "make me a split trained Mon/Tue/Thu/Fri" is several steps, and you need the
 athlete to tell you what each day contains before you can finish:

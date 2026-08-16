@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any, Literal, Optional
 
 from pydantic import (
     BaseModel,
@@ -197,10 +197,18 @@ class TodayWorkout(BaseModel):
     floating: bool
     weekdays: list[int]
     done_this_week: bool
-    # Today's weekday claims this day.
+    # Today's weekday claims this day. Rigid splits only.
     scheduled_today: bool = False
-    # Scheduled earlier this week and not done — available as a makeup.
+    # Scheduled earlier this week and not done — available as a makeup. Rigid
+    # splits only: a rolling day was never pinned to a date, so it can't be
+    # late.
     missed: bool = False
+    # Rolling splits only: where the rotation has got to. `done_this_cycle`
+    # answers "done since the cycle last came round", which is the rolling
+    # equivalent of `done_this_week` — a cycle drifts across week boundaries by
+    # design, so the weekly flag says nothing useful about it.
+    up_next: bool = False
+    done_this_cycle: bool = False
 
 
 class CatchupWorkout(BaseModel):
@@ -229,14 +237,19 @@ class CatchupDay(BaseModel):
 
 
 # ---------------------------------------------------------------------------
-# Split (weekly plan owning workouts + rules)
+# Split (a plan owning workouts + rules)
 # ---------------------------------------------------------------------------
+# "rigid" = weekday-scheduled (the calendar decides); "rolling" = an ordered
+# rotation with no dates. A Literal so an unknown mode is a 422 rather than a
+# string the scheduling code silently treats as rigid.
+SplitMode = Literal["rigid", "rolling"]
 class SplitOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
     owner_id: int
     name: str
+    mode: SplitMode = "rigid"
     rules: list[str] = []
     notes: Optional[str] = None
     is_active: bool = False
@@ -247,12 +260,14 @@ class SplitOut(BaseModel):
 
 class SplitCreate(BaseModel):
     name: str
+    mode: SplitMode = "rigid"
     rules: list[str] = []
     notes: Optional[str] = None
 
 
 class SplitUpdate(BaseModel):
     name: Optional[str] = None
+    mode: Optional[SplitMode] = None
     rules: Optional[list[str]] = None
     notes: Optional[str] = None
     is_active: Optional[bool] = None

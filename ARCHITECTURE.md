@@ -74,13 +74,25 @@ Exercise   global catalog (owner_id NULL) + per-user custom (owner_id set)
 
 Relationships that carry design intent:
 
-- **Split → Workout → WorkoutExercise.** A `Split` is a weekly plan owning several
+- **Split → Workout → WorkoutExercise.** A `Split` is a plan owning several
   day-`Workout`s; a standalone workout has `split_id = NULL`. Each `Workout` carries
   its own schedule: `weekdays` (a JSON list of 0=Sun..6=Sat) pins it to specific
   days, or `floating = true` marks it as "do whenever it fits" (unpinned). This
   replaced the old separate `ScheduleDay` table — scheduling now lives on the
   workout itself. `WorkoutExercise` holds targets (sets, a rep *range* via
   `target_reps`/`target_reps_max`, weight, rest).
+- **Split.mode** (`rigid` | `rolling`) picks *which* of those readings applies, and
+  it's a choice on the plan rather than something inferred from the days. `rigid`
+  is the calendar reading above: today's weekday claims a day, a passed day is
+  *missed*, "done" resets weekly. `rolling` is an ordered rotation with no dates —
+  position comes from the log, not the clock, so nothing is ever missed and "done"
+  means since the cycle last came round. The rotation maths lives in
+  `api/app/rotation.py` as two pure functions (`up_next`, `done_this_cycle`) over
+  the workout ids in split order plus the recently-logged ids, most recent first;
+  `/splits/today` and `/splits/catchup` branch on the mode and feed them DB rows.
+  A cycle deliberately drifts across week boundaries, which is exactly why the
+  weekly flag can't answer for it. Existing splits are `rigid` (the column's
+  migration default), and the mode is switchable either way.
 - **Session → SessionExercise → SetEntry.** Starting a `Session` from a plan
   `Workout` **snapshots** the workout's targets onto each `SessionExercise`, so
   history keeps the intent even if the plan later changes. `SetEntry` records

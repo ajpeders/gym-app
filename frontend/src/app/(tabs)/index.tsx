@@ -160,9 +160,21 @@ export default function HomeScreen() {
   const dateLabel = `${DOW[now.getDay()]}, ${MON[now.getMonth()]} ${now.getDate()}`;
   const activeSplit = splits.find((split) => split.is_active) ?? splits[0] ?? null;
   const otherSplits = splits.filter((split) => split.id !== activeSplit?.id);
+  const rolling = activeSplit?.mode === 'rolling';
   const scheduledToday = today.filter((entry) => entry.scheduled_today);
   const makeups = today.filter((entry) => entry.missed);
-  const dueToday = scheduledToday.length > 0 ? scheduledToday : makeups;
+  // A rolling split has no weekday to match and nothing it can be late for —
+  // what's due is wherever the rotation has got to.
+  const dueToday = rolling
+    ? today.filter((entry) => entry.up_next)
+    : scheduledToday.length > 0
+      ? scheduledToday
+      : makeups;
+  const dueLabel = rolling
+    ? 'next in rotation'
+    : scheduledToday.length > 0
+      ? 'scheduled today'
+      : 'makeup day';
   const primaryToday = workoutById(workouts, dueToday[0]?.id);
   const shownWorkouts = workouts
     .filter((workout) => String(workout.id) !== String(primaryToday?.id))
@@ -251,15 +263,19 @@ export default function HomeScreen() {
             {primaryToday ? (
               <ActionRow
                 title={primaryToday.name}
-                subtitle={`${primaryToday.exercises.length} exercises - ${
-                  scheduledToday.length > 0 ? 'scheduled today' : 'makeup day'
-                }`}
-                icon={scheduledToday.length > 0 ? 'today-outline' : 'refresh-outline'}
+                subtitle={`${primaryToday.exercises.length} exercises - ${dueLabel}`}
+                icon={
+                  rolling
+                    ? 'repeat-outline'
+                    : scheduledToday.length > 0
+                      ? 'today-outline'
+                      : 'refresh-outline'
+                }
                 onPress={() => router.push(`/workout/${primaryToday.id}`)}
               />
             ) : (
               <ActionRow
-                title="No workout scheduled today"
+                title={rolling ? 'Nothing in the rotation yet' : 'No workout scheduled today'}
                 subtitle={activeSplit ? 'Open your split to pick a day.' : 'Import or create a split to start.'}
                 icon="bed-outline"
                 onPress={() =>
@@ -271,7 +287,7 @@ export default function HomeScreen() {
 
           {primaryToday ? (
             <Button
-              title="Start today's plan"
+              title={rolling ? 'Start next in rotation' : "Start today's plan"}
               icon="play"
               className="mt-3"
               loading={starting}

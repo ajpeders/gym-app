@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
-import type { Exercise, WorkoutEditProposal, WorkoutInput } from '@/api/types';
+import type { Exercise, SplitMode, WorkoutEditProposal, WorkoutInput } from '@/api/types';
 import { useSettings } from '@/state/settings';
 import { useAiStatus } from '@/hooks/use-ai-status';
 import { Text } from '@/components/ui/Text';
@@ -39,6 +39,9 @@ interface WorkoutEditorProps {
   initialExercises?: DraftExercise[];
   initialWeekdays?: number[];
   initialFloating?: boolean;
+  /** Scheduling mode of the split this day belongs to. A rolling split runs
+   * its days in rotation order, so there is no weekday to pick here. */
+  splitMode?: SplitMode;
   saving?: boolean;
   onSave: (input: WorkoutInput) => Promise<void> | void;
   onDelete?: () => void;
@@ -69,6 +72,7 @@ export function WorkoutEditor({
   initialExercises = [],
   initialWeekdays = [],
   initialFloating = false,
+  splitMode = 'rigid',
   saving = false,
   onSave,
   onDelete,
@@ -364,6 +368,13 @@ export function WorkoutEditor({
         <Text variant="heading" className="mt-6 mb-2">
           Schedule
         </Text>
+        {splitMode === 'rolling' ? (
+          <Text variant="caption">
+            This split runs as a rotation, so this day has no weekday. Its place in the cycle
+            comes from the order on the split screen.
+          </Text>
+        ) : (
+        <>
         <Pressable
           onPress={() => setFloating((f) => !f)}
           accessibilityRole="switch"
@@ -391,6 +402,8 @@ export function WorkoutEditor({
             </Text>
             <WeekdayPicker value={weekdays} onChange={setWeekdays} />
           </View>
+        )}
+        </>
         )}
 
         {error ? <Text className="text-red-500 text-sm mt-3">{error}</Text> : null}

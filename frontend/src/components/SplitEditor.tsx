@@ -2,11 +2,31 @@ import { useEffect, useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
-import type { Split, SplitInput } from '@/api/types';
+import type { Split, SplitInput, SplitMode } from '@/api/types';
 import { Text } from '@/components/ui/Text';
 import { Button } from '@/components/ui/Button';
 import { FormField } from '@/components/ui/FormField';
 import { ModalSheet } from '@/components/ui/ModalSheet';
+
+const MODES: {
+  value: SplitMode;
+  label: string;
+  blurb: string;
+  icon: keyof typeof Ionicons.glyphMap;
+}[] = [
+  {
+    value: 'rigid',
+    label: 'By weekday',
+    blurb: 'Days sit on fixed weekdays and you get told when you slip.',
+    icon: 'calendar-outline',
+  },
+  {
+    value: 'rolling',
+    label: 'Rotation',
+    blurb: 'Days run in order, rest whenever — nothing is ever late.',
+    icon: 'repeat-outline',
+  },
+];
 
 interface Props {
   visible: boolean;
@@ -20,6 +40,7 @@ interface Props {
  * The days inside it stay editable on their own screens. */
 export function SplitEditor({ visible, split, saving = false, onSave, onClose }: Props) {
   const [name, setName] = useState(split.name);
+  const [mode, setMode] = useState<SplitMode>(split.mode);
   const [notes, setNotes] = useState(split.notes ?? '');
   const [rules, setRules] = useState<string[]>(split.rules);
 
@@ -28,6 +49,7 @@ export function SplitEditor({ visible, split, saving = false, onSave, onClose }:
   useEffect(() => {
     if (visible) {
       setName(split.name);
+      setMode(split.mode);
       setNotes(split.notes ?? '');
       setRules(split.rules);
     }
@@ -38,6 +60,7 @@ export function SplitEditor({ visible, split, saving = false, onSave, onClose }:
   function save() {
     onSave({
       name: trimmedName,
+      mode,
       notes: notes.trim() ? notes.trim() : null,
       rules: rules.map((r) => r.trim()).filter(Boolean),
     });
@@ -51,6 +74,43 @@ export function SplitEditor({ visible, split, saving = false, onSave, onClose }:
         onChangeText={setName}
         placeholder="e.g. Push / Pull / Legs"
       />
+
+      {/* Scheduling mode. It changes what today, missed and done each mean, so
+        * it's picked here rather than inferred from how the days are set up. */}
+      <Text variant="caption" className="mb-1.5 mt-5 text-iron-400">
+        Scheduling
+      </Text>
+      <View className="flex-row gap-2">
+        {MODES.map((option) => {
+          const selected = mode === option.value;
+          return (
+            <Pressable
+              key={option.value}
+              onPress={() => setMode(option.value)}
+              accessibilityRole="radio"
+              accessibilityState={{ selected }}
+              className={`flex-1 rounded-lg border p-3 ${
+                selected ? 'border-brand bg-brand/10' : 'border-iron-700 bg-iron-900'
+              }`}>
+              <View className="flex-row items-center">
+                <Ionicons
+                  name={option.icon}
+                  size={15}
+                  color={selected ? '#818cf8' : '#94a3b8'}
+                />
+                <Text
+                  variant="caption"
+                  className={`ml-1.5 font-bold ${selected ? 'text-brand' : 'text-iron-200'}`}>
+                  {option.label}
+                </Text>
+              </View>
+              <Text variant="caption" className="mt-1 text-iron-400">
+                {option.blurb}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </View>
 
       <FormField
         label="Notes"

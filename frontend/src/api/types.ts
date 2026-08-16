@@ -82,10 +82,17 @@ export interface Workout {
   updated_at?: string;
 }
 
+/** How a split is scheduled. `rigid` reads the calendar — days claim weekdays,
+ * a passed day is missed, done resets weekly. `rolling` is an ordered rotation
+ * with no dates: the next day comes from what was last logged, nothing is ever
+ * missed, and done means since the cycle last came round. */
+export type SplitMode = 'rigid' | 'rolling';
+
 export interface Split {
   id: number;
   owner_id: number;
   name: string;
+  mode: SplitMode;
   rules: string[];
   notes: string | null;
   is_active: boolean;
@@ -96,6 +103,7 @@ export interface Split {
 
 export interface SplitInput {
   name?: string;
+  mode?: SplitMode;
   rules?: string[];
   notes?: string | null;
   is_active?: boolean;
@@ -110,8 +118,14 @@ export interface TodayWorkout {
   done_this_week: boolean;
   /** Today's weekday claims this day. */
   scheduled_today: boolean;
-  /** Scheduled earlier this week and not done — offerable as a makeup. */
+  /** Scheduled earlier this week and not done — offerable as a makeup.
+   * Rigid splits only: a rolling day was never pinned to a date. */
   missed: boolean;
+  /** Rolling splits only: this is where the rotation has got to. */
+  up_next: boolean;
+  /** Rolling splits only: done since the cycle last came round — the rolling
+   * answer to `done_this_week`, which a drifting cycle makes meaningless. */
+  done_this_cycle: boolean;
 }
 
 /** One plan day the schedule put on a catch-up date. */
