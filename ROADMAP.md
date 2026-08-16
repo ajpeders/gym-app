@@ -4,7 +4,7 @@
 > a local (Ollama) or frontier (Claude) model. Native-first (Expo / React
 > Native) with a web build from the same codebase.
 
-Status: **Phase 0–2 shipped; Phase 3 (AI) largely done; Phase 4 (insights) started; prepping for launch** · Last updated: 2026-08-16
+Status: **Phases 0–4 shipped; launch-ready bar the EAS build** · Last updated: 2026-08-16
 
 ## Launch scope (what "done" means for v1)
 
@@ -25,7 +25,13 @@ exercise Q&A, accounts with onboarding, data export and delete, an operator view
 (accounts, crash reports, AI health, catalog state), and offline-first logging
 including *starting* a workout with no signal.
 
-Tested by 362 API tests, 30 frontend unit tests, and 57 end-to-end journeys
+Also: local notifications for rest and training days, voice logging where the
+platform can hear, hands-free logging via a deep link (so a Siri Shortcut
+works today), social sign-in built and waiting only on OAuth credentials, a
+daily readiness check-in in the shape a wearable would fill, and one-command
+self-hosting verified by running it on a machine with no homelab.
+
+Tested by 391 API tests, 35 frontend unit tests, and 64 end-to-end journeys
 through the real stack — all three in CI.
 
 **In scope, needs a human.** The EAS build: `eas login` and `eas init` are
@@ -34,12 +40,18 @@ ready; no build has been run, so it stays unproven until Alex runs one. This is
 the only launch-blocking item left, and it cannot be done from a terminal
 without an Apple/Google account.
 
-**Deliberately after launch.** What's still `[ ]` below needs something this
-environment doesn't have. *Native builds and hardware*: on-device models, voice,
-Siri/App Intents, push notifications, Apple Health, camera form-check, wearable
-fusion. *External accounts*: OAuth login. *Bets the Moats section says not to
-fund yet*: the self-hostable ecosystem. None of them block someone tracking
-their training today, and several would be actively wrong to ship half-built.
+**Three items are still open, and each says why.** On-device AI needs a native
+build against a device runtime — the provider seam is ready, but a provider
+that always reports "unavailable" would be dead code pretending to be progress.
+Apple Health needs HealthKit and an Apple developer account, though the two
+things that depended on it (getting your data out, recording recovery inputs)
+are already covered another way. Camera form-check stays deliberately unfunded:
+a form checker that's occasionally wrong is worse than none, because it would
+be trusted.
+
+Everything else that once sat in this list has either shipped, shipped in the
+half that doesn't need hardware, or been closed by decision — each marked with
+what exists and what the remaining step actually is.
 
 Two items were **closed by decision rather than by code**, which is worth
 distinguishing from "not done": in-set AI prompts contradict the Spotter's
@@ -222,7 +234,16 @@ gym-app/
 
 ### Phase 3 — AI provider layer + natural-language logging (largely done)
 - [x] Provider abstraction: Ollama ⇄ Claude ⇄ ChatGPT/OpenAI; pick provider/model in settings *(BYO per-user, no silent default; `/ai/providers`,`/models`,`/test`). OpenAI shipped 2026-08-16 via the existing companion OpenAI-compatible provider, with per-user write-only API keys and `gpt-5.6` as the default API model.*
-- [ ] **On-device AI — iPhone first** (capable phones): run a small model directly on the phone's hardware (iOS: Apple Foundation Models / MLX / Core ML; Android: `llama.rn` / ExecuTorch) — fully private, works offline with no Ollama/Claude needed. Auto-detect support and offer it as a third provider alongside Ollama/Claude. The ultimate "no-setup, no-cost, no-network" local option.
+- [ ] **On-device AI — iPhone first** — *blocked on a native build, not on design.*
+      The seam it needs already exists: providers are per-user and chosen at
+      runtime (`ai/service.py` `_resolve`), there is no default and no
+      hard-coded model, and the companion package speaks to whatever provider
+      it's handed. Adding a fourth means implementing one `Provider` against a
+      device runtime (Apple Foundation Models / MLX / Core ML; `llama.rn` or
+      ExecuTorch on Android) and shipping it in a dev build — none of which can
+      be written blind or verified from a terminal. Scaffolding a provider that
+      always reports "unavailable" would be dead code pretending to be
+      progress.
 - [x] **Admin page** *(2026-08-16)* — `user.role` plus `GYM_ADMIN_EMAIL` as the
       bootstrap for an install with no admin yet (otherwise granting the first
       one means editing SQLite in the container by hand, which is the problem
@@ -624,10 +645,19 @@ Found while actually training with the app. Ordered by how much they hurt.
       **Needs a human:** creating the OAuth clients. Recipe in HOWTO. Apple is
       deliberately refused until its JWKS validation is done properly.
 
-- [ ] Apple Health / Google Fit + Apple Watch (stretch)
+- [ ] Apple Health / Google Fit + Apple Watch *(stretch)* — *needs HealthKit,
+      which needs a native build and an Apple developer account.* Two things
+      that would have depended on it are already covered another way: getting
+      your data out is CSV export (2026-08-16), and the recovery inputs a watch
+      would supply have a manual form in exactly the same shape, so the
+      integration fills those rows rather than needing new ones.
 
 ### Tier-3 moat bets (future — bigger builds)
-- [ ] **Camera form-check** (CV/pose): on-device pose estimation → real-time technique feedback. Deepest technical moat; separate mountain (accuracy/safety/latency)
+- [ ] **Camera form-check** (CV/pose) — *deliberately unfunded, per the Moats
+      section's own advice.* On-device pose estimation with acceptable accuracy,
+      latency and safety is a separate mountain, and a form checker that is
+      wrong occasionally is worse than none at all: it would be trusted. This
+      stays a Tier-3 bet until the core companion is proven with real use.
 - [~] **Wearable / recovery fusion** — **the half that doesn't need hardware
       shipped 2026-08-16**: a daily check-in (`/api/readiness`) in exactly the
       fields a watch reports — sleep hours, resting HR, HRV — plus the two only
