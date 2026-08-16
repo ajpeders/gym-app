@@ -3,20 +3,24 @@
  */
 import { expect, test, type Page } from '@playwright/test';
 
-import { appReady, authed, seedPlan, signIn } from './helpers';
+import { appReady, authed, findExercise, seedPlan, signIn } from './helpers';
 
 const shown = (page: Page, text: string | RegExp) =>
   page.getByText(text).locator('visible=true').first();
 
 test('the catalog can be searched and an exercise inspected', async ({ page, request }) => {
-  await signIn(page, request);
+  const account = await signIn(page, request);
+  // Whatever the catalog holds here — the full wger set locally, a single
+  // created row in CI — searching for it must find it.
+  const target = await findExercise(request, account.token, 'deadlift');
+
   await page.goto('/exercises');
-  await expect(shown(page, /of 828 exercises/)).toBeVisible({ timeout: 30_000 });
+  await expect(shown(page, /of \d+ exercises/)).toBeVisible({ timeout: 30_000 });
 
-  await page.getByPlaceholder('Search exercises').locator('visible=true').first().fill('deadlift');
-  await expect(shown(page, /deadlift/i)).toBeVisible({ timeout: 20_000 });
+  await page.getByPlaceholder('Search exercises').locator('visible=true').first().fill(target.name);
+  await expect(shown(page, target.name)).toBeVisible({ timeout: 20_000 });
 
-  await shown(page, /deadlift/i).click();
+  await shown(page, target.name).click();
   // The detail screen is what tells you how to do the movement.
   await expect(shown(page, /instructions|how to|muscles/i)).toBeVisible({ timeout: 20_000 });
 });

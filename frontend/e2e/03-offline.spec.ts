@@ -9,7 +9,7 @@
  */
 import { expect, test } from '@playwright/test';
 
-import { appReady, authed, seedPlan, signIn } from './helpers';
+import { appReady, authed, logSet, seedPlan, signIn } from './helpers';
 
 /** Give the queue a moment to drain once connectivity returns. */
 async function synced(check: () => Promise<boolean>, timeout = 30_000) {
@@ -49,9 +49,7 @@ test('a workout started offline arrives intact when signal returns', async ({
     ['60', '8'],
     ['62.5', '7'],
   ]) {
-    await page.getByLabel('Added weight').fill(weight);
-    await page.getByLabel('Reps').fill(reps);
-    await page.getByLabel('Log set').click();
+    await logSet(page, weight, reps);
     await expect(page.getByText(`${weight} kg`).first()).toBeVisible({ timeout: 10_000 });
   }
 
@@ -106,9 +104,7 @@ test('an offline session survives the app being closed and reopened', async ({
 
   await page.getByText("Start today's plan").first().click();
   await expect(page.getByLabel('Log set')).toBeVisible({ timeout: 20_000 });
-  await page.getByLabel('Added weight').fill('50');
-  await page.getByLabel('Reps').fill('12');
-  await page.getByLabel('Log set').click();
+  await logSet(page, '50', '12');
   await expect(page.getByText('50 kg').first()).toBeVisible();
 
   // Kill the app mid-session, still with no signal. The session has no server
@@ -144,9 +140,7 @@ test('a set logged offline is not lost when the queue is flushed twice', async (
   await context.setOffline(true);
   await page.getByText("Start today's plan").first().click();
   await expect(page.getByLabel('Log set')).toBeVisible({ timeout: 20_000 });
-  await page.getByLabel('Added weight').fill('80');
-  await page.getByLabel('Reps').fill('5');
-  await page.getByLabel('Log set').click();
+  await logSet(page, '80', '5');
   await expect(page.getByText('80 kg').first()).toBeVisible();
 
   await context.setOffline(false);

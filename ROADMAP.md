@@ -6,6 +6,45 @@
 
 Status: **Phase 0–2 shipped; Phase 3 (AI) largely done; Phase 4 (insights) started; prepping for launch** · Last updated: 2026-08-16
 
+## Launch scope (what "done" means for v1)
+
+Everything below this section is either shipped or deliberately after launch.
+Written down because a roadmap with 27 open boxes reads as 27 unfinished jobs,
+and most of them are not: they are the product's next two years, not its
+release blockers.
+
+**In scope, and done.** Logging (plan, session, sets, rest, swaps, timed and
+bodyweight movements), splits in both weekday and rotation form, catch-up,
+import from pasted text, the exercise catalog with per-user custom exercises and
+photos, history and stats, nutrition v0, athlete profile, the tool-calling
+Spotter with bring-your-own model, accounts with onboarding, data export and
+delete, client error reporting, and offline-first logging including *starting* a
+workout with no signal. Tested by 213 API tests, the frontend unit suite, and 27
+end-to-end journeys through the real stack, all three in CI.
+
+**In scope, needs a human.** The EAS build: `eas login` and `eas init` are
+interactive and `eas init` writes `extra.eas.projectId`. Config and docs are
+ready; no build has been run, so it stays unproven until Alex runs one. This is
+the only launch-blocking item left, and it cannot be done from here.
+
+**Deliberately after launch.** Everything still `[ ]` below. Three groups:
+*depth* (muscle-volume analysis, e1RM/plateau metrics, charts, PRs and
+achievements, plate and 1RM calculators, preset splits, a food database),
+*reach* (voice, Siri/App Intents, push notifications, OAuth login, Apple
+Health, on-device models, an admin page), and the *Tier-3 bets* the Moats
+section already says not to fund yet (camera form-check, wearable fusion,
+self-hostable ecosystem). None of them block someone tracking their training
+today; several would be actively wrong to ship half-built.
+
+**Known limits, accepted for v1.** No conflict resolution if the same session is
+edited on two devices at once (last write wins). 338 of 828 catalog rows have no
+image. Import retry creates a second split rather than reconciling. Adding a
+*new* exercise offline queues but shows nothing until it syncs — the plan's own
+exercises are all there, so this only bites mid-session improvisation with no
+signal.
+
+---
+
 > Reconciled against the codebase on 2026-08-14. Deviations from the original plan
 > now in reality: **Alembic was dropped** for hand-rolled additive column
 > migrations (`api/app/db.py` `_ADDED_COLUMNS`); and the plan model settled as
@@ -236,7 +275,9 @@ gym-app/
       recognising a log request — narrow and checkable — instead of authoring
       training data. Same argument as the progression nudge: deterministic where
       it matters, model only at the edges.
-- [ ] **Recommend the right local model** — a homelab Ollama holds a jumble
+- [x] **Recommend the right local model** *(shipped 2026-08-16 — `POST
+      /api/ai/check-model` probes the selected model and the picker reports what
+      it can actually do, rather than pattern-matching names)* — a homelab Ollama holds a jumble
       (coder models, embedding models, roleplay finetunes, vision models), and
       nothing tells you which are any good for *this* app. Two different
       requirements: the **coach** needs tool calling, and **parsing** needs
@@ -383,10 +424,16 @@ Found while actually training with the app. Ordered by how much they hurt.
       never got to acknowledge is not done twice. That closes a hole sets always
       had — a replayed start would otherwise trip the single-active-session
       guard and close the workout you're standing in.
-      **Still to do:** *starting* a workout offline. It needs a local session id
-      that every later queued op references and that gets rewritten across the
-      cache, the router and the active-workout state once the server assigns a
-      real one — worth doing deliberately, and worth having frontend tests first.
+      **Starting** a workout offline landed 2026-08-16, which completes this.
+      The local session id is never rewritten — that was the trap. It is a
+      permanent alias, and the server id is swapped in at the one seam where
+      writes are actually sent; the session's exercise rows are joined by
+      position when the start syncs, so sets logged before it landed find their
+      real rows instead of 404ing and being dropped. The session shown offline
+      is built from a plan cached by Home and the split screen, so it opens with
+      the same exercises and targets as an online start. Covered end to end
+      (`frontend/e2e/03-offline.spec.ts`), including a restart mid-session and a
+      double flush that must not open a second session.
 - [~] **UI/UX pass** — a deliberate visual + flow review of every screen before
       launch. In progress: the shared dark palette was refreshed 2026-08-16
       from purple-navy to a deeper midnight/aqua system, with softer surfaces,
@@ -491,7 +538,7 @@ Found while actually training with the app. Ordered by how much they hurt.
       and readable write-confirm cards with a composer lockout while an action
       is pending. Related: the broader **UI/UX pass** in Launch prep.
 - [ ] PRs, achievements, streaks
-- [~] Offline-first sync (native): a persisted set-log queue with retries survives restarts/dead zones (`lib/offline.ts`); **conflict resolution not yet built**
+- [x] Offline-first sync (native): a persisted write queue with retries survives restarts/dead zones (`lib/offline.ts`) — sets, session edits, finishing, and starting a workout. **conflict resolution not yet built**
 - [ ] Push notifications (rest done, workout reminders) via ntfy/web-push *(no `expo-notifications` yet)*
 - [ ] Plate / warmup / 1RM calculators
 - [~] Export/import: text + JSON export via native Share sheet (`lib/export.ts`); **CSV + re-import + backup fold-in still to do**
@@ -505,7 +552,16 @@ Found while actually training with the app. Ordered by how much they hurt.
 - [ ] **Open / self-hostable**: homelab-native extensibility (MCP-style), self-host tier → community moat (only if personal → product)
 
 ### Cross-cutting (ongoing)
-- [~] Tests: backend pytest (`api/tests/`: auth, workouts, exercises) ✅; **frontend tests + pytest-in-CI still missing**
+- [x] Tests: backend pytest (213, `api/tests/`) ✅, frontend unit tests (vitest, `src/lib/offline.test.ts` — the queue is the one
+      place a frontend bug silently loses training) ✅, and an end-to-end suite
+      (27 Playwright journeys in `frontend/e2e/`: real web build, real API, real
+      SQLite, nothing mocked — auth, the log-a-workout loop, offline start and
+      sync, rolling splits, plan management, catch-up, catalog, history/stats,
+      onboarding, profile/nutrition, and the AI surfaces with no provider
+      configured) ✅. All three run in CI (`.forgejo/workflows/ci.yml`).
+      *What e2e caught that unit tests structurally could not: an offline
+      restart logging you out, a reconnect not flushing the queue on web, and a
+      finished session reappearing as ongoing.*
 - [x] Security: auth + per-owner scoping on every route, Pydantic validation, secrets via `GYM_*` env; no published host port (Traefik TLS + `local-only`); JWT-default startup warning
 - [~] Observability: `logging` on boot/seed + `latency_ms` on AI calls; **structured logs + full AI request tracing still to do**
 - [x] Docs: README ✅, ROADMAP ✅, PROPOSAL ✅, HOWTO ✅, ARCHITECTURE ✅

@@ -7,7 +7,7 @@
  */
 import { expect, test, type Page } from '@playwright/test';
 
-import { appReady, authed, seedPlan, signIn } from './helpers';
+import { appReady, authed, findExercise, seedPlan, signIn } from './helpers';
 
 const shown = (page: Page, text: string | RegExp) =>
   page.getByText(text).locator('visible=true').first();
@@ -15,6 +15,7 @@ const shown = (page: Page, text: string | RegExp) =>
 test('a split can be created, filled with a day, and made active', async ({ page, request }) => {
   const account = await signIn(page, request);
   const api = authed(request, account.token);
+  const target = await findExercise(request, account.token, 'bench press');
 
   await page.goto('/');
   await appReady(page);
@@ -26,10 +27,10 @@ test('a split can be created, filled with a day, and made active', async ({ page
   await page.getByPlaceholder('e.g. Push Day').locator('visible=true').first().fill('Chest Day');
   await page.getByRole('button', { name: /Add exercise/ }).first().click();
 
-  // Pick the first catalog result for a search — the browser is a sheet.
-  await page.getByPlaceholder(/search/i).first().fill('bench press');
+  // Pick a known exercise out of the browser sheet.
+  await page.getByPlaceholder('Search exercises').locator('visible=true').first().fill(target.name);
   await page.waitForTimeout(1500);
-  await page.getByText(/bench press/i).locator('visible=true').first().click();
+  await shown(page, target.name).click();
 
   await page.getByRole('button', { name: /Save workout/ }).click();
 

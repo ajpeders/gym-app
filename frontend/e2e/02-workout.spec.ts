@@ -8,7 +8,7 @@
  */
 import { expect, test } from '@playwright/test';
 
-import { appReady, authed, seedPlan, signIn } from './helpers';
+import { appReady, authed, logSet, seedPlan, signIn } from './helpers';
 
 test('a planned day can be started, logged and finished', async ({ page, request }) => {
   const account = await signIn(page, request);
@@ -28,9 +28,7 @@ test('a planned day can be started, logged and finished', async ({ page, request
     ['60', '8'],
     ['65', '6'],
   ]) {
-    await page.getByLabel('Added weight').fill(weight);
-    await page.getByLabel('Reps').fill(reps);
-    await page.getByLabel('Log set').click();
+    await logSet(page, weight, reps);
     await expect(page.getByText(`${weight} kg`).first()).toBeVisible({ timeout: 10_000 });
   }
 
@@ -64,9 +62,7 @@ test('a set logged by mistake can be removed', async ({ page, request }) => {
   await page.getByText("Start today's plan").first().click();
   await expect(page.getByLabel('Log set')).toBeVisible({ timeout: 20_000 });
 
-  await page.getByLabel('Added weight').fill('40');
-  await page.getByLabel('Reps').fill('10');
-  await page.getByLabel('Log set').click();
+  await logSet(page, '40', '10');
   await expect(page.getByText('40 kg').first()).toBeVisible();
 
   await page.getByText('40 kg').first().click({ button: 'right' }).catch(() => {});

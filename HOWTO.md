@@ -73,6 +73,35 @@ uv pip install -r requirements.txt
 `pydantic-core` without a toolchain. Expect one harmless `passlib`/`crypt`
 deprecation warning.
 
+## Run the frontend tests
+
+Two suites, and they answer different questions.
+
+```sh
+cd frontend
+npm test        # vitest: the pure logic in src/lib (the offline queue)
+npm run e2e     # playwright: the whole stack in a browser
+```
+
+`npm run e2e` builds the web bundle first and then starts everything it needs:
+an API on :8011 against a throwaway copy of `api/data/gym.db`, and a static
+server for the build on :8012. Nothing is mocked and nothing touches your real
+data — each test registers its own account.
+
+While iterating on the tests themselves, `npm run e2e:fast` skips the rebuild.
+**Rebuild whenever you change app code**, or you'll be testing the previous
+bundle — the same trap as running the API without `--reload`. Useful flags:
+
+```sh
+npx playwright test 03-offline          # one spec
+npx playwright test --headed            # watch it happen
+npx playwright show-trace test-results/<dir>/trace.zip   # after a failure
+```
+
+If `api/data/gym.db` doesn't exist the API starts with an empty catalog and the
+suite creates the exercises it needs, which is how it runs in CI. Locally the
+copied database gives it the real 828-row catalog to search.
+
 ## Add a database column
 
 There's no Alembic. `init_db()` (in `api/app/db.py`) calls `create_all()` for new

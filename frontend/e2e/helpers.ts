@@ -102,12 +102,27 @@ export async function loginViaUi(page: Page, user: Account) {
   await page.getByRole('button', { name: 'Log in' }).click();
 }
 
-/** The first exercise whose name contains `term`, from the shared catalog. */
+/**
+ * An exercise to build plans from: the first catalog match for `term`, or a
+ * custom one created on the spot.
+ *
+ * The fallback is what lets this suite run anywhere. Locally the API starts
+ * from a copy of the dev database and has the full 828-row wger catalog; CI
+ * has no seeded catalog and no network to fetch one, and neither should decide
+ * whether the tests can run.
+ */
 export async function findExercise(request: APIRequestContext, token: string, term: string) {
-  const rows = await authed(request, token).get(`/exercises?q=${encodeURIComponent(term)}&limit=1`);
+  const api = authed(request, token);
+  const rows = await api.get(`/exercises?q=${encodeURIComponent(term)}&limit=1`);
   const list = Array.isArray(rows) ? rows : (rows.items ?? []);
-  expect(list.length, `no catalog exercise matching "${term}"`).toBeGreaterThan(0);
-  return list[0];
+  if (list.length) return list[0];
+  return api.post('/exercises', {
+    name: `${term} (e2e)`,
+    category: 'strength',
+    equipment: 'barbell',
+    primary_muscles: ['chest'],
+    instructions: ['Lift it.'],
+  });
 }
 
 /**
@@ -146,6 +161,19 @@ export async function seedPlan(
     );
   }
   return { split, workout: workouts[0], workouts, exercise };
+}
+
+/**
+ * Log a set on the active-session screen.
+ *
+ * The weight field is named for the movement — "Added weight" for a bodyweight
+ * exercise, "Weight" for a loaded one — so tests address whichever is there
+ * rather than depending on which exercise the catalog happened to supply.
+ */
+export async function logSet(page: Page, weight: string, reps: string) {
+  await page.getByLabel(/^(Added weight|Weight)$/).fill(weight);
+  await page.getByLabel('Reps').fill(reps);
+  await page.getByLabel('Log set').click();
 }
 
 /** Wait for the app shell to finish booting (it renders a splash first). */

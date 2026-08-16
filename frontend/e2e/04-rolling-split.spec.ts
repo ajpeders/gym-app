@@ -7,7 +7,7 @@
  */
 import { expect, test } from '@playwright/test';
 
-import { appReady, authed, seedPlan, signIn } from './helpers';
+import { appReady, authed, logSet, seedPlan, signIn } from './helpers';
 
 const PPL = ['Push', 'Pull', 'Legs'];
 
@@ -29,9 +29,7 @@ test('home offers the next day in the rotation, and advances when it is done', a
 
   await page.getByText('Start next in rotation').click();
   await expect(page.getByLabel('Log set')).toBeVisible({ timeout: 20_000 });
-  await page.getByLabel('Added weight').fill('60');
-  await page.getByLabel('Reps').fill('8');
-  await page.getByLabel('Log set').click();
+  await logSet(page, '60', '8');
   await expect(page.getByText('60 kg').first()).toBeVisible();
   await page.getByRole('button', { name: 'Finish session' }).click();
   await expect(page.getByText(/completed session/i).first()).toBeVisible({ timeout: 20_000 });

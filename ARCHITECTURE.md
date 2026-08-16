@@ -167,6 +167,19 @@ falling back. Keys are write-only — accepted by PATCH `/settings`, never retur
   twice. Without it a replayed start trips the single-active-session guard and
   closes the workout being logged. Only successes are remembered: a rejected
   write has to stay retryable.
+- **A local id is an alias, never a rename.** A workout started with no signal
+  has no server id, but the screen, the router, the queue and the
+  resume-on-launch path all need to call it something immediately. Rewriting
+  that name across four places once the server answers is where the bugs live,
+  so the local id is permanent and the server id is substituted at the single
+  seam where writes are sent (`resolveId` in `lib/offline.ts`). The session's
+  exercise rows are mapped the same way, joined by position when the start
+  syncs — otherwise sets logged before it landed would be addressed to local
+  rows, 404, and be dropped as permanently rejected.
+- **Offline means offline all the way up.** `/auth/me` failing is "can't ask
+  right now", not "signed out": the last confirmed profile is cached so an app
+  restart in a dead zone resumes instead of showing a login wall. The token is
+  what authorises anything, so trusting the cached profile grants nothing.
 - **Derive, don't store, what the sets already say.** Personal records
   (`/stats/summary`) and the progression nudge (`cleared_rep_range`, a Pydantic
   `computed_field` on `SessionExerciseOut`) are computed at serialize time. A
@@ -201,6 +214,16 @@ codebase → iOS/Android and a static web bundle served by nginx (`gym-web`).
 `src/app/` is the router tree (tabs: Home / Workouts / Exercises / History /
 Coach / Settings); `src/api/` wraps the REST client; `src/state/` holds auth, settings,
 and live-workout context; `src/lib/` holds offline queue, export, formatting.
+
+**Testing.** Three layers, deliberately split by what each can catch. `pytest`
+covers the API and the pure logic pushed server-side for exactly that reason
+(matching, rotation, progression, idempotency). `vitest` covers the frontend
+logic that can't move server-side — the offline write queue. Playwright
+(`frontend/e2e/`) drives the real web build against a real API and a real
+SQLite file with nothing mocked, which is the only layer that can catch the
+pieces not fitting together: an offline restart logging you out, a reconnect
+that never flushes the queue, a finished session reappearing as ongoing. All
+three run in CI.
 
 ## Deploy
 

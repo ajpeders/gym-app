@@ -48,3 +48,48 @@ jobs:
       - name: tsc --noEmit
         working-directory: frontend
         run: npx tsc --noEmit
+      # Unit tests for the pure logic under src/lib — mainly the offline queue,
+      # which is the one place a bug silently loses the user's training.
+      - name: vitest
+        working-directory: frontend
+        run: npm test
+
+  # The whole stack in a browser: real web build, real API, real SQLite. Split
+  # from `web` because it needs python and a browser, and because a failure
+  # here means something different — the pieces work but don't fit together.
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: python for the api
+        run: |
+          apt-get update -qq && apt-get install -y -qq python3 python3-pip python3-venv
+      - name: install api deps
+        working-directory: api
+        run: |
+          git config --global url."http://forgejo:3000/".insteadOf "https://git.thelunadog.com/"
+          python3 -m pip install --break-system-packages --no-cache-dir -r requirements.txt
+      - name: npm ci
+        working-directory: frontend
+        run: npm ci --no-audit --no-fund
+      - name: browser
+        working-directory: frontend
+        run: npx playwright install --with-deps chromium
+      # The API the bundle talks to is baked in at build time.
+      - name: build the web bundle
+        working-directory: frontend
+        env:
+          EXPO_PUBLIC_API_URL: http://127.0.0.1:8011
+        run: npx expo export --platform web --output-dir dist
+      # No dev database here, so the API starts with an empty catalog and the
+      # suite creates the exercises it needs. See e2e/api.sh.
+      - name: playwright
+        working-directory: frontend
+        env:
+          CI: 'true'
+        run: npx playwright test
+      - uses: actions/upload-artifact@v3
+        if: failure()
+        with:
+          name: playwright-traces
+          path: frontend/test-results/

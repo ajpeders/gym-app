@@ -13,9 +13,19 @@ data="${E2E_DATA_DIR:-/tmp/gym-e2e-data}"
 
 rm -rf "$data"
 mkdir -p "$data"
-cp "$api/data/gym.db" "$data/gym.db"
-ln -sfn "$api/data/exercise-media" "$data/exercise-media"
+# A copy of the dev database gives the tests the real 828-row catalog without a
+# network fetch. Where there isn't one (CI), start empty: the suite creates the
+# exercises it needs, so a missing catalog changes what is tested with, never
+# whether the tests run.
+if [ -f "$api/data/gym.db" ]; then
+  cp "$api/data/gym.db" "$data/gym.db"
+  ln -sfn "$api/data/exercise-media" "$data/exercise-media"
+fi
 
 cd "$api"
+# The venv locally, whatever python has the deps in CI.
+python="$api/.venv/bin/python"
+[ -x "$python" ] || python="$(command -v python3)"
+
 GYM_DATA_DIR="$data" GYM_SEED_ON_START=false \
-  exec .venv/bin/python -m uvicorn app.main:app --host 127.0.0.1 --port "${E2E_API_PORT:-8011}"
+  exec "$python" -m uvicorn app.main:app --host 127.0.0.1 --port "${E2E_API_PORT:-8011}"
