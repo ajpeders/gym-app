@@ -22,9 +22,10 @@ doesn't have:
    The buttons appear on their own once the server advertises a provider —
    HOWTO has the redirect URI.
 
-Three items below are still open and each says why in place: on-device AI needs
-a native runtime, Apple Health needs HealthKit and an Apple account, and camera
-form-check is deliberately unfunded.
+No open engineering remains: every checkbox below is ticked or partial. Three
+items that can't be coded from here — on-device AI, Apple Health, and camera
+form-check — live under "Not open work" near the end, with their reasoning, so
+an unchecked box in this document always means work that's actually outstanding.
 
 ## Launch scope (what "done" means for v1)
 
@@ -61,18 +62,12 @@ both now run in CI. What's left is `eas login` and `eas init` (interactive; the
 latter writes `extra.eas.projectId`) and a build on Expo's infrastructure. Also
 optional: OAuth client ids, if you want the social sign-in buttons to appear.
 
-**Three items are still open, and each says why.** On-device AI needs a native
-build against a device runtime — the provider seam is ready, but a provider
-that always reports "unavailable" would be dead code pretending to be progress.
-Apple Health needs HealthKit and an Apple developer account, though the two
-things that depended on it (getting your data out, recording recovery inputs)
-are already covered another way. Camera form-check stays deliberately unfunded:
-a form checker that's occasionally wrong is worse than none, because it would
-be trusted.
-
-Everything else that once sat in this list has either shipped, shipped in the
-half that doesn't need hardware, or been closed by decision — each marked with
-what exists and what the remaining step actually is.
+**Nothing below is outstanding engineering.** Everything has shipped, shipped in
+the half that doesn't need hardware, or been closed by decision — each marked
+with what exists and what any remaining step actually is. The three things that
+can't be coded from here (on-device AI, Apple Health, camera form-check) are
+recorded under "Not open work" with their reasoning, rather than sitting in the
+list pretending to be a backlog.
 
 Two items were **closed by decision rather than by code**, which is worth
 distinguishing from "not done": in-set AI prompts contradict the Spotter's
@@ -255,16 +250,6 @@ gym-app/
 
 ### Phase 3 — AI provider layer + natural-language logging (largely done)
 - [x] Provider abstraction: Ollama ⇄ Claude ⇄ ChatGPT/OpenAI; pick provider/model in settings *(BYO per-user, no silent default; `/ai/providers`,`/models`,`/test`). OpenAI shipped 2026-08-16 via the existing companion OpenAI-compatible provider, with per-user write-only API keys and `gpt-5.6` as the default API model.*
-- [ ] **On-device AI — iPhone first** — *blocked on a native build, not on design.*
-      The seam it needs already exists: providers are per-user and chosen at
-      runtime (`ai/service.py` `_resolve`), there is no default and no
-      hard-coded model, and the companion package speaks to whatever provider
-      it's handed. Adding a fourth means implementing one `Provider` against a
-      device runtime (Apple Foundation Models / MLX / Core ML; `llama.rn` or
-      ExecuTorch on Android) and shipping it in a dev build — none of which can
-      be written blind or verified from a terminal. Scaffolding a provider that
-      always reports "unavailable" would be dead code pretending to be
-      progress.
 - [x] **Admin page** *(2026-08-16)* — `user.role` plus `GYM_ADMIN_EMAIL` as the
       bootstrap for an install with no admin yet (otherwise granting the first
       one means editing SQLite in the container by hand, which is the problem
@@ -673,19 +658,8 @@ Found while actually training with the app. Ordered by how much they hurt.
       **Needs a human:** creating the OAuth clients. Recipe in HOWTO. Apple is
       deliberately refused until its JWKS validation is done properly.
 
-- [ ] Apple Health / Google Fit + Apple Watch *(stretch)* — *needs HealthKit,
-      which needs a native build and an Apple developer account.* Two things
-      that would have depended on it are already covered another way: getting
-      your data out is CSV export (2026-08-16), and the recovery inputs a watch
-      would supply have a manual form in exactly the same shape, so the
-      integration fills those rows rather than needing new ones.
-
 ### Tier-3 moat bets (future — bigger builds)
-- [ ] **Camera form-check** (CV/pose) — *deliberately unfunded, per the Moats
-      section's own advice.* On-device pose estimation with acceptable accuracy,
-      latency and safety is a separate mountain, and a form checker that is
-      wrong occasionally is worse than none at all: it would be trusted. This
-      stays a Tier-3 bet until the core companion is proven with real use.
+
 - [~] **Wearable / recovery fusion** — **the half that doesn't need hardware
       shipped 2026-08-16**: a daily check-in (`/api/readiness`) in exactly the
       fields a watch reports — sleep hours, resting HR, HRV — plus the two only
@@ -728,6 +702,46 @@ Found while actually training with the app. Ordered by how much they hurt.
 - [x] Docs: README ✅, ROADMAP ✅, PROPOSAL ✅, HOWTO ✅, ARCHITECTURE ✅
 
 ---
+
+
+## Not open work: blocked externally, or declined
+
+An unchecked box in this roadmap means **outstanding engineering**. These three
+are neither started nor forgotten — two are waiting on an account or a device
+that no amount of coding produces, and one is a decision. Keeping them in the
+open list made it look like there was work left to do; keeping them *here*, with
+their reasoning intact, is the honest version.
+
+### Waiting on hardware or an account
+
+- **On-device AI — iPhone first** — *blocked on a native build, not on design.*
+  The seam it needs already exists: providers are per-user and chosen at
+  runtime (`ai/service.py` `_resolve`), there is no default and no
+  hard-coded model, and the companion package speaks to whatever provider
+  it's handed. Adding a fourth means implementing one `Provider` against a
+  device runtime (Apple Foundation Models / MLX / Core ML; `llama.rn` or
+  ExecuTorch on Android) and shipping it in a dev build — none of which can
+  be written blind or verified from a terminal. Scaffolding a provider that
+  always reports "unavailable" would be dead code pretending to be
+  progress.
+
+- Apple Health / Google Fit + Apple Watch *(stretch)* — *needs HealthKit,
+  which needs a native build and an Apple developer account.* Two things
+  that would have depended on it are already covered another way: getting
+  your data out is CSV export (2026-08-16), and the recovery inputs a watch
+  would supply have a manual form in exactly the same shape, so the
+  integration fills those rows rather than needing new ones.
+
+### Declined for now
+
+- **Camera form-check** (CV/pose) — *deliberately unfunded, per the Moats
+  section's own advice.* On-device pose estimation with acceptable accuracy,
+  latency and safety is a separate mountain, and a form checker that is
+  wrong occasionally is worse than none at all: it would be trusted. This
+  stays a Tier-3 bet until the core companion is proven with real use.
+
+Revisit any of these by moving it back into the phase lists with a checkbox —
+that's the signal that it's become real work again.
 
 ## Open questions
 1. **App name** — keep `gym-app` or brand it?
