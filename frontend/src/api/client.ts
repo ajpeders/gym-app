@@ -600,6 +600,15 @@ export const api = {
   login: (input: { email: string; password: string }) =>
     request<AuthResponse>('/auth/login', { method: 'POST', body: input, auth: false }),
   me: () => request<User>('/auth/me'),
+  // Which social sign-ins this server can complete. Empty on an install with
+  // no client ids, which is the default.
+  socialProviders: () => request<{ providers: string[] }>('/auth/providers', { auth: false }),
+  oauthLogin: (provider: string, token: string) =>
+    request<AuthResponse>(`/auth/oauth/${provider}`, {
+      method: 'POST',
+      body: { token },
+      auth: false,
+    }),
 
   // ---- exercises ----
   exercises: (query?: ExerciseQuery) =>

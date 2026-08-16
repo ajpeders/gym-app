@@ -146,6 +146,29 @@ The phrase goes through the same parser as typing it, so "bench three by eight
 at sixty" becomes three sets. A shortcut that fires twice logs once — the
 screen sends a deep-linked phrase exactly once per arrival.
 
+## Turn on "Continue with Google" (or GitHub)
+
+Nothing social is configured by default, and an install with no client ids
+shows no buttons at all. To enable one:
+
+1. Create an OAuth client with the provider. The redirect URI is
+   `https://<your-host>/api/auth/oauth/<provider>/callback`.
+2. Set the credentials in the API's environment:
+
+```sh
+GYM_GOOGLE_CLIENT_ID=...      # and GYM_GOOGLE_CLIENT_SECRET
+GYM_GITHUB_CLIENT_ID=...      # and GYM_GITHUB_CLIENT_SECRET
+```
+
+The button appears on the login screen as soon as the server advertises the
+provider. The secret never reaches the app: the browser starts at
+`/auth/oauth/<provider>/start`, the code is exchanged server-side, and only our
+own session token comes back to the app's deep link.
+
+Apple is deliberately refused for now — validating its id_token means verifying
+against Apple's JWKS, and a sign-in that "probably" checked out is worse than
+one that isn't offered.
+
 ## Add a database column
 
 There's no Alembic. `init_db()` (in `api/app/db.py`) calls `create_all()` for new

@@ -11,9 +11,10 @@ import { Button } from '@/components/ui/Button';
 import { Logo } from '@/components/ui/Logo';
 import { AuthForm } from '@/components/ui/AuthForm';
 import { FormError } from '@/components/ui/Feedback';
+import { SocialSignIn } from '@/components/SocialSignIn';
 
 export default function LoginScreen() {
-  const { login } = useAuth();
+  const { login, loginWithProvider } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -33,6 +34,15 @@ export default function LoginScreen() {
       setError(err instanceof ApiError ? err.message : 'Login failed. Try again.');
     } finally {
       setSubmitting(false);
+    }
+  }
+
+  async function onSocialToken(provider: string, token: string) {
+    setError(null);
+    try {
+      await loginWithProvider(provider, token);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'That sign-in did not complete.');
     }
   }
 
@@ -82,6 +92,7 @@ export default function LoginScreen() {
             {error ? <FormError message={error} /> : null}
 
             <Button title="Log in" size="lg" loading={submitting} onPress={onSubmit} />
+            <SocialSignIn onToken={(provider, token) => void onSocialToken(provider, token)} />
           </AuthForm>
 
           <View className="mt-6 flex-row justify-center">

@@ -20,6 +20,13 @@ class Settings(BaseSettings):
     # even before any user row says so. Otherwise the first admin could only be
     # granted by editing the database by hand.
     admin_email: str = ""
+
+    # --- Social sign-in (optional; a provider with no client id is absent) ---
+    google_client_id: str = ""
+    google_client_secret: str = ""
+    apple_client_id: str = ""
+    github_client_id: str = ""
+    github_client_secret: str = ""
     seed_on_start: bool = True
 
     # --- AI (Phase 3) ---

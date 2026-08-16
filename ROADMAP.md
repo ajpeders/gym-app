@@ -610,7 +610,20 @@ Found while actually training with the app. Ordered by how much they hurt.
       per-user AI config and athlete memory), and the operator view manages them. Two people
       sharing a phone log into their own accounts; there is nothing left for a "profile"
       concept to add.
-- [ ] **Social / OAuth login** ("log in with other apps" — Google / Apple / GitHub) via expo-auth-session; optional alongside the existing email/password auth
+- [~] **Social / OAuth login** — **built, needs credentials** *(2026-08-16)*.
+      Google and GitHub work end to end: `/auth/providers` advertises whichever
+      have a client id, the browser starts at `/auth/oauth/{provider}/start` so
+      the client secret never reaches the app, the code is exchanged
+      server-side, and only our own session token comes back to the app's deep
+      link. An account is matched on a **verified** email — anything less would
+      let a throwaway address claim someone's training — and one created this
+      way gets a random password hash so nothing can log into it with a
+      password. Redirects are allowlisted (an open redirect here hands out a
+      session token) and the `state` is signed. Tested with the provider call
+      stubbed, including the hostile cases.
+      **Needs a human:** creating the OAuth clients. Recipe in HOWTO. Apple is
+      deliberately refused until its JWKS validation is done properly.
+
 - [ ] Apple Health / Google Fit + Apple Watch (stretch)
 
 ### Tier-3 moat bets (future — bigger builds)

@@ -18,6 +18,9 @@ interface AuthContextValue {
   user: User | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
+  /** Finish a social sign-in: the server already verified the provider's
+   * token and issued ours. */
+  loginWithProvider: (provider: string, token: string) => Promise<void>;
   register: (email: string, password: string, displayName: string) => Promise<void>;
   logout: () => Promise<void>;
   loadMe: () => Promise<User | null>;
@@ -128,6 +131,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(res.user);
   }, []);
 
+  const loginWithProvider = useCallback(async (provider: string, token: string) => {
+    const res = await api.oauthLogin(provider, token);
+    await setItem(TOKEN_KEY, res.token);
+    await cacheUser(res.user);
+    setUser(res.user);
+  }, []);
+
   const register = useCallback(
     async (email: string, password: string, displayName: string) => {
       const res = await api.register({ email, password, display_name: displayName });
@@ -162,8 +172,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const value = useMemo<AuthContextValue>(
-    () => ({ user, loading, login, register, logout, loadMe }),
-    [user, loading, login, register, logout, loadMe],
+    () => ({ user, loading, login, loginWithProvider, register, logout, loadMe }),
+    [user, loading, login, loginWithProvider, register, logout, loadMe],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

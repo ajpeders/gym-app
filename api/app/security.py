@@ -28,15 +28,29 @@ def verify_password(plain: str, hashed: str) -> bool:
         return False
 
 
-def create_token(user_id: int) -> str:
+def create_token(user_id: int, extra: dict | None = None, minutes: int | None = None) -> str:
+    """A session token, or — with `extra` and a short life — a signed carrier
+    for something that has to survive a round trip through a third party.
+
+    The OAuth flow uses the second form for its `state`: signing where to
+    redirect back to, rather than trusting whatever comes back, is what stops a
+    tampered redirect from being handed our session token.
+    """
     settings = get_settings()
     now = datetime.now(timezone.utc)
-    payload = {
-        "sub": str(user_id),
-        "iat": now,
-        "exp": now + timedelta(hours=settings.jwt_expire_hours),
-    }
+    expires = (
+        now + timedelta(minutes=minutes)
+        if minutes is not None
+        else now + timedelta(hours=settings.jwt_expire_hours)
+    )
+    payload = {"sub": str(user_id), "iat": now, "exp": expires, **(extra or {})}
     return jwt.encode(payload, settings.jwt_secret, algorithm=settings.jwt_algorithm)
+
+
+def decode_token_claims(token: str) -> dict:
+    """Every claim in a token we signed. Raises if it's expired or tampered."""
+    settings = get_settings()
+    return jwt.decode(token, settings.jwt_secret, algorithms=[settings.jwt_algorithm])
 
 
 def decode_token(token: str) -> int:

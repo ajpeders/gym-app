@@ -72,3 +72,14 @@ test('logging out returns to the sign-in screen and stays there after a reload',
   await page.reload();
   await expect(visible(page, 'you@example.com')).toBeVisible({ timeout: 20_000 });
 });
+
+test('no social buttons appear on a server with none configured', async ({ page, request }) => {
+  // The default, and the common case for a self-hosted install: a button that
+  // fails on tap is worse than one way in that works.
+  await page.goto('/');
+  await expect(page.getByRole('button', { name: 'Log in' })).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByText(/Continue with/)).toHaveCount(0);
+
+  const res = await request.get(`${API}/auth/providers`);
+  expect(await res.json()).toEqual({ providers: [] });
+});

@@ -1,10 +1,17 @@
 """Registration, login, and current-user routes."""
 from __future__ import annotations
 
+import secrets
+from urllib.parse import quote
+
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.responses import RedirectResponse
+from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from .. import oauth
+from ..config import get_settings
 from ..db import get_db
 from ..accounts import purge_user
 from ..models import (
@@ -35,9 +42,141 @@ from ..schemas import (
     UserOut,
     WorkoutOut,
 )
-from ..security import create_token, get_current_user, hash_password, verify_password
+from ..security import (
+    create_token,
+    decode_token_claims,
+    get_current_user,
+    hash_password,
+    verify_password,
+)
 
 router = APIRouter(prefix="/auth", tags=["auth"])
+
+
+class OAuthIn(BaseModel):
+    """The provider's token, from whichever flow the client ran."""
+
+    token: str
+
+
+@router.get("/providers")
+def social_providers() -> dict:
+    """Which social sign-ins this install can complete.
+
+    The login screen asks before drawing any buttons: an install with no client
+    ids configured shows none, rather than a button that fails on tap.
+    """
+    return {"providers": oauth.configured_providers()}
+
+
+# Where a browser is allowed to be sent back to after signing in. An open
+# redirect here would hand our session token to whoever asked for it, so the
+# app's own scheme and the configured web origin are the whole list.
+def _allowed_redirect(redirect_uri: str) -> bool:
+    from ..config import get_settings
+
+    if redirect_uri.startswith("gymapp://") or redirect_uri.startswith("exp://"):
+        return True
+    origins = get_settings().cors_origin_list
+    if origins == ["*"]:
+        # A wildcard CORS setting is for a LAN-only dev box; still refuse
+        # anything that isn't local, because this one carries a token.
+        return redirect_uri.startswith("http://localhost") or redirect_uri.startswith(
+            "http://127.0.0.1"
+        )
+    return any(redirect_uri.startswith(origin) for origin in origins)
+
+
+@router.get("/oauth/{provider}/start")
+def oauth_start(provider: str, redirect_uri: str) -> RedirectResponse:
+    """Send the browser to the provider.
+
+    The flow starts here rather than in the app so the client secret stays on
+    the server; the app only ever sees our own session token at the end.
+    """
+    if provider not in oauth.configured_providers() or provider not in oauth.AUTHORIZE_URLS:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"{provider.title()} sign-in isn't set up on this server.",
+        )
+    if not _allowed_redirect(redirect_uri):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="That redirect isn't allowed."
+        )
+    # The state carries where to come back to, signed the same way sessions are
+    # so a tampered redirect can't survive the round trip.
+    state = create_token(0, extra={"redirect_uri": redirect_uri}, minutes=10)
+    callback = f"{get_settings().self_base_url}/api/auth/oauth/{provider}/callback"
+    return RedirectResponse(oauth.authorize_url(provider, callback, state))
+
+
+@router.get("/oauth/{provider}/callback")
+async def oauth_callback(
+    provider: str, code: str, state: str, db: Session = Depends(get_db)
+) -> RedirectResponse:
+    """Where the provider sends them back. Ends at the app with our token."""
+    try:
+        claims = decode_token_claims(state)
+        redirect_uri = claims.get("redirect_uri", "")
+    except Exception as exc:  # noqa: BLE001 - a bad state is a failed sign-in
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="That sign-in expired."
+        ) from exc
+    if not _allowed_redirect(redirect_uri):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="That redirect isn't allowed."
+        )
+
+    callback = f"{get_settings().self_base_url}/api/auth/oauth/{provider}/callback"
+    try:
+        provider_token = await oauth.exchange_code(provider, code, callback)
+        identity = await oauth.verify(provider, provider_token)
+    except oauth.OAuthError as exc:
+        separator = "&" if "?" in redirect_uri else "?"
+        return RedirectResponse(f"{redirect_uri}{separator}error={quote(str(exc))}")
+
+    user = _find_or_create_oauth_user(db, identity)
+    separator = "&" if "?" in redirect_uri else "?"
+    return RedirectResponse(f"{redirect_uri}{separator}token={create_token(user.id)}")
+
+
+def _find_or_create_oauth_user(db: Session, identity: oauth.VerifiedIdentity) -> User:
+    """The account behind a verified email — existing or new."""
+    user = db.scalar(select(User).where(User.email == identity.email.lower()))
+    if user is not None:
+        return user
+    user = User(
+        email=identity.email.lower(),
+        # No usable password: this account signs in through the provider. A
+        # random hash rather than an empty one, so nothing can ever match it.
+        password_hash=hash_password(secrets.token_urlsafe(32)),
+        display_name=identity.name,
+    )
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    return user
+
+
+@router.post("/oauth/{provider}", response_model=TokenOut)
+async def oauth_login(
+    provider: str, payload: OAuthIn, db: Session = Depends(get_db)
+) -> TokenOut:
+    """Sign in (or sign up) with a provider token.
+
+    The provider only supplies a *verified* email; everything after that is the
+    ordinary account. An existing account with that address is signed into —
+    which is safe precisely because the address was verified, and is what
+    someone expects when they registered with a password and later tap
+    "Continue with Google".
+    """
+    try:
+        identity = await oauth.verify(provider, payload.token)
+    except oauth.OAuthError as exc:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(exc)) from exc
+
+    user = _find_or_create_oauth_user(db, identity)
+    return TokenOut(token=create_token(user.id), user=UserOut.model_validate(user))
 
 
 def _ensure_settings(db: Session, user: User):
