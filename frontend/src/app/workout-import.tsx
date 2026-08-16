@@ -116,6 +116,11 @@ export default function WorkoutImportScreen() {
   const [goal, setGoal] = useState('');
   const [daysPerWeek, setDaysPerWeek] = useState('3');
   const [equipment, setEquipment] = useState('');
+  // A logged history from another app — separate from the plan paste above,
+  // because it creates sessions rather than workouts.
+  const [csvText, setCsvText] = useState('');
+  const [csvBusy, setCsvBusy] = useState(false);
+  const [csvResult, setCsvResult] = useState<string | null>(null);
   const [phase, setPhase] = useState<Phase>('input');
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<ParseWorkoutResult | null>(null);
@@ -204,6 +209,30 @@ export default function WorkoutImportScreen() {
     } catch (e) {
       setPhase('input');
       setError(aiParseErrorMessage(e));
+    }
+  }
+
+  async function onImportCsv() {
+    const csv = csvText.trim();
+    if (!csv) return;
+    setCsvBusy(true);
+    setCsvResult(null);
+    setError(null);
+    try {
+      const result = await api.importCsv(csv);
+      const missed = result.unmatched.length
+        ? ` ${result.unmatched.length} movement(s) weren't in the library: ${result.unmatched
+            .slice(0, 3)
+            .join(', ')}.`
+        : '';
+      setCsvResult(
+        `Imported ${result.sessions_created} sessions and ${result.sets_imported} sets from your ${result.format} export.${missed}`,
+      );
+      setCsvText('');
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'That file could not be read');
+    } finally {
+      setCsvBusy(false);
     }
   }
 
@@ -649,6 +678,39 @@ export default function WorkoutImportScreen() {
               <FormError message={error} />
             </View>
           ) : null}
+
+          {/* A history from another app. Deterministic — no model reads a CSV. */}
+          <View className="mt-6 rounded-lg border border-iron-800 bg-iron-900/60 p-4">
+            <Text variant="heading">Coming from Hevy or Strong?</Text>
+            <Text variant="muted" className="mb-3 mt-0.5">
+              Paste your CSV export and your whole logged history comes with you — dates,
+              sets and all.
+            </Text>
+            <TextInput
+              value={csvText}
+              onChangeText={setCsvText}
+              accessibilityLabel="CSV export"
+              placeholder="Date,Workout Name,Exercise Name,..."
+              placeholderTextColor="#64748b"
+              multiline
+              className="h-24 rounded-lg border border-iron-700 bg-iron-950 px-3 py-2.5 text-sm text-iron-100"
+              style={{ textAlignVertical: 'top' }}
+            />
+            {csvResult ? (
+              <Text variant="caption" className="mt-2 text-brand">
+                {csvResult}
+              </Text>
+            ) : null}
+            <Button
+              title="Import history"
+              variant="secondary"
+              icon="download-outline"
+              className="mt-3"
+              loading={csvBusy}
+              disabled={!csvText.trim()}
+              onPress={() => void onImportCsv()}
+            />
+          </View>
 
           {/* Or have one written. Same review afterwards — including the
             * unmatched-exercise handling, which a generated program needs at

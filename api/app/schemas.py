@@ -470,10 +470,15 @@ class LoggedSetIn(BaseModel):
     weight: Optional[float] = None
     rpe: Optional[float] = None
     set_type: str = "working"
+    # Timed work (a plank, a carry) has seconds instead of reps — an import
+    # that dropped these would turn a held movement into an empty set.
+    duration_seconds: Optional[int] = None
+    notes: Optional[str] = None
 
 
 class LoggedExerciseIn(BaseModel):
     exercise_id: int
+    notes: Optional[str] = None
     sets: list[LoggedSetIn] = []
 
 

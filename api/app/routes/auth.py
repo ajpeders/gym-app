@@ -6,6 +6,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from ..db import get_db
+from ..accounts import purge_user
 from ..models import (
     AthleteProfile,
     BodyMetric,
@@ -90,27 +91,11 @@ def delete_me(
 ):
     """Permanently delete the current account and everything it owns.
 
-    Settings, sessions (+ their exercises/sets), and body metrics are removed by
-    the User relationship cascade on `db.delete(current)`. The rest is owned only
-    by `owner_id`/`user_id` and is swept explicitly here, so no rows are left
-    orphaned regardless of SQLite foreign-key enforcement. Custom exercises
-    (owner_id set) go; the shared catalog (owner_id NULL) is untouched.
+    The sweep lives in `app/accounts.py` because an operator can delete an
+    account too, and the two paths leaving different rows behind is how an
+    orphan gets adopted by the next person to sign up — SQLite reuses ids.
     """
-    uid = current.id
-    for row in db.scalars(select(Workout).where(Workout.owner_id == uid)):
-        db.delete(row)  # cascades its WorkoutExercise rows
-    for row in db.scalars(select(Split).where(Split.owner_id == uid)):
-        db.delete(row)
-    for row in db.scalars(select(ProgressPhoto).where(ProgressPhoto.owner_id == uid)):
-        db.delete(row)
-    for row in db.scalars(select(CoachMessage).where(CoachMessage.user_id == uid)):
-        db.delete(row)
-    for row in db.scalars(select(AthleteProfile).where(AthleteProfile.user_id == uid)):
-        db.delete(row)
-    for row in db.scalars(select(Exercise).where(Exercise.owner_id == uid)):
-        db.delete(row)
-    db.delete(current)
-    db.commit()
+    purge_user(db, current)
 
 
 # The export is checked against the same list `delete_me` sweeps: anything the

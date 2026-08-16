@@ -789,6 +789,13 @@ export const api = {
     }),
   // A program written from a description rather than pasted. Same shape as a
   // parse, so it goes through the same review before anything is saved.
+  // A Hevy or Strong export, read deterministically (no model involved).
+  importCsv: (csv: string) =>
+    request<{ format: string; sessions_created: number; sets_imported: number; unmatched: string[] }>(
+      '/sessions/import-csv',
+      { method: 'POST', body: { csv } },
+    ),
+  exportCsvUrl: () => `${API_BASE}/sessions/export.csv`,
   generateProgram: (input: {
     goal?: string;
     days_per_week?: number;

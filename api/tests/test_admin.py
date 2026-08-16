@@ -201,3 +201,76 @@ def test_a_failed_ai_call_is_recorded_by_the_middleware(client, admin):
     assert hit["ok"] is False
     assert "HTTP" in (hit["error"] or "")
     assert hit["latency_ms"] is not None
+
+
+def test_deleting_an_account_leaves_nothing_for_the_next_one_to_inherit(client, admin, auth2):
+    """SQLite reuses user ids. A row left pointing at a deleted account is not
+    litter — it's someone else's training showing up in a stranger's History
+    the first time they open it."""
+    from app.db import SessionLocal
+    from app.models import Session, Split, Workout
+
+    headers, _ = admin
+    other_headers, other, _ = auth2
+    uid = int(other["id"])
+
+    split = client.post("/api/splits", headers=other_headers, json={"name": "Theirs"}).json()
+    ex = client.post(
+        "/api/exercises",
+        headers=other_headers,
+        json={"name": "Their Lift", "category": "strength", "equipment": "barbell",
+              "primary_muscles": ["chest"], "instructions": []},
+    ).json()
+    client.post(
+        "/api/workouts",
+        headers=other_headers,
+        json={"name": "Their Day", "split_id": int(split["id"]),
+              "exercises": [{"exercise_id": ex["id"], "order": 0}]},
+    )
+    client.post(
+        "/api/sessions/log",
+        headers=other_headers,
+        json={"name": "Theirs", "exercises": [{"exercise_id": ex["id"], "sets": []}]},
+    )
+    client.post("/api/nutrition", headers=other_headers, json={"label": "Theirs", "calories": 500})
+
+    assert client.delete(f"/api/admin/users/{uid}", headers=headers).status_code == 204
+
+    db = SessionLocal()
+    try:
+        for model in (Session, Split, Workout):
+            left = db.query(model).filter(model.owner_id == uid).count()
+            assert left == 0, f"{model.__name__} rows survived the account"
+    finally:
+        db.close()
+
+
+def test_the_boot_sweep_removes_rows_from_accounts_that_are_already_gone(client, auth):
+    """Historic orphans exist from before both delete paths swept the same
+    list; the sweep at startup is what stops them being adopted."""
+    from sqlalchemy import text
+
+    from app.accounts import sweep_orphans
+    from app.db import SessionLocal
+    from app.models import Session
+
+    db = SessionLocal()
+    try:
+        # Foreign keys are enforced now, so an orphan can't be created the
+        # normal way — which is the point. Seed one the way a legacy row got
+        # there, with enforcement off, and check the sweep clears it.
+        db.execute(text("PRAGMA foreign_keys=OFF"))
+        db.execute(
+            text(
+                "INSERT INTO session (owner_id, name, started_at) "
+                "VALUES (999999, 'Ghost', '2026-01-01 00:00:00')"
+            )
+        )
+        db.commit()
+        db.execute(text("PRAGMA foreign_keys=ON"))
+
+        assert db.query(Session).filter(Session.owner_id == 999_999).count() == 1
+        assert sweep_orphans(db) >= 1
+        assert db.query(Session).filter(Session.owner_id == 999_999).count() == 0
+    finally:
+        db.close()

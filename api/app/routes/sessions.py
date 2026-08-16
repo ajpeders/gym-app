@@ -4,15 +4,16 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from pydantic import BaseModel, Field
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session as SASession
 
+from .. import csv_io
 from ..db import get_db
 from ..ai import service as ai_service
 from ..ai.base import AIError
-from ..ai.service import UnmatchedExercises
+from ..ai.service import UnmatchedExercises, match_exercise
 from ..idempotency import idempotency_key, replay_or_run
 from ..models import (
     Exercise,
@@ -24,6 +25,8 @@ from ..models import (
     utcnow,
 )
 from ..schemas import (
+    LoggedExerciseIn,
+    LoggedSetIn,
     SessionCreate,
     SessionExerciseCreate,
     SessionExerciseOut,
@@ -252,6 +255,142 @@ async def log_session_from_text(
     )
 
 
+class CsvImport(BaseModel):
+    """A whole training history, pasted or uploaded as CSV."""
+
+    csv: str
+
+
+class CsvImportResult(BaseModel):
+    format: str
+    sessions_created: int
+    sets_imported: int
+    # Movements the catalog couldn't place. Reported, never dropped silently:
+    # a history missing its main lift is not the history.
+    unmatched: list[str] = []
+
+
+@router.post("/import-csv", response_model=CsvImportResult, status_code=status.HTTP_201_CREATED)
+def import_csv(
+    payload: CsvImport,
+    db: SASession = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> CsvImportResult:
+    """Import a Hevy or Strong export.
+
+    The format is sniffed from the header row and both are normalised to one
+    shape (`app/csv_io.py`). No model is involved — a CSV is structured data,
+    and reading it with an LLM would be slower, costlier and less reliable.
+    Exercises resolve through the same catalog matcher as every other import.
+    """
+    fmt = csv_io.detect_format(payload.csv)
+    if fmt is None:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=(
+                "That doesn't look like a Hevy or Strong export — the header row "
+                "should name the exercise column."
+            ),
+        )
+
+    sessions = csv_io.sessions_from_rows(csv_io.parse_rows(payload.csv))
+    unmatched: list[str] = []
+    created = 0
+    imported_sets = 0
+
+    for raw in sessions:
+        exercises: list[LoggedExerciseIn] = []
+        for item in raw["exercises"]:
+            exercise_id, _ = match_exercise(db, user.id, item["exercise"])
+            if exercise_id is None:
+                if item["exercise"] not in unmatched:
+                    unmatched.append(item["exercise"])
+                continue
+            exercises.append(
+                LoggedExerciseIn(
+                    exercise_id=exercise_id,
+                    notes=item.get("notes"),
+                    sets=[LoggedSetIn(**s) for s in item["sets"]],
+                )
+            )
+            imported_sets += len(item["sets"])
+        if not exercises:
+            continue
+        _log_session(
+            SessionLog(
+                name=raw["name"],
+                started_at=_parse_csv_datetime(raw["started_at"]),
+                exercises=exercises,
+            ),
+            db,
+            user,
+        )
+        created += 1
+
+    return CsvImportResult(
+        format=fmt, sessions_created=created, sets_imported=imported_sets, unmatched=unmatched
+    )
+
+
+@router.get("/export.csv")
+def export_csv(
+    db: SASession = Depends(get_db), user: User = Depends(get_current_user)
+) -> Response:
+    """Every logged set, in a CSV this app can read back in.
+
+    Deliberately the same shape `import-csv` accepts: an export you can't
+    re-import is a screenshot with extra steps.
+    """
+    rows = db.scalars(
+        select(Session)
+        .where(Session.owner_id == user.id)
+        .order_by(Session.started_at)
+    ).all()
+
+    payload = [
+        {
+            "name": s.name or "",
+            "started_at": s.started_at.isoformat(sep=" ", timespec="seconds"),
+            "exercises": [
+                {
+                    "exercise": (se.exercise.name if se.exercise else "Exercise"),
+                    "sets": [
+                        {
+                            "reps": st.reps,
+                            "weight": st.weight,
+                            "rpe": st.rpe,
+                            "duration_seconds": st.duration_seconds,
+                            "set_type": st.set_type,
+                            "notes": st.notes,
+                        }
+                        for st in se.sets
+                    ],
+                }
+                for se in s.exercises
+            ],
+        }
+        for s in rows
+    ]
+    return Response(
+        content=csv_io.sessions_to_csv(payload),
+        media_type="text/csv",
+        headers={"Content-Disposition": 'attachment; filename="gym-app-history.csv"'},
+    )
+
+
+def _parse_csv_datetime(value: str) -> datetime | None:
+    """Both exporters write "YYYY-MM-DD HH:MM:SS"; some locales write ISO."""
+    text = (value or "").strip()
+    if not text:
+        return None
+    for fmt in ("%Y-%m-%d %H:%M:%S", "%Y-%m-%dT%H:%M:%S", "%Y-%m-%d %H:%M", "%Y-%m-%d"):
+        try:
+            return datetime.strptime(text, fmt)
+        except ValueError:
+            continue
+    return None
+
+
 @router.post("/log", response_model=SessionOut, status_code=status.HTTP_201_CREATED)
 def log_session(
     payload: SessionLog,
@@ -286,7 +425,7 @@ def _log_session(payload: SessionLog, db: SASession, user: User) -> SessionOut:
     )
     for i, ex in enumerate(payload.exercises):
         _validate_exercise(db, ex.exercise_id, user)
-        se = SessionExercise(exercise_id=ex.exercise_id, order=i)
+        se = SessionExercise(exercise_id=ex.exercise_id, order=i, notes=ex.notes)
         for j, s in enumerate(ex.sets):
             se.sets.append(
                 SetEntry(
@@ -295,6 +434,8 @@ def _log_session(payload: SessionLog, db: SASession, user: User) -> SessionOut:
                     weight=s.weight,
                     rpe=s.rpe,
                     set_type=s.set_type,
+                    duration_seconds=s.duration_seconds,
+                    notes=s.notes,
                     completed=True,
                     completed_at=started,
                 )

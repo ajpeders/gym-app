@@ -181,7 +181,7 @@ gym-app/
 - [x] Routines/templates: build reusable plans, start a workout from one *(targets snapshotted onto the workout)*
 - [x] **User-defined routines**: create/edit/duplicate, import (paste text or pick a template); **Splits** group day-routines into a weekly plan
 - [x] **Split/workout redesign shipped** *(2026-07-26)* — Split = the week, Workout = one plan-day, Session = a logged bout. Weekday scheduling now lives on the workout (`weekdays` list + a `floating` "do anytime" flag), edited via the workout editor's WeekdayPicker; the split screen renders the week grid + an "Anytime" section.
-- [~] **Import anything** (moat #3): notes-app text → routines ✅ (`/api/ai/parse-routine`); **next: Hevy/Strong CSV, whiteboard photo (vision), PDF coach program**
+- [~] **Import anything** (moat #3): notes-app text → routines ✅, **Hevy/Strong CSV ✅ (2026-08-16)** — `POST /api/sessions/import-csv` sniffs the format from the header row and normalises both, no model involved because a CSV is structured data; sessions keep the dates they happened on, warmups stay warmups, and unmatched movements are reported. `GET /api/sessions/export.csv` writes a file the importer can read back. **next: whiteboard photo (vision), PDF coach program**
 - [x] Units (kg/lb), basic settings screen
 - [x] **Bottom nav tabs restored** — Home / Workouts / Routines / Coach / Settings (Exercises reachable as a route, hidden from the bar)
 
@@ -557,7 +557,7 @@ Found while actually training with the app. Ordered by how much they hurt.
 - [x] Offline-first sync (native): a persisted write queue with retries survives restarts/dead zones (`lib/offline.ts`) — sets, session edits, finishing, and starting a workout. **conflict resolution not yet built**
 - [ ] Push notifications (rest done, workout reminders) via ntfy/web-push *(no `expo-notifications` yet)*
 - [x] Plate / warmup / 1RM calculators *(2026-08-16)* — `GET /api/tools/{plates,warmup,one-rep-max}` and a Calculators screen (History → Calculators). Plates are greedy heaviest-first, which is both optimal for real plate sets and the order you physically load them; a target the plates can't make reports the nearest one and how much you're short rather than failing. Warmups ramp from the empty bar on weights that are actually loadable, and stay short for a light working weight. The max estimate shares `analysis.e1rm`, so it can't drift from the strength trend. All pure and tested (`app/calculators.py`) — this is the maths you'd do standing at the bar, and it must not need a network.
-- [~] Export/import: text + JSON export via native Share sheet (`lib/export.ts`); **CSV + re-import + backup fold-in still to do**
+- [x] Export/import: text + JSON export via the Share sheet (`lib/export.ts`), a full JSON account export, and **CSV import/export (2026-08-16)** that round-trips — an export you can't re-import is a screenshot with extra steps. **Backup fold-in still to do**
 - [ ] Multi-user profiles (optional)
 - [ ] **Social / OAuth login** ("log in with other apps" — Google / Apple / GitHub) via expo-auth-session; optional alongside the existing email/password auth
 - [ ] Apple Health / Google Fit + Apple Watch (stretch)

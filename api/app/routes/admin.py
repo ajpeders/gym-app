@@ -19,6 +19,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy import case, func, select
 from sqlalchemy.orm import Session as SASession
 
+from ..accounts import purge_user
 from ..config import get_settings
 from ..db import get_db
 from ..models import AiCall, ClientError, Exercise, Session, User
@@ -202,8 +203,9 @@ def delete_user(
     target = db.get(User, user_id)
     if target is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
-    db.delete(target)
-    db.commit()
+    # The same sweep the owner's own delete uses: a row left behind here would
+    # be inherited by whoever gets that id next.
+    purge_user(db, target)
 
 
 @router.get("/errors", response_model=list[ClientErrorOut])

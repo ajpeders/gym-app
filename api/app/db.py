@@ -71,12 +71,40 @@ def _ensure_columns() -> None:
                 conn.exec_driver_sql(f"ALTER TABLE {table} ADD COLUMN {column} {coltype}")
 
 
+def _enable_foreign_keys() -> None:
+    """SQLite ignores foreign keys unless asked, per connection.
+
+    Without this, `ON DELETE CASCADE` and `ON DELETE SET NULL` are decoration:
+    the ORM cascades what it knows about and everything else is left dangling.
+    """
+    from sqlalchemy import event
+
+    @event.listens_for(engine, "connect")
+    def _set_pragma(dbapi_connection, _record):  # noqa: ANN001
+        cursor = dbapi_connection.cursor()
+        cursor.execute("PRAGMA foreign_keys=ON")
+        cursor.close()
+
+
 def init_db() -> None:
     """Create all tables, then apply additive column migrations. TODO: Alembic."""
     from . import models  # noqa: F401  (ensure models are registered)
 
+    _enable_foreign_keys()
     Base.metadata.create_all(bind=engine)
     _ensure_columns()
+
+    # Rows belonging to accounts that no longer exist. Historic ones exist from
+    # before both delete paths swept the same list, and leaving them is not
+    # cosmetic: SQLite reuses user ids, so the next person to sign up could
+    # inherit a stranger's training.
+    from .accounts import sweep_orphans
+
+    db = SessionLocal()
+    try:
+        sweep_orphans(db)
+    finally:
+        db.close()
 
 
 def get_db() -> Generator[Session, None, None]:
