@@ -5,14 +5,14 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
 import { api } from '@/api/client';
-import type { Split, TodayWorkout, Workout } from '@/api/types';
+import type { Split, StatsSummary, TodayWorkout, Workout } from '@/api/types';
+import { useAuth } from '@/state/auth';
 import { useActiveWorkout } from '@/state/active-workout';
 import { useStartSession } from '@/hooks/use-start-session';
 import { Screen, ScreenHeader, SectionHeader } from '@/components/ui/Screen';
 import { Text } from '@/components/ui/Text';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
-import { ActionRow } from '@/components/ui/ActionRow';
 import { HomeNutritionCard } from '@/components/HomeNutritionCard';
 import { HomeProfileCard } from '@/components/HomeProfileCard';
 
@@ -39,11 +39,11 @@ function QuickLink({
       onPress={onPress}
       disabled={disabled}
       accessibilityRole="button"
-      className={`min-h-[104px] flex-1 rounded-2xl border border-iron-800 bg-iron-900/80 p-3.5 active:bg-iron-850 ${
+      className={`min-h-[92px] flex-1 rounded-2xl border border-iron-800 bg-iron-900/75 p-3.5 active:bg-iron-850 ${
         disabled ? 'opacity-50' : ''
       }`}>
       <View className="flex-row items-start">
-        <View className="h-10 w-10 items-center justify-center rounded-2xl border border-brand/25 bg-brand/10">
+        <View className="h-9 w-9 items-center justify-center rounded-xl border border-brand/25 bg-brand/10">
           <Ionicons name={icon} size={18} color="#5eead4" />
         </View>
         <Ionicons
@@ -53,7 +53,7 @@ function QuickLink({
           style={{ marginLeft: 'auto', transform: [{ rotate: '45deg' }] }}
         />
       </View>
-      <Text variant="subheading" className="mt-3" numberOfLines={1}>
+      <Text variant="subheading" className="mt-2.5" numberOfLines={1}>
         {title}
       </Text>
       <Text variant="caption" className="mt-1 text-iron-300" numberOfLines={2}>
@@ -63,23 +63,12 @@ function QuickLink({
   );
 }
 
-function StatTile({
-  icon,
-  value,
-  label,
-}: {
-  icon: IoniconName;
-  value: string;
-  label: string;
-}) {
+function HomeStat({ value, label }: { value: string; label: string }) {
   return (
-    <View className="flex-1 rounded-2xl border border-iron-800 bg-iron-850 px-3 py-2.5">
-      <View className="flex-row items-center">
-        <Ionicons name={icon} size={15} color="#5eead4" />
-        <Text variant="label" className="ml-1.5 text-brand" numberOfLines={1}>
-          {value}
-        </Text>
-      </View>
+    <View className="min-w-0 flex-1 items-center px-2 py-2.5">
+      <Text variant="subheading" className="text-brand" numberOfLines={1}>
+        {value}
+      </Text>
       <Text variant="caption" className="mt-0.5 text-iron-400" numberOfLines={1}>
         {label}
       </Text>
@@ -104,18 +93,18 @@ function PrimaryWorkoutCard({
 }) {
   if (!workout) {
     return (
-      <Card elevated className="border-iron-800 bg-iron-900 p-4">
+      <Card elevated className="p-4">
         <View className="flex-row items-center">
           <View className="mr-3 h-14 w-14 items-center justify-center rounded-3xl border border-iron-700 bg-iron-850">
             <Ionicons name="calendar-clear-outline" size={25} color="#94a3b8" />
           </View>
           <View className="min-w-0 flex-1">
-            <Text variant="eyebrow">Nothing queued</Text>
+            <Text variant="eyebrow">Choose your session</Text>
             <Text variant="heading" className="mt-1" numberOfLines={1}>
-              Pick a day
+              What are you training?
             </Text>
             <Text variant="muted" className="mt-1 text-iron-300">
-              Open your split or start with any exercise.
+              Pick a saved day or build one exercise at a time.
             </Text>
           </View>
         </View>
@@ -125,7 +114,7 @@ function PrimaryWorkoutCard({
   }
 
   return (
-    <Card elevated className="border-brand/25 bg-brand/10 p-4">
+    <Card elevated className="border-brand/30 bg-brand/10 p-4">
       <Pressable onPress={onOpen} accessibilityRole="button" className="active:opacity-80">
         <View className="flex-row items-center">
           <View className="mr-3 h-16 w-16 items-center justify-center rounded-3xl bg-brand">
@@ -209,25 +198,29 @@ function scheduleText(workout: Workout): string {
 
 export default function HomeScreen() {
   const router = useRouter();
+  const { user } = useAuth();
   const { workout: active, start } = useActiveWorkout();
   const { startSession, starting } = useStartSession();
 
   const [splits, setSplits] = useState<Split[]>([]);
   const [workouts, setWorkouts] = useState<Workout[]>([]);
   const [today, setToday] = useState<TodayWorkout[]>([]);
+  const [stats, setStats] = useState<StatsSummary | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [blankStarting, setBlankStarting] = useState(false);
 
   const fetchData = useCallback(async () => {
     try {
-      const [splitList, workoutList, todayList] = await Promise.all([
+      const [splitList, workoutList, todayList, summary] = await Promise.all([
         api.splits().catch(() => [] as Split[]),
         api.workouts().catch(() => [] as Workout[]),
         api.splitToday().catch(() => [] as TodayWorkout[]),
+        api.statsSummary().catch(() => null),
       ]);
       setSplits(splitList);
       setWorkouts(workoutList);
       setToday(todayList);
+      setStats(summary);
     } finally {
       setRefreshing(false);
     }
@@ -263,7 +256,6 @@ export default function HomeScreen() {
   const now = new Date();
   const dateLabel = `${DOW[now.getDay()]}, ${MON[now.getMonth()]} ${now.getDate()}`;
   const activeSplit = splits.find((split) => split.is_active) ?? splits[0] ?? null;
-  const otherSplits = splits.filter((split) => split.id !== activeSplit?.id);
   const rolling = activeSplit?.mode === 'rolling';
   const scheduledToday = today.filter((entry) => entry.scheduled_today);
   const makeups = today.filter((entry) => entry.missed);
@@ -283,6 +275,7 @@ export default function HomeScreen() {
   const shownWorkouts = workouts
     .filter((workout) => String(workout.id) !== String(primaryToday?.id))
     .slice(0, 5);
+  const firstName = user?.display_name.trim().split(/\s+/)[0] || 'there';
 
   return (
     <Screen scroll={false} padded={false}>
@@ -300,8 +293,8 @@ export default function HomeScreen() {
         }>
         <ScreenHeader
           eyebrow={dateLabel}
-          title="Home"
-          subtitle="Pick your plan, another split, or any exercise."
+          title={`Hi, ${firstName}`}
+          subtitle="Choose what you want to train and get moving."
           action={
             <Pressable
               onPress={() => router.push('/settings')}
@@ -312,6 +305,20 @@ export default function HomeScreen() {
               <Ionicons name="settings-outline" size={19} color="#94a3b8" />
             </Pressable>
           }
+        />
+
+        {stats ? (
+          <View className="mb-4 flex-row divide-x divide-iron-800 rounded-2xl border border-iron-800 bg-iron-900/70">
+            <HomeStat value={String(stats.this_week)} label="This week" />
+            <HomeStat value={`${stats.streak ?? 0}d`} label="Streak" />
+            <HomeStat value={String(stats.total_workouts)} label="Sessions" />
+          </View>
+        ) : null}
+
+        <SectionHeader
+          title={active ? 'Keep going' : primaryToday ? 'Up next' : 'Start'}
+          subtitle={active ? 'Your current session is ready.' : undefined}
+          className="mt-0"
         />
 
         {active ? (
@@ -344,40 +351,42 @@ export default function HomeScreen() {
           </Card>
         ) : null}
 
-        <SectionHeader title="Start" subtitle="Your fastest paths are right here." className="mt-0" />
-        <PrimaryWorkoutCard
-          workout={primaryToday}
-          label={dueLabel}
-          icon={
-            rolling
-              ? 'repeat-outline'
-              : scheduledToday.length > 0
-                ? 'today-outline'
-                : 'refresh-outline'
-          }
-          starting={starting}
-          onOpen={() =>
-            primaryToday
-              ? router.push(`/workout/${primaryToday.id}`)
-              : activeSplit
-                ? router.push(`/split/${activeSplit.id}`)
-                : router.push('/workout-import')
-          }
-          onStart={primaryToday ? () => void onStartWorkout(primaryToday) : undefined}
-        />
+        {!active ? (
+          <PrimaryWorkoutCard
+            workout={primaryToday}
+            label={dueLabel}
+            icon={
+              rolling
+                ? 'repeat-outline'
+                : scheduledToday.length > 0
+                  ? 'today-outline'
+                  : 'refresh-outline'
+            }
+            starting={starting}
+            onOpen={() =>
+              primaryToday
+                ? router.push(`/workout/${primaryToday.id}`)
+                : activeSplit
+                  ? router.push(`/split/${activeSplit.id}`)
+                  : router.push('/workout-import')
+            }
+            onStart={primaryToday ? () => void onStartWorkout(primaryToday) : undefined}
+          />
+        ) : null}
 
-        <View className="mt-3 flex-row gap-3">
+        <SectionHeader title="Quick start" subtitle="No setup. Pick a path." />
+        <View className="flex-row gap-3">
           <QuickLink
             icon="add-circle-outline"
-            title="Any exercise"
-            subtitle="Blank session, then search."
+            title="Empty session"
+            subtitle="Add exercises as you go."
             disabled={blankStarting}
             onPress={() => void startBlankSession()}
           />
           <QuickLink
             icon="chatbubble-ellipses-outline"
             title="Log by text"
-            subtitle="Type what you did."
+            subtitle="Describe the workout."
             onPress={() => router.push('/log-chat')}
           />
         </View>
@@ -385,48 +394,52 @@ export default function HomeScreen() {
         <View className="mt-3 flex-row gap-3">
           <QuickLink
             icon="fitness-outline"
-            title="Exercises"
-            subtitle="Find a movement fast."
+            title="Exercise library"
+            subtitle="Browse and start one."
             onPress={() => router.push('/exercises')}
           />
           <QuickLink
             icon="restaurant-outline"
-            title="Food"
+            title="Nutrition"
             subtitle="Calories and protein."
             onPress={() => router.push('/nutrition')}
           />
         </View>
 
         <SectionHeader
-          title="Plan context"
-          subtitle="See the split you’re on, then jump into another day if needed."
+          title="Your plan"
+          action={
+            <Pressable onPress={() => router.push('/workouts')} hitSlop={8}>
+              <Text variant="label" className="text-brand">
+                All splits
+              </Text>
+            </Pressable>
+          }
         />
-        <Card elevated className="p-4">
-          <View className="flex-row gap-2">
-            <StatTile icon="calendar-outline" value={activeSplit?.name ?? 'None'} label="Active split" />
-            <StatTile
-              icon="fitness-outline"
-              value={String(activeSplit?.workouts.length ?? 0)}
-              label="Workout days"
-            />
-          </View>
-          <View className="mt-3 flex-row gap-2">
-            <Button
-              title={activeSplit ? 'Open split' : 'Import split'}
-              variant="secondary"
-              icon={activeSplit ? 'calendar-outline' : 'document-text-outline'}
-              className="flex-1"
-              onPress={() =>
-                activeSplit ? router.push(`/split/${activeSplit.id}`) : router.push('/workout-import')
-              }
-            />
-            <Button
-              title="All splits"
-              variant="secondary"
-              icon="layers-outline"
-              className="flex-1"
-              onPress={() => router.push('/workouts')}
-            />
+        <Card
+          onPress={() =>
+            activeSplit ? router.push(`/split/${activeSplit.id}`) : router.push('/workout-import')
+          }
+          className="p-4">
+          <View className="flex-row items-center">
+            <View className="mr-3 h-11 w-11 items-center justify-center rounded-xl bg-brand/10">
+              <Ionicons
+                name={activeSplit ? 'calendar-outline' : 'document-text-outline'}
+                size={20}
+                color="#5eead4"
+              />
+            </View>
+            <View className="min-w-0 flex-1">
+              <Text variant="subheading" numberOfLines={1}>
+                {activeSplit?.name ?? 'Import your first split'}
+              </Text>
+              <Text variant="caption" className="mt-0.5 text-iron-400">
+                {activeSplit
+                  ? `${activeSplit.workouts.length} workout days · ${rolling ? 'rotation' : 'weekly schedule'}`
+                  : 'Paste a plan and review it before saving.'}
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color="#64748b" />
           </View>
         </Card>
 
@@ -462,26 +475,7 @@ export default function HomeScreen() {
           </>
         ) : null}
 
-        {otherSplits.length > 0 ? (
-          <>
-            <SectionHeader title="Other splits" subtitle="Switch programs when today doesn’t fit." />
-            <Card className="p-2">
-              {otherSplits.slice(0, 3).map((split) => (
-                <ActionRow
-                  key={split.id}
-                  title={split.name}
-                  subtitle={`${split.workouts.length} workout day${split.workouts.length === 1 ? '' : 's'}`}
-                  icon="calendar-clear-outline"
-                  onPress={() => router.push(`/split/${split.id}`)}
-                />
-              ))}
-              {otherSplits.length > 3 ? (
-                <Button title="All splits" variant="secondary" className="mt-2" onPress={() => router.push('/workouts')} />
-              ) : null}
-            </Card>
-          </>
-        ) : null}
-
+        <SectionHeader title="Track" subtitle="Your nutrition and athlete profile." />
         <HomeProfileCard />
         <HomeNutritionCard />
       </ScrollView>

@@ -31,9 +31,7 @@ export function Screen({
 
   return (
     <SafeAreaView edges={edges} className={`flex-1 bg-iron-950 ${className ?? ''}`}>
-      <View pointerEvents="none" className="absolute inset-x-0 top-0 h-64 bg-iron-900/70" />
-      <View pointerEvents="none" className="absolute -right-24 top-8 h-56 w-56 rounded-full bg-brand/10" />
-      <View pointerEvents="none" className="absolute -left-28 top-40 h-52 w-52 rounded-full bg-steel/10" />
+      <View pointerEvents="none" className="absolute inset-x-0 top-0 h-40 bg-iron-900/55" />
       {scroll ? (
         <ScrollView
           className="flex-1"
@@ -65,13 +63,13 @@ export function ScreenHeader({
   className?: string;
 }) {
   return (
-    <View className={`mb-6 ${className ?? ''}`}>
+    <View className={`mb-5 ${className ?? ''}`}>
       {eyebrow ? <Text variant="eyebrow">{eyebrow}</Text> : null}
-      <View className="mt-1.5 flex-row items-start justify-between gap-3">
+      <View className="mt-1 flex-row items-start justify-between gap-3">
         <View className="flex-1">
           <Text variant="title">{title}</Text>
           {subtitle ? (
-            <Text variant="muted" className="mt-1">
+            <Text variant="muted" className="mt-0.5">
               {subtitle}
             </Text>
           ) : null}
@@ -94,7 +92,7 @@ export function SectionHeader({
   className?: string;
 }) {
   return (
-    <View className={`mb-3 mt-7 flex-row items-end justify-between gap-3 ${className ?? ''}`}>
+    <View className={`mb-3 mt-6 flex-row items-end justify-between gap-3 ${className ?? ''}`}>
       <View className="flex-1">
         <Text variant="heading" className="text-iron-50">
           {title}

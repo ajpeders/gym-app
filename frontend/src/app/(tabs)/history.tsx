@@ -4,7 +4,7 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
 import { api } from '@/api/client';
-import type { Session, StatsSummary, Workout } from '@/api/types';
+import type { Session, StatsSummary } from '@/api/types';
 import { useActiveWorkout } from '@/state/active-workout';
 import { Screen, ScreenHeader, SectionHeader } from '@/components/ui/Screen';
 import { Text } from '@/components/ui/Text';
@@ -75,23 +75,19 @@ function StatBadge({
 
 export default function HistoryScreen() {
   const router = useRouter();
-  const { start, activeId } = useActiveWorkout();
+  const { activeId } = useActiveWorkout();
   const [sessions, setSessions] = useState<Session[]>([]);
-  const [workouts, setWorkouts] = useState<Workout[]>([]);
   const [stats, setStats] = useState<StatsSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [busy, setBusy] = useState(false);
 
   const fetchData = useCallback(async () => {
     try {
-      const [w, r, summary] = await Promise.all([
+      const [w, summary] = await Promise.all([
         api.sessions({ limit: 50 }),
-        api.workouts().catch(() => [] as Workout[]),
         api.statsSummary().catch(() => null),
       ]);
       setSessions(w.items);
-      setWorkouts(r);
       setStats(summary);
     } finally {
       setLoading(false);
@@ -104,29 +100,6 @@ export default function HistoryScreen() {
       void fetchData();
     }, [fetchData]),
   );
-
-  async function startBlank() {
-    setBusy(true);
-    try {
-      const w = await start({ name: 'Quick session' });
-      router.push(`/session/active/${w.id}`);
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function startFromWorkout(workout: Workout) {
-    setBusy(true);
-    try {
-      const w = await start({
-        workout_id: workout.id,
-        name: workout.name,
-      });
-      router.push(`/session/active/${w.id}`);
-    } finally {
-      setBusy(false);
-    }
-  }
 
   const completed = sessions.filter((w) => w.finished_at != null);
 
@@ -147,7 +120,7 @@ export default function HistoryScreen() {
         <ScreenHeader
           eyebrow="Training log"
           title="History"
-          subtitle="Start training now or review what you have completed."
+          subtitle="Review completed sessions and fill in anything you missed."
         />
 
         {stats ? (
@@ -171,7 +144,7 @@ export default function HistoryScreen() {
                 tone="steel"
               />
             </View>
-            <Card className="rounded-lg p-4">
+            <Card className="p-4">
               <View className="flex-row items-center justify-between">
                 <View>
                   <Text variant="caption" className="font-bold uppercase tracking-wider text-iron-400">
@@ -200,99 +173,48 @@ export default function HistoryScreen() {
         ) : null}
 
         {activeId ? (
-          <Card elevated className="mb-4 rounded-lg border-brand bg-brand/10 p-5">
-            <View className="mb-4 flex-row items-center">
-              <View className="mr-3 h-12 w-12 items-center justify-center rounded-2xl bg-brand">
+          <Card elevated className="mb-4 border-brand/30 bg-brand/10 p-4">
+            <View className="flex-row items-center">
+              <View className="mr-3 h-11 w-11 items-center justify-center rounded-xl bg-brand">
                 <Ionicons name="radio-button-on" size={14} color="#030712" />
               </View>
               <View className="flex-1">
-                <Text variant="heading">Active session</Text>
+                <Text variant="subheading">Session in progress</Text>
                 <Text variant="caption" className="mt-0.5 text-iron-300">
                   Keep logging where you left off.
                 </Text>
               </View>
+              <Button
+                title="Resume"
+                size="sm"
+                icon="play"
+                onPress={() => router.push(`/session/active/${activeId}`)}
+              />
             </View>
-            <Button
-              title="Resume"
-              size="lg"
-              icon="play"
-              onPress={() => router.push(`/session/active/${activeId}`)}
-            />
           </Card>
-        ) : (
-          <Card elevated className="mb-4 p-5">
-            <Text variant="heading">Start a session</Text>
-            <Text variant="muted" className="mt-1 mb-4">
-              Begin empty, or choose one of your saved splits below.
-            </Text>
-            <Button
-              title="Start empty session"
-              size="lg"
-              icon="add"
-              loading={busy}
-              onPress={startBlank}
-            />
-            <Button
-              title="Log by sentence"
-              variant="secondary"
-              icon="chatbubble-ellipses-outline"
-              className="mt-2"
-              disabled={busy}
-              onPress={() => router.push('/log-chat')}
-            />
-            <Button
-              title="Add a past session"
-              variant="secondary"
-              icon="create-outline"
-              className="mt-2"
-              disabled={busy}
-              onPress={() => router.push('/session/log')}
-            />
-            <Button
-              title="Catch up on missed days"
-              variant="secondary"
-              icon="calendar-outline"
-              className="mt-2"
-              disabled={busy}
-              onPress={() => router.push('/catch-up')}
-            />
-          </Card>
-        )}
-
-        {workouts.length > 0 ? (
-          <View className="mb-5">
-            <SectionHeader
-              title="From a split"
-              subtitle="Start with exercises and targets already loaded."
-              className="mt-0"
-            />
-            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-              <View className="flex-row gap-2">
-                {workouts.map((r) => (
-                  <Card
-                    key={r.id}
-                    onPress={() => startFromWorkout(r)}
-                    className="w-48 rounded-lg border-iron-700 bg-iron-900 p-5">
-                    <View className="mb-3 h-11 w-11 items-center justify-center rounded-2xl border border-brand/30 bg-brand/10">
-                      <Ionicons name="clipboard-outline" size={20} color="#5eead4" />
-                    </View>
-                    <Text variant="subheading" numberOfLines={1}>
-                      {r.name}
-                    </Text>
-                    <Text variant="muted" className="mt-0.5">
-                      {r.exercises.length} exercises
-                    </Text>
-                  </Card>
-                ))}
-              </View>
-            </ScrollView>
-          </View>
         ) : null}
+
+        <View className="mb-1 flex-row gap-2">
+          <Button
+            title="Add past session"
+            variant="secondary"
+            icon="create-outline"
+            className="flex-1"
+            onPress={() => router.push('/session/log')}
+          />
+          <Button
+            title="Catch up"
+            variant="secondary"
+            icon="calendar-outline"
+            className="flex-1"
+            onPress={() => router.push('/catch-up')}
+          />
+        </View>
 
         <SectionHeader
           title="History"
           subtitle={completed.length > 0 ? `${completed.length} completed sessions` : 'No completed sessions yet'}
-          className="mt-0"
+          className="mt-5"
         />
 
         {loading ? (
@@ -308,7 +230,7 @@ export default function HistoryScreen() {
             {completed.map((w) => (
               <Card key={w.id} onPress={() => router.push(`/session/${w.id}`)}>
                 <View className="flex-row items-center justify-between">
-                  <View className="mr-3 h-11 w-11 items-center justify-center rounded-lg border border-iron-700 bg-iron-850">
+                  <View className="mr-3 h-11 w-11 items-center justify-center rounded-xl border border-iron-700 bg-iron-850">
                     <Ionicons name="checkmark" size={20} color="#34d399" />
                   </View>
                   <View className="flex-1">

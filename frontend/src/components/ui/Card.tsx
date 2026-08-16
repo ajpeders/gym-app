@@ -9,7 +9,7 @@ interface CardProps extends ViewProps {
 
 export function Card({ children, onPress, elevated = false, className, ...rest }: CardProps) {
   const base = `overflow-hidden rounded-2xl border p-4 ${
-    elevated ? 'border-brand/20 bg-iron-900' : 'border-iron-800 bg-iron-900/80'
+    elevated ? 'border-iron-700 bg-iron-900' : 'border-iron-800 bg-iron-900/75'
   }`;
 
   if (onPress) {

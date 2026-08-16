@@ -35,25 +35,27 @@ export default function TabsLayout() {
         headerShadowVisible: false,
         tabBarActiveTintColor: '#5eead4',
         tabBarInactiveTintColor: '#94a3b8',
+        tabBarActiveBackgroundColor: '#121a2a',
         tabBarShowLabel: true,
+        tabBarHideOnKeyboard: true,
         tabBarStyle: {
           alignSelf: 'center',
           width: '100%',
           maxWidth: 760,
-          height: 72,
+          height: 70,
           backgroundColor: '#090e18',
           borderColor: 'transparent',
           borderTopColor: '#223047',
           borderWidth: 0,
           borderTopWidth: 1,
-          paddingTop: 8,
-          paddingBottom: 8,
+          paddingTop: 6,
+          paddingBottom: 6,
         },
         tabBarItemStyle: {
-          marginHorizontal: 0,
-          borderRadius: 8,
+          marginHorizontal: 2,
+          borderRadius: 12,
         },
-        tabBarLabelStyle: { fontSize: 10, fontWeight: '800', marginTop: 1 },
+        tabBarLabelStyle: { fontSize: 10, fontWeight: '800', marginTop: 0 },
       }}>
       <Tabs.Screen name="index" options={{ title: 'Home', tabBarIcon: tabIcon('index') }} />
       <Tabs.Screen

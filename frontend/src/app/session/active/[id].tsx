@@ -94,11 +94,6 @@ export default function ActiveWorkoutScreen() {
   }
 
   const totalSets = workout.exercises.reduce((acc, e) => acc + e.sets.length, 0);
-  const totalVolume = workout.exercises.reduce(
-    (acc, e) => acc + e.sets.reduce((a, s) => a + (s.reps ?? 0) * (s.weight ?? 0), 0),
-    0,
-  );
-
   return (
     <SafeAreaView edges={['left', 'right', 'bottom']} className="flex-1 bg-iron-950">
       <Stack.Screen
@@ -125,17 +120,29 @@ export default function ActiveWorkoutScreen() {
         contentContainerClassName="px-4 pt-3 pb-40"
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}>
-        {/* summary */}
-        <View className="mb-3 flex-row flex-wrap gap-2">
-          <Stat icon="time-outline" label="Duration" value={formatDuration(workout.started_at)} />
-          <Stat icon="fitness-outline" label="Exercises" value={String(workout.exercises.length)} />
-          <Stat icon="checkmark-done-outline" label="Sets" value={String(totalSets)} />
-          <Stat
-            icon="flash-outline"
-            label="Volume"
-            value={`${Math.round(totalVolume)} ${settings.units}`}
-          />
-        </View>
+        <Card className="mb-3 p-4">
+          <View className="flex-row items-center">
+            <View className="mr-3 h-11 w-11 items-center justify-center rounded-xl bg-brand/10">
+              <Ionicons name="timer-outline" size={21} color="#5eead4" />
+            </View>
+            <View className="min-w-0 flex-1">
+              <Text variant="heading" numberOfLines={1}>
+                {formatDuration(workout.started_at)}
+              </Text>
+              <Text variant="caption" className="mt-0.5 text-iron-400">
+                {workout.exercises.length} exercises · {totalSets} sets logged
+              </Text>
+            </View>
+            {settings.feature_flags.in_set_prompts ? (
+              <View className="ml-2 flex-row items-center rounded-full bg-brand/10 px-2.5 py-1.5">
+                <Ionicons name="sparkles" size={13} color="#5eead4" />
+                <Text variant="caption" className="ml-1 font-bold text-brand">
+                  Coach on
+                </Text>
+              </View>
+            ) : null}
+          </View>
+        </Card>
 
         {pendingCount > 0 ? (
           <Pressable
@@ -152,43 +159,21 @@ export default function ActiveWorkoutScreen() {
           </Pressable>
         ) : null}
 
-        {/* natural-language set logging — now its own chat screen, so it can
-            also be used with no session running */}
-        <Pressable
-          onPress={() => router.push(`/log-chat?sessionId=${workout.id}`)}
-          className="mb-3 flex-row items-center rounded-2xl border border-brand/40 bg-brand/10 px-3.5 py-3 active:opacity-70">
-          <Ionicons name="chatbubble-ellipses-outline" size={18} color="#5eead4" />
-          <View className="ml-2.5 flex-1">
-            <Text variant="label" className="text-brand">
-              Log by sentence
-            </Text>
-            <Text variant="caption" className="text-iron-400">
-              Type a set in plain English and let AI fill it in.
-            </Text>
-          </View>
-          <Ionicons name="chevron-forward" size={16} color="#475569" />
-        </Pressable>
-
-        {/* in-set AI prompt stub */}
-        {settings.feature_flags.in_set_prompts ? (
-          <Card className="mb-3 border-brand bg-iron-900">
-            <View className="flex-row items-center">
-              <Ionicons name="sparkles" size={18} color="#5eead4" />
-              <Text variant="label" className="ml-2 text-brand">
-                AI coaching on
-              </Text>
-            </View>
-          </Card>
-        ) : (
-          <Card className="mb-3">
-            <View className="flex-row items-center">
-              <Ionicons name="sparkles-outline" size={18} color="#64748b" />
-              <Text variant="label" className="ml-2 text-iron-400">
-                AI coaching off
-              </Text>
-            </View>
-          </Card>
-        )}
+        <View className="mb-3 flex-row gap-2">
+          <Button
+            title="Add exercise"
+            icon="add"
+            className="flex-1"
+            onPress={() => router.push('/session/add-exercise')}
+          />
+          <Button
+            title="Log by text"
+            variant="secondary"
+            icon="chatbubble-ellipses-outline"
+            className="flex-1"
+            onPress={() => router.push(`/log-chat?sessionId=${workout.id}`)}
+          />
+        </View>
 
         {/* exercises */}
         {workout.exercises.length === 0 ? (
@@ -226,43 +211,20 @@ export default function ActiveWorkoutScreen() {
             ))
         )}
 
-        <Button
-          title="Add exercise"
-          variant="secondary"
-          size="lg"
-          icon="add"
-          className="mt-1"
-          onPress={() => router.push('/session/add-exercise')}
-        />
+        {workout.exercises.length > 0 ? (
+          <Button
+            title="Add another exercise"
+            variant="secondary"
+            icon="add"
+            className="mt-1"
+            onPress={() => router.push('/session/add-exercise')}
+          />
+        ) : null}
       </ScrollView>
 
       <BottomAction>
         <Button title="Finish session" size="lg" icon="checkmark" loading={finishing} onPress={onFinish} />
       </BottomAction>
     </SafeAreaView>
-  );
-}
-
-function Stat({
-  icon,
-  label,
-  value,
-}: {
-  icon: React.ComponentProps<typeof Ionicons>['name'];
-  label: string;
-  value: string;
-}) {
-  return (
-    <View className="w-[48%] rounded-lg border border-iron-800 bg-iron-900/90 px-3 py-2.5">
-      <View className="flex-row items-center">
-        <Ionicons name={icon} size={14} color="#5eead4" />
-        <Text variant="caption" className="ml-1.5 text-iron-400">
-          {label}
-        </Text>
-      </View>
-      <Text variant="subheading" className="mt-0.5" numberOfLines={1}>
-        {value}
-      </Text>
-    </View>
   );
 }

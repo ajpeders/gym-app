@@ -11,6 +11,7 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Loading, EmptyState } from '@/components/ui/Feedback';
 import { WeekCalendar, type WeekCalendarItem } from '@/components/ui/WeekCalendar';
+import { ModalSheet } from '@/components/ui/ModalSheet';
 import { useStartSession } from '@/hooks/use-start-session';
 
 const WEEK_DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -31,6 +32,15 @@ function dateKey(date: Date) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(
     date.getDate(),
   ).padStart(2, '0')}`;
+}
+
+interface SelectedDay {
+  day: string;
+  date: Date;
+  key: string;
+  workouts: Workout[];
+  canViewProgress: boolean;
+  hasPhoto: boolean;
 }
 
 function WorkoutDayCard({
@@ -94,6 +104,7 @@ export default function WorkoutsScreen() {
   const [progressPhotos, setProgressPhotos] = useState<ProgressPhoto[]>([]);
   const [selectedPlanId, setSelectedPlanId] = useState<number | null>(null);
   const [showPlanPicker, setShowPlanPicker] = useState(false);
+  const [selectedDay, setSelectedDay] = useState<SelectedDay | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -181,7 +192,7 @@ export default function WorkoutsScreen() {
                   title="This week"
                   subtitle="Choose a split, then tap a day for workouts or progress photos."
                 />
-                <Card className="rounded-lg p-3">
+                <Card className="p-3">
                   <Pressable
                     accessibilityRole="button"
                     accessibilityLabel="Choose training split"
@@ -249,14 +260,13 @@ export default function WorkoutsScreen() {
                       const dayWorkouts = activePlan.workouts.filter(
                         (workout) => !workout.floating && workout.weekdays.includes(weekday),
                       );
-                      const primary = dayWorkouts[0];
                       const isRest = dayWorkouts.length === 0;
                       const isToday =
                         date.getDate() === today.getDate() &&
                         date.getMonth() === today.getMonth() &&
                         date.getFullYear() === today.getFullYear();
-                      const isPastOrToday = date.getTime() <= today.getTime();
                       const key = dateKey(date);
+                      const isPastOrToday = key <= dateKey(today);
                       const hasPhoto = progressPhotos.some((photo) => photo.taken_at.slice(0, 10) === key);
 
                       return {
@@ -266,19 +276,21 @@ export default function WorkoutsScreen() {
                         isToday,
                         isRest,
                         hasPhoto,
-                        disabled: !isPastOrToday && !primary,
+                        disabled: !isPastOrToday && dayWorkouts.length === 0,
                         accessibilityLabel: `${day}, ${isRest ? 'Rest' : dayWorkouts.map((w) => w.name).join(', ')}${
                           hasPhoto ? ', has progress photos' : ''
                         }`,
                         onPress:
-                          isPastOrToday || primary
-                            ? () => {
-                            if (isPastOrToday) {
-                              router.push({ pathname: '/progress', params: { date: key } });
-                            } else if (primary) {
-                              router.push(`/workout/${primary.id}`);
-                            }
-                          }
+                          isPastOrToday || dayWorkouts.length > 0
+                            ? () =>
+                                setSelectedDay({
+                                  day,
+                                  date,
+                                  key,
+                                  workouts: dayWorkouts,
+                                  canViewProgress: isPastOrToday,
+                                  hasPhoto,
+                                })
                             : undefined,
                       } satisfies WeekCalendarItem;
                     })}
@@ -310,9 +322,9 @@ export default function WorkoutsScreen() {
                 <Card
                   key={s.id}
                   onPress={() => router.push(`/split/${s.id}`)}
-                  className="mb-3 rounded-lg p-5">
+                  className="mb-3 p-4">
                   <View className="flex-row items-center">
-                    <View className="mr-3 h-12 w-12 items-center justify-center rounded-lg border border-brand/30 bg-brand/10">
+                    <View className="mr-3 h-12 w-12 items-center justify-center rounded-xl border border-brand/30 bg-brand/10">
                       <Ionicons name="calendar" size={22} color="#5eead4" />
                     </View>
                     <View className="flex-1">
@@ -356,7 +368,7 @@ export default function WorkoutsScreen() {
                     <Card
                       key={r.id}
                       onPress={() => router.push(`/workout/${r.id}`)}
-                      className="rounded-lg p-4">
+                      className="rounded-2xl p-4">
                       <View className="flex-row items-center">
                         <View className="flex-1">
                           <Text variant="subheading" numberOfLines={1}>
@@ -376,6 +388,90 @@ export default function WorkoutsScreen() {
           </>
         )}
       </ScrollView>
+
+      <ModalSheet
+        visible={selectedDay != null}
+        title={selectedDay?.day ?? 'Day'}
+        subtitle={selectedDay?.date.toLocaleDateString(undefined, {
+          month: 'long',
+          day: 'numeric',
+          year: 'numeric',
+        })}
+        icon="calendar-outline"
+        onClose={() => setSelectedDay(null)}>
+        {selectedDay?.workouts.length ? (
+          <>
+            <Text variant="eyebrow">Scheduled workouts</Text>
+            <View className="mt-3 gap-3">
+              {selectedDay.workouts.map((workout) => (
+                <Card key={workout.id} className="p-4">
+                  <View className="flex-row items-center">
+                    <View className="mr-3 h-11 w-11 items-center justify-center rounded-xl bg-brand/10">
+                      <Ionicons name="barbell-outline" size={20} color="#5eead4" />
+                    </View>
+                    <View className="min-w-0 flex-1">
+                      <Text variant="subheading" numberOfLines={1}>
+                        {workout.name}
+                      </Text>
+                      <Text variant="caption" className="mt-0.5 text-iron-400">
+                        {workout.exercises.length} exercises
+                      </Text>
+                    </View>
+                  </View>
+                  <View className="mt-3 flex-row gap-2">
+                    <Button
+                      title="Start"
+                      icon="play"
+                      className="flex-1"
+                      loading={starting}
+                      onPress={() => {
+                        setSelectedDay(null);
+                        void startSession({ workout_id: String(workout.id) });
+                      }}
+                    />
+                    <Button
+                      title="View"
+                      icon="list-outline"
+                      variant="secondary"
+                      className="flex-1"
+                      onPress={() => {
+                        setSelectedDay(null);
+                        router.push(`/workout/${workout.id}`);
+                      }}
+                    />
+                  </View>
+                </Card>
+              ))}
+            </View>
+          </>
+        ) : (
+          <Card className="p-4">
+            <Text variant="subheading">Rest day</Text>
+            <Text variant="muted" className="mt-1">
+              Nothing is scheduled from this split.
+            </Text>
+          </Card>
+        )}
+
+        {selectedDay?.canViewProgress ? (
+          <>
+            <Text variant="eyebrow" className="mt-6">
+              Progress
+            </Text>
+            <Button
+              title={selectedDay.hasPhoto ? 'View progress photos' : 'Add progress photo'}
+              icon={selectedDay.hasPhoto ? 'images-outline' : 'camera-outline'}
+              variant="secondary"
+              className="mt-3"
+              onPress={() => {
+                const key = selectedDay.key;
+                setSelectedDay(null);
+                router.push({ pathname: '/progress', params: { date: key } });
+              }}
+            />
+          </>
+        ) : null}
+      </ModalSheet>
     </Screen>
   );
 }
