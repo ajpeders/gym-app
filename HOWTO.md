@@ -169,6 +169,20 @@ See `README.md` → Deploy. In short: fill `services/gym-app/.env` (incl.
 docker compose up -d --build gym-api gym-web
 ```
 
+## Check the app will build (no account needed)
+
+Before touching EAS, two commands catch the things that fail a first build:
+
+```sh
+cd frontend
+npx expo-doctor        # dependency + config compatibility
+npm run prebuild:check # generates ios/ and android/, then cleans up
+```
+
+`expo prebuild` is the first thing an EAS build does, so a config that breaks
+there breaks here first — cheaply, and without an Apple or Expo account. Both
+run in CI.
+
 ## Build the app for a phone (EAS)
 
 Expo Go is fine for development, but a real build is needed for distribution —

@@ -53,6 +53,16 @@ jobs:
       - name: vitest
         working-directory: frontend
         run: npm test
+      # The two checks that catch a broken *native* build without needing an
+      # Apple/Google account or an SDK: dependency compatibility, and whether
+      # the native projects generate at all. `expo prebuild` is the first thing
+      # an EAS build does, so a config that fails here fails there.
+      - name: expo doctor
+        working-directory: frontend
+        run: npx expo-doctor
+      - name: native config generates
+        working-directory: frontend
+        run: npm run prebuild:check
 
   # The whole stack in a browser: real web build, real API, real SQLite. Split
   # from `web` because it needs python and a browser, and because a failure

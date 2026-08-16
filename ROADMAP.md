@@ -34,11 +34,12 @@ self-hosting verified by running it on a machine with no homelab.
 Tested by 391 API tests, 35 frontend unit tests, and 64 end-to-end journeys
 through the real stack — all three in CI.
 
-**In scope, needs a human.** The EAS build: `eas login` and `eas init` are
-interactive and `eas init` writes `extra.eas.projectId`. Config and docs are
-ready; no build has been run, so it stays unproven until Alex runs one. This is
-the only launch-blocking item left, and it cannot be done from a terminal
-without an Apple/Google account.
+**In scope, needs a human.** The EAS build. Everything that can be checked
+without an Expo account has been: `expo-doctor` passes 18/18 and `expo prebuild`
+generates both native projects, which is the first step an EAS build takes — and
+both now run in CI. What's left is `eas login` and `eas init` (interactive; the
+latter writes `extra.eas.projectId`) and a build on Expo's infrastructure. Also
+optional: OAuth client ids, if you want the social sign-in buttons to appear.
 
 **Three items are still open, and each says why.** On-device AI needs a native
 build against a device runtime — the provider seam is ready, but a provider
@@ -542,14 +543,21 @@ Found while actually training with the app. Ordered by how much they hurt.
         registration writes explicitly: accounts predating onboarding have no
         flag at all and are never dragged through a tour of an app they use.
         The flag lives on the account, so a second phone doesn't ask again.
-  - [~] **EAS build + distribution** — *config landed 2026-08-13.* `eas.json`
-        with development / preview / production profiles, `com.forgo.gymapp` as
-        the bundle id on both platforms, and `EXPO_PUBLIC_API_URL` pinned per
-        profile (a device build can't reach `localhost:8000`; the value is baked
-        in at build time). Steps in HOWTO → "Build the app for a phone (EAS)".
-        **Needs a human:** `eas login` + `eas init` are interactive, and
-        `eas init` is what writes `extra.eas.projectId` into `app.json`. No
-        build has been run, so the config is unproven until you run one.
+  - [~] **EAS build + distribution** — *config landed 2026-08-13; verified as far
+        as an account allows 2026-08-16.* `eas.json` with development / preview /
+        production profiles, `com.forgo.gymapp` on both platforms, and
+        `EXPO_PUBLIC_API_URL` pinned per profile (a device build can't reach
+        `localhost:8000`; the value is baked in at build time).
+        **What's now proven without an Expo account:** `expo-doctor` passes all
+        18 checks (it caught an out-of-date `expo` patch, and repairing that
+        exposed `babel-preset-expo` no longer hoisting — the web bundle broke
+        and is fixed), and `expo prebuild` generates both native projects
+        cleanly. That's the first thing an EAS build does, so a config that
+        would fail there fails here first. Both run in CI now
+        (`npm run prebuild:check`, which restores the files prebuild rewrites).
+        **Still needs a human:** `eas login` and `eas init` are interactive, and
+        `eas init` is what writes `extra.eas.projectId`. No build has been run
+        on EAS itself, and it can't be from a terminal without the account.
 
 ### Phase 4 — AI insights & coaching (started)
 - [~] **Progress analysis**: `/stats/summary` ships streak, weekly volume, and recent PRs (+ a `progress` screen); **plateaus, per-muscle volume, frequency still to do**
