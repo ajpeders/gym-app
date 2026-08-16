@@ -3,37 +3,20 @@
 Step-by-step guides for common tasks. See `README.md` for the overview and
 `ARCHITECTURE.md` for how the pieces fit together.
 
-## Provision the `companion` deploy key
+## The `companion` dependency
 
-The API depends on the private `companion` package, fetched over **SSH**
-(`git+ssh://git@git.thelunadog.com/alex/companion.git`). Local dev uses your own
-SSH agent key; **CI and the Docker build need a dedicated read-only deploy key.**
+The API depends on the `companion` package (the provider seam and the
+tool-calling coach), pinned in `api/requirements.txt`. It has been a **public**
+repo since 2026-07-26 and is fetched anonymously over https, so there is
+nothing to provision: local dev, CI and `docker build` all just work.
 
-One-time setup:
+*Removed 2026-08-16:* the deploy-key setup this section used to describe. The
+key had been unnecessary since the repo went public, and the BuildKit secret
+that carried it was the only reason the API image couldn't be built on a host
+without buildx — which is exactly the host a self-hoster has.
 
-1. Generate a keypair (no passphrase, so it's usable non-interactively):
-
-   ```sh
-   ssh-keygen -t ed25519 -f companion_deploy_key -N "" -C "gym-app companion deploy"
-   ```
-
-2. Register the **public** half on the companion repo:
-   `git.thelunadog.com/alex/companion` → Settings → Deploy Keys → add
-   `companion_deploy_key.pub` (leave "Enable Write Access" **off**).
-
-3. Install the **private** half (`companion_deploy_key`, the file *without* `.pub`)
-   in both places that build the API:
-
-   - **CI** — gym-app repo → Settings → Actions → Secrets → new secret
-     **`COMPANION_DEPLOY_KEY`**, value = the full private-key file contents.
-   - **Deploy** — set **`COMPANION_DEPLOY_KEY`** in `services/gym-app/.env` to the
-     same contents. `docker-compose.yml` feeds it to the build as a BuildKit
-     secret; it never lands in an image layer.
-
-4. Delete the local key files once both halves are placed.
-
-Until this exists, the CI `api` job and `docker compose build gym-api` fail to
-fetch companion. Nothing else (frontend, local API dev) is affected.
+CI still rewrites the URL to the internal Forgejo hostname (see `ci.yml`),
+because the runner can't resolve the public one.
 
 ## Run the API locally
 

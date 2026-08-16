@@ -6,27 +6,18 @@ ENV PYTHONUNBUFFERED=1 \
 
 WORKDIR /app
 
-# git + ssh are needed to pip-install the `companion` package over SSH.
-RUN apt-get update && apt-get install -y --no-install-recommends git openssh-client \
+# git is needed to pip-install `companion` from its repo.
+RUN apt-get update && apt-get install -y --no-install-recommends git \
     && rm -rf /var/lib/apt/lists/*
 
 # Install dependencies first for better layer caching.
-# `companion` lives in a PRIVATE Forgejo repo cloned over SSH. The deploy key's
-# private half arrives as a BuildKit secret (never baked into an image layer)
-# and the whole ~/.ssh is removed in the same RUN. If the secret is absent the
-# build still works for a public repo.
+# `companion` was private once and arrived over SSH with a BuildKit secret. It
+# has been public since 2026-07-26 and clones anonymously over https, so the
+# key, openssh-client and the secret mount are all gone — and with them the
+# BuildKit requirement, which is what stopped this image building on a host
+# without buildx. Anyone can now build it with plain `docker build`.
 COPY requirements.txt .
-RUN --mount=type=secret,id=companion_deploy_key \
-    mkdir -p /root/.ssh && chmod 700 /root/.ssh && \
-    if [ -s /run/secrets/companion_deploy_key ]; then \
-      cp /run/secrets/companion_deploy_key /root/.ssh/id_ed25519 && \
-      chmod 600 /root/.ssh/id_ed25519 ; \
-    fi ; \
-    ssh-keyscan git.thelunadog.com >> /root/.ssh/known_hosts 2>/dev/null ; \
-    pip install --no-cache-dir -r requirements.txt ; \
-    status=$? ; \
-    rm -rf /root/.ssh ; \
-    exit $status
+RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application source + tests
 COPY app ./app

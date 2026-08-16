@@ -38,6 +38,27 @@ the database, and drives the app in Chromium — nothing mocked. It rebuilds the
 bundle each time; use `npm run e2e:fast` only when the app code hasn't changed.
 Details in HOWTO → "Run the frontend tests".
 
+## Self-host it anywhere
+
+The compose file above is written for this homelab (Traefik, an external
+network, a state path that only exists here). `docker-compose.selfhost.yml` is
+the same app standing alone — two containers, published ports, a named volume,
+nothing external:
+
+```sh
+GYM_JWT_SECRET=$(openssl rand -hex 32) \
+  docker compose -f docker-compose.selfhost.yml up -d
+# then open http://localhost:8080
+```
+
+First boot seeds the exercise catalog from wger (a couple of minutes, once).
+There's no default AI provider by design: point `GYM_OLLAMA_URL` at your own
+Ollama, or add a Claude/OpenAI key in Settings. Set `GYM_ADMIN_EMAIL` to make
+your account the operator.
+
+No TLS here — put it behind a proxy that terminates TLS before it leaves your
+network.
+
 ## Deploy
 
 This app plugs into the homelab `services/` stack via an `include:` in

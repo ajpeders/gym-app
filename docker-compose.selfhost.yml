@@ -1,0 +1,60 @@
+# Run gym-app anywhere, with one command and no homelab.
+#
+# The main `docker-compose.yml` is written for this homelab: it joins Traefik's
+# external `web` network, expects a `local-only` middleware and a Let's Encrypt
+# resolver, and stores state at a path that only exists here. None of that is
+# reusable, which made "self-hostable" a claim rather than a feature.
+#
+# This file is the whole thing standing alone: two containers, published ports,
+# a named volume, and nothing external.
+#
+#   GYM_JWT_SECRET=$(openssl rand -hex 32) docker compose -f docker-compose.selfhost.yml up -d
+#
+# Then open http://localhost:8080. Point AI at your own Ollama (or add a Claude
+# key in Settings) — there is no default provider, deliberately.
+#
+# Not exposed to the internet as-is: there's no TLS here. Put it behind a proxy
+# that terminates TLS before it leaves your network.
+
+services:
+  api:
+    build:
+      context: ./api
+    restart: unless-stopped
+    environment:
+      GYM_DATA_DIR: /data
+      # Sessions are signed with this. A generated value per install; changing
+      # it logs everyone out, which is the correct behaviour for a leaked one.
+      GYM_JWT_SECRET: ${GYM_JWT_SECRET:?set GYM_JWT_SECRET, e.g. $(openssl rand -hex 32)}
+      # The web container is a different origin in a browser's eyes.
+      GYM_CORS_ORIGINS: ${GYM_CORS_ORIGINS:-http://localhost:8080}
+      # The first admin. Everything else about an account is set in the app.
+      GYM_ADMIN_EMAIL: ${GYM_ADMIN_EMAIL:-}
+      # Point at your own Ollama if you have one; `host.docker.internal` reaches
+      # the host from inside the container.
+      GYM_OLLAMA_URL: ${GYM_OLLAMA_URL:-http://host.docker.internal:11434}
+      GYM_SELF_BASE_URL: http://api:8000
+    volumes:
+      # A named volume rather than a host path, so this works on any machine.
+      # `docker volume inspect gym-app_gym-data` finds it for backups.
+      - gym-data:/data
+    ports:
+      - "${GYM_API_PORT:-8000}:8000"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  web:
+    build:
+      context: ./frontend
+      args:
+        # Baked in at build time: the browser talks to the API directly, so this
+        # must be the address *you* reach it on, not the container's.
+        EXPO_PUBLIC_API_URL: ${GYM_PUBLIC_API_URL:-http://localhost:8000}
+    restart: unless-stopped
+    ports:
+      - "${GYM_WEB_PORT:-8080}:80"
+    depends_on:
+      - api
+
+volumes:
+  gym-data:

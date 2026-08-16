@@ -641,7 +641,18 @@ Found while actually training with the app. Ordered by how much they hurt.
       which needs a native build and device APIs. When it lands it fills these
       rows and nothing downstream changes.
 
-- [ ] **Open / self-hostable**: homelab-native extensibility (MCP-style), self-host tier → community moat (only if personal → product)
+- [~] **Open / self-hostable** — **one-command self-hosting shipped 2026-08-16**:
+      `docker-compose.selfhost.yml` runs the whole app with no homelab —
+      published ports, a named volume, nothing external — and the API image now
+      builds with plain `docker build`. The Dockerfile's BuildKit secret for a
+      deploy key was vestigial (the `companion` dependency has been public and
+      fetched over https since July) and was what stopped the image building on
+      a host without buildx. Verified by running it: a fresh install seeded its
+      own catalog from wger, registered an account and adopted a preset program
+      with every lift matched.
+      **Still open:** the community half — an extensibility surface (MCP-style)
+      and a self-host *tier*, which the Moats section says only to fund if this
+      goes from personal project to product.
 
 ### Cross-cutting (ongoing)
 - [x] Tests: backend pytest (213, `api/tests/`) ✅, frontend unit tests (vitest, `src/lib/offline.test.ts` — the queue is the one
