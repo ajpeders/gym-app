@@ -31,6 +31,9 @@ import type {
   SettingsUpdate,
   SetInput,
   ExerciseStats,
+  ExerciseTrend,
+  MuscleReport,
+  OverloadSuggestion,
   NutritionEntry,
   NutritionEntryInput,
   ParsedNutritionResult,
@@ -720,6 +723,11 @@ export const api = {
 
   // ---- stats ----
   statsSummary: () => request<StatsSummary>('/stats/summary'),
+  muscleReport: (weeks = 4) => request<MuscleReport>('/stats/muscles', { query: { weeks } }),
+  exerciseTrend: (exerciseId: string, days = 180) =>
+    request<ExerciseTrend>(`/stats/exercises/${exerciseId}/trend`, { query: { days } }),
+  workoutSuggestions: (workoutId: string) =>
+    request<OverloadSuggestion[]>(`/workouts/${workoutId}/suggestions`),
   exerciseStats: (exerciseIds: string[]) =>
     exerciseIds.length === 0
       ? Promise.resolve([] as ExerciseStats[])

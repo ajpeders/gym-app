@@ -1,0 +1,177 @@
+"""Deterministic training analysis over logged sets.
+
+Volume, coverage, balance and strength trends are arithmetic, so they are
+arithmetic here — the AI's job is to interpret the numbers, never to produce
+them. Same argument as the progression nudge: a model that invents "you're at
+14 sets for chest" is worse than no number at all.
+
+Everything in this module is pure. The routes hand it plain dicts built from DB
+rows so the maths can be tested without a database, and so a change to the
+schema can't quietly change what a "hard set" means.
+"""
+from __future__ import annotations
+
+# Warmups and drop sets don't count toward weekly volume — the landmarks below
+# are all quoted in hard (working) sets.
+_WORK_SET_TYPES = frozenset({"working", "normal"})
+
+# A primary mover gets full credit, a secondary half: bench trains triceps, but
+# not the way a triceps extension does. Half is the common convention and is
+# deliberately crude — the useful signal is "nothing at all" vs "plenty".
+_SECONDARY_CREDIT = 0.5
+
+# Weekly hard sets per muscle: minimum effective, maximum adaptive, maximum
+# recoverable. Mid-range figures from the usual hypertrophy literature; they are
+# a starting point for a conversation, not a prescription, which is why the
+# statuses read "under"/"productive"/"over" rather than pass/fail.
+LANDMARKS: dict[str, tuple[int, int, int]] = {
+    "chest": (8, 20, 26),
+    "back": (10, 22, 28),
+    "lats": (10, 22, 28),
+    "shoulders": (8, 20, 26),
+    "biceps": (8, 20, 26),
+    "triceps": (6, 18, 24),
+    "quadriceps": (8, 20, 26),
+    "hamstrings": (6, 18, 24),
+    "glutes": (6, 16, 22),
+    "calves": (8, 18, 24),
+    "abdominals": (6, 20, 26),
+}
+
+# Which muscles count toward each side of a balance ratio.
+_RATIOS: list[tuple[str, tuple[str, ...], tuple[str, ...], float]] = [
+    # (name, numerator muscles, denominator muscles, how far off is still fine)
+    ("push:pull", ("chest", "shoulders", "triceps"), ("back", "lats", "biceps"), 0.4),
+    ("quad:ham", ("quadriceps",), ("hamstrings", "glutes"), 0.5),
+]
+
+
+def _is_work_set(s: dict) -> bool:
+    return (s.get("set_type") or "working") in _WORK_SET_TYPES
+
+
+def hard_sets_by_muscle(entries: list[dict]) -> dict[str, float]:
+    """Weekly-volume input: hard sets credited to each muscle.
+
+    `entries` are `{"primary": [...], "secondary": [...], "sets": [...]}` — one
+    per logged exercise. An exercise with no muscle tags contributes nothing
+    rather than raising: the catalog has gaps, and a gap in the data must not
+    take the screen down with it.
+    """
+    volume: dict[str, float] = {}
+    for entry in entries:
+        count = sum(1 for s in entry.get("sets", []) if _is_work_set(s))
+        if not count:
+            continue
+        for muscle in entry.get("primary") or []:
+            volume[muscle] = volume.get(muscle, 0.0) + count
+        for muscle in entry.get("secondary") or []:
+            volume[muscle] = volume.get(muscle, 0.0) + count * _SECONDARY_CREDIT
+    return volume
+
+
+def coverage(volume: dict[str, float], weeks: int = 1) -> list[dict]:
+    """Each landmark muscle against its weekly range, hardest gap first.
+
+    Muscles that were never trained are *included* with zero, because a muscle
+    missing from the list is precisely the one that goes unnoticed.
+    """
+    weeks = max(1, weeks)
+    rows: list[dict] = []
+    for muscle, (mev, mav, mrv) in LANDMARKS.items():
+        weekly = round(volume.get(muscle, 0.0) / weeks, 2)
+        if weekly == 0:
+            status = "missing"
+        elif weekly < mev:
+            status = "under"
+        elif weekly > mrv:
+            status = "over"
+        else:
+            status = "productive"
+        rows.append(
+            {
+                "muscle": muscle,
+                "weekly_sets": weekly,
+                "mev": mev,
+                "mav": mav,
+                "mrv": mrv,
+                "status": status,
+            }
+        )
+    order = {"missing": 0, "under": 1, "over": 2, "productive": 3}
+    rows.sort(key=lambda r: (order[r["status"]], r["weekly_sets"]))
+    return rows
+
+
+def balance_ratios(volume: dict[str, float]) -> list[dict]:
+    """Push vs pull and quad vs hamstring, as ratios of hard sets.
+
+    A side with no volume at all gives `ratio: None` rather than infinity — the
+    honest reading is "there's nothing to compare", and it's already visible as
+    a coverage gap.
+    """
+    out: list[dict] = []
+    for name, top, bottom, tolerance in _RATIOS:
+        a = sum(volume.get(m, 0.0) for m in top)
+        b = sum(volume.get(m, 0.0) for m in bottom)
+        ratio = round(a / b, 2) if b else None
+        balanced = ratio is not None and abs(ratio - 1.0) <= tolerance
+        out.append(
+            {
+                "name": name,
+                "left": round(a, 2),
+                "right": round(b, 2),
+                "ratio": ratio,
+                "balanced": balanced,
+            }
+        )
+    return out
+
+
+def e1rm(weight: float | None, reps: int | None) -> float | None:
+    """Estimated one-rep max (Epley). None when the set isn't load x reps.
+
+    Epley is within a couple of percent up to about five reps and drifts high
+    after that; it's used here for *trend*, where the drift is constant and
+    therefore cancels, not to tell anyone what to attempt.
+    """
+    if weight is None or reps is None or reps <= 0:
+        return None
+    # A single is a max by definition; the formula would inflate it by 3%.
+    if reps == 1:
+        return round(weight, 2)
+    return round(weight * (1 + reps / 30), 2)
+
+
+def tonnage(sets: list[dict]) -> float:
+    """Total load moved in the working sets: sum of weight x reps."""
+    total = 0.0
+    for s in sets:
+        if not _is_work_set(s):
+            continue
+        weight, reps = s.get("weight"), s.get("reps")
+        if weight is None or reps is None:
+            continue
+        total += weight * reps
+    return round(total, 2)
+
+
+def trend_direction(series: list[float], threshold: float = 0.02) -> str:
+    """"up" / "down" / "flat" over an oldest-first series.
+
+    The threshold is what separates a plateau from progress: everyday noise in
+    a logged e1RM is a percent or two, so a change smaller than that is not a
+    direction of travel and shouldn't be reported as one.
+    """
+    points = [p for p in series if p is not None]
+    if len(points) < 2:
+        return "flat"
+    first, last = points[0], points[-1]
+    if first == 0:
+        return "flat"
+    change = (last - first) / abs(first)
+    if change > threshold:
+        return "up"
+    if change < -threshold:
+        return "down"
+    return "flat"

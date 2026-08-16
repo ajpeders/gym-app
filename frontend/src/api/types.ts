@@ -560,6 +560,60 @@ export interface StatsSummary {
 
 /** One exercise's personal records (GET /stats/exercises). Every requested id
  * comes back; never-logged ones have null stats and set_count 0. */
+/** One muscle's weekly hard sets against the usual volume landmarks
+ * (minimum effective / maximum adaptive / maximum recoverable). */
+export interface MuscleCoverage {
+  muscle: string;
+  weekly_sets: number;
+  mev: number;
+  mav: number;
+  mrv: number;
+  status: 'missing' | 'under' | 'productive' | 'over';
+}
+
+export interface BalanceRatio {
+  name: string;
+  left: number;
+  right: number;
+  /** null when one side has no volume at all — nothing to compare. */
+  ratio: number | null;
+  balanced: boolean;
+}
+
+export interface MuscleReport {
+  weeks: number;
+  total_hard_sets: number;
+  coverage: MuscleCoverage[];
+  ratios: BalanceRatio[];
+}
+
+export interface TrendPoint {
+  date: string;
+  e1rm: number | null;
+  top_weight: number | null;
+  top_reps: number | null;
+  tonnage: number;
+}
+
+export interface ExerciseTrend {
+  exercise_id: number;
+  points: TrendPoint[];
+  direction: 'up' | 'down' | 'flat';
+  best_e1rm: number | null;
+  total_tonnage: number;
+}
+
+/** What to put on the bar next time, derived from the plan + the last session. */
+export interface OverloadSuggestion {
+  exercise_id: number;
+  exercise_name: string;
+  action: 'start' | 'repeat' | 'add_weight' | 'add_reps' | 'add_time';
+  weight: number | null;
+  reps: number | null;
+  duration_seconds: number | null;
+  reason: string;
+}
+
 export interface ExerciseStats {
   exercise_id: number;
   best_weight: number | null;

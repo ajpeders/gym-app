@@ -18,7 +18,16 @@ from ..models import (
     SetEntry,
     User,
 )
-from ..schemas import ExerciseStats, StatsSummary
+from .. import analysis
+from ..schemas import (
+    BalanceRatio,
+    ExerciseStats,
+    ExerciseTrend,
+    MuscleCoverage,
+    MuscleReport,
+    StatsSummary,
+    TrendPoint,
+)
 from ..security import get_current_user
 
 router = APIRouter(prefix="/stats", tags=["stats"])
@@ -183,3 +192,116 @@ def exercise_stats(
         )
         for ex_id, a in ((i, acc[i]) for i in wanted)
     ]
+
+
+@router.get("/muscles", response_model=MuscleReport)
+def muscle_report(
+    weeks: int = 4,
+    db: SASession = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> MuscleReport:
+    """Where the volume actually went: hard sets per muscle over `weeks` weeks.
+
+    The window matters more than it looks. Weekly landmarks are only meaningful
+    against a recent, representative stretch — averaging a year of training
+    would report a productive chest for someone who stopped in March.
+    """
+    weeks = max(1, min(weeks, 26))
+    since = datetime.now(timezone.utc) - timedelta(weeks=weeks)
+
+    rows = db.execute(
+        select(
+            SessionExercise.id,
+            Exercise.primary_muscles,
+            Exercise.secondary_muscles,
+            SetEntry.set_type,
+        )
+        .join(Session, Session.id == SessionExercise.session_id)
+        .join(Exercise, Exercise.id == SessionExercise.exercise_id)
+        .join(SetEntry, SetEntry.session_exercise_id == SessionExercise.id)
+        .where(
+            Session.owner_id == user.id,
+            Session.started_at >= since.replace(tzinfo=None),
+            SetEntry.completed.is_(True),
+        )
+    ).all()
+
+    # One entry per logged exercise, carrying its sets — the shape app/analysis
+    # works in, so the credit rules live in one tested place.
+    entries: dict[int, dict] = {}
+    for se_id, primary, secondary, set_type in rows:
+        entry = entries.setdefault(
+            se_id, {"primary": primary or [], "secondary": secondary or [], "sets": []}
+        )
+        entry["sets"].append({"set_type": set_type})
+
+    volume = analysis.hard_sets_by_muscle(list(entries.values()))
+    return MuscleReport(
+        weeks=weeks,
+        total_hard_sets=round(sum(volume.values()), 2),
+        coverage=[MuscleCoverage(**row) for row in analysis.coverage(volume, weeks)],
+        ratios=[BalanceRatio(**row) for row in analysis.balance_ratios(volume)],
+    )
+
+
+@router.get("/exercises/{exercise_id}/trend", response_model=ExerciseTrend)
+def exercise_trend(
+    exercise_id: int,
+    days: int = 180,
+    db: SASession = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> ExerciseTrend:
+    """One movement's strength over time, as an estimated 1RM per session day.
+
+    Per *day*, not per set: the top set is what moved, and plotting every set
+    would draw the warmup ramp as a sawtooth over the actual progress.
+    """
+    days = max(1, min(days, 730))
+    since = datetime.now(timezone.utc) - timedelta(days=days)
+
+    rows = db.execute(
+        select(Session.started_at, SetEntry.reps, SetEntry.weight, SetEntry.set_type)
+        .join(SessionExercise, SessionExercise.session_id == Session.id)
+        .join(SetEntry, SetEntry.session_exercise_id == SessionExercise.id)
+        .where(
+            Session.owner_id == user.id,
+            SessionExercise.exercise_id == exercise_id,
+            Session.started_at >= since.replace(tzinfo=None),
+            SetEntry.completed.is_(True),
+        )
+        .order_by(Session.started_at)
+    ).all()
+
+    by_day: dict[str, list[dict]] = defaultdict(list)
+    for started_at, reps, weight, set_type in rows:
+        by_day[started_at.date().isoformat()].append(
+            {"reps": reps, "weight": weight, "set_type": set_type}
+        )
+
+    points: list[TrendPoint] = []
+    for day in sorted(by_day):
+        sets = by_day[day]
+        best = None
+        top_weight = top_reps = None
+        for s in sets:
+            est = analysis.e1rm(s["weight"], s["reps"])
+            if est is not None and (best is None or est > best):
+                best, top_weight, top_reps = est, s["weight"], s["reps"]
+        points.append(
+            TrendPoint(
+                date=day,
+                e1rm=best,
+                top_weight=top_weight,
+                top_reps=top_reps,
+                tonnage=analysis.tonnage(sets),
+            )
+        )
+
+    estimates = [p.e1rm for p in points if p.e1rm is not None]
+    return ExerciseTrend(
+        exercise_id=exercise_id,
+        points=points,
+        direction=analysis.trend_direction(estimates),
+        best_e1rm=max(estimates) if estimates else None,
+        total_tonnage=round(sum(p.tonnage for p in points), 2),
+    )

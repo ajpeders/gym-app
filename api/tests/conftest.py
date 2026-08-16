@@ -81,3 +81,18 @@ def auth(client):
     data = resp.json()
     headers = {"Authorization": f"Bearer {data['token']}"}
     return headers, data["user"], data["token"]
+
+
+@pytest.fixture
+def auth2(client):
+    """A second account, for checking one athlete can't see another's data."""
+    import uuid
+
+    email = f"other-{uuid.uuid4().hex[:8]}@example.com"
+    resp = client.post(
+        "/api/auth/register",
+        json={"email": email, "password": "secret123", "display_name": "Other"},
+    )
+    assert resp.status_code == 201, resp.text
+    data = resp.json()
+    return {"Authorization": f"Bearer {data['token']}"}, data["user"], data["token"]

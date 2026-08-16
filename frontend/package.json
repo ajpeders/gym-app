@@ -50,8 +50,9 @@
     "typecheck": "tsc --noEmit",
     "export:web": "expo export --platform web --output-dir dist",
     "test": "vitest run",
-    "e2e": "expo export --platform web --output-dir dist && playwright test",
-    "e2e:fast": "playwright test"
+    "e2e": "EXPO_PUBLIC_API_URL=http://127.0.0.1:8011 expo export --platform web --output-dir dist --clear && playwright test",
+    "e2e:fast": "playwright test",
+    "e2e:build": "EXPO_PUBLIC_API_URL=http://127.0.0.1:8011 expo export --platform web --output-dir dist --clear"
   },
   "private": true
 }

@@ -524,6 +524,68 @@ class ExerciseStats(BaseModel):
     last_performed_at: Optional[datetime] = None
 
 
+class MuscleCoverage(BaseModel):
+    """One muscle's weekly hard sets against the usual volume landmarks."""
+
+    muscle: str
+    weekly_sets: float
+    mev: int
+    mav: int
+    mrv: int
+    # missing | under | productive | over
+    status: str
+
+
+class BalanceRatio(BaseModel):
+    name: str
+    left: float
+    right: float
+    # None when one side has no volume at all — "nothing to compare", not infinity.
+    ratio: Optional[float] = None
+    balanced: bool = False
+
+
+class MuscleReport(BaseModel):
+    """Where the training volume actually went, over the last `weeks` weeks."""
+
+    weeks: int
+    total_hard_sets: float
+    coverage: list[MuscleCoverage] = []
+    ratios: list[BalanceRatio] = []
+
+
+class TrendPoint(BaseModel):
+    date: str  # YYYY-MM-DD
+    e1rm: Optional[float] = None
+    top_weight: Optional[float] = None
+    top_reps: Optional[int] = None
+    tonnage: float = 0
+
+
+class ExerciseTrend(BaseModel):
+    """One movement's strength over time, from estimated one-rep maxes."""
+
+    exercise_id: int
+    points: list[TrendPoint] = []
+    # up | down | flat — flat is also what a plateau looks like.
+    direction: str = "flat"
+    best_e1rm: Optional[float] = None
+    total_tonnage: float = 0
+
+
+class OverloadSuggestion(BaseModel):
+    """What to put on the bar next time for one exercise in a plan day."""
+
+    exercise_id: int
+    exercise_name: str
+    # start | repeat | add_weight | add_reps | add_time
+    action: str
+    weight: Optional[float] = None
+    reps: Optional[int] = None
+    duration_seconds: Optional[int] = None
+    reason: str
+
+
 # ---------------------------------------------------------------------------
 # Nutrition (calorie / protein log)
 # ---------------------------------------------------------------------------
