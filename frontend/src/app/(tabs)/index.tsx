@@ -260,6 +260,9 @@ export default function HomeScreen() {
 
   const now = new Date();
   const dateLabel = `${DOW[now.getDay()]}, ${MON[now.getMonth()]} ${now.getDate()}`;
+  // A session the background sync re-read after it was finished can still be
+  // sitting in state; "ongoing" means in progress, not merely present.
+  const ongoing = active && active.finished_at == null ? active : null;
   const activeSplit = splits.find((split) => split.is_active) ?? splits[0] ?? null;
   const rolling = activeSplit?.mode === 'rolling';
   const scheduledToday = today.filter((entry) => entry.scheduled_today);
@@ -321,12 +324,12 @@ export default function HomeScreen() {
         ) : null}
 
         <SectionHeader
-          title={active ? 'Keep going' : primaryToday ? 'Up next' : 'Start'}
-          subtitle={active ? 'Your current session is ready.' : undefined}
+          title={ongoing ? 'Keep going' : primaryToday ? 'Up next' : 'Start'}
+          subtitle={ongoing ? 'Your current session is ready.' : undefined}
           className="mt-0"
         />
 
-        {active ? (
+        {ongoing ? (
           <Card elevated className="mb-4 border-brand/35 bg-iron-900 p-4">
             <View className="flex-row items-center">
               <View className="mr-3 h-12 w-12 items-center justify-center rounded-2xl bg-brand">
@@ -339,10 +342,10 @@ export default function HomeScreen() {
                   </Text>
                 </View>
                 <Text variant="heading" className="mt-0.5" numberOfLines={1}>
-                  {active.name ?? 'Session'}
+                  {ongoing.name ?? 'Session'}
                 </Text>
                 <Text variant="caption" className="mt-0.5 text-iron-300">
-                  {active.exercises.length} exercises in progress
+                  {ongoing.exercises.length} exercises in progress
                 </Text>
               </View>
             </View>
@@ -351,12 +354,12 @@ export default function HomeScreen() {
               size="lg"
               icon="play"
               className="mt-4"
-              onPress={() => router.push(`/session/active/${active.id}`)}
+              onPress={() => router.push(`/session/active/${ongoing.id}`)}
             />
           </Card>
         ) : null}
 
-        {!active ? (
+        {!ongoing ? (
           <PrimaryWorkoutCard
             workout={primaryToday}
             label={dueLabel}

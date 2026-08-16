@@ -25,6 +25,27 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
+// The last profile the server confirmed. An app that logs you out the moment
+// it restarts without signal is useless in a basement — and the basement is
+// where this app is used. The token is what actually authorises anything, so
+// trusting a cached profile while offline grants nothing: every request still
+// has to pass the server when one is reachable.
+const USER_KEY = 'gymapp.user';
+
+async function cacheUser(user: User): Promise<void> {
+  await setItem(USER_KEY, JSON.stringify(user));
+}
+
+async function cachedUser(): Promise<User | null> {
+  const raw = await getItem(USER_KEY);
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw) as User;
+  } catch {
+    return null;
+  }
+}
+
 // Sign in to the shared demo account, creating it on first run.
 async function ensureDemoSession(): Promise<User> {
   try {
@@ -66,14 +87,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const me = await api.me();
       setUser(me);
+      await cacheUser(me);
       return me;
     } catch (err) {
-      // Invalid / expired token — clear it.
+      // Invalid / expired token — clear it, and the cached profile with it.
       if (err instanceof ApiError && (err.status === 401 || err.status === 403)) {
         await deleteItem(TOKEN_KEY);
+        await deleteItem(USER_KEY);
+        setUser(null);
+        return null;
       }
-      setUser(null);
-      return null;
+      // Couldn't reach the server: stay signed in on the last known profile so
+      // an offline restart resumes the session instead of dumping the athlete
+      // on the login screen mid-workout.
+      const cached = await cachedUser();
+      setUser(cached);
+      return cached;
     }
   }, []);
 
@@ -95,6 +124,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = useCallback(async (email: string, password: string) => {
     const res = await api.login({ email, password });
     await setItem(TOKEN_KEY, res.token);
+    await cacheUser(res.user);
     setUser(res.user);
   }, []);
 
@@ -110,6 +140,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } catch {
         // Worst case the walkthrough doesn't show. Never block a signup on it.
       }
+      await cacheUser(res.user);
       setUser(res.user);
     },
     [],
@@ -117,6 +148,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = useCallback(async () => {
     await deleteItem(TOKEN_KEY);
+    await deleteItem(USER_KEY); // or the next launch would resume offline as them
     if (DEMO_MODE) {
       // Stay usable: drop back to the demo account rather than the login wall.
       try {

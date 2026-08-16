@@ -1,5 +1,5 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
-import { AppState } from 'react-native';
+import { AppState, Platform } from 'react-native';
 import NetInfo from '@react-native-community/netinfo';
 
 import { api } from '@/api/client';
@@ -138,6 +138,13 @@ export function ActiveWorkoutProvider({ children }: { children: React.ReactNode 
     const appSub = AppState.addEventListener('change', (state) => {
       if (state === 'active') void syncRef.current?.();
     });
+    // On web, NetInfo only reports a reachability probe it runs on its own
+    // schedule, so reconnecting could sit unsynced until the backstop timer.
+    // The browser already knows the moment the network is back.
+    const onOnline = () => void syncRef.current?.();
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
+      window.addEventListener('online', onOnline);
+    }
     const id = setInterval(() => {
       if (pendingCount > 0) void syncRef.current?.();
     }, 30000);
@@ -146,6 +153,9 @@ export function ActiveWorkoutProvider({ children }: { children: React.ReactNode 
       netSub();
       appSub.remove();
       clearInterval(id);
+      if (Platform.OS === 'web' && typeof window !== 'undefined') {
+        window.removeEventListener('online', onOnline);
+      }
     };
   }, [user, pendingCount]);
 
@@ -357,6 +367,10 @@ export function ActiveWorkoutProvider({ children }: { children: React.ReactNode 
           const serverId = await resolveId(activeId);
           if (isLocalSessionId(serverId)) return; // start still queued
           const w = await api.session(serverId);
+          // Logging a set kicks off a background sync, so this read can land
+          // after the session was finished and cleared. Applying it then would
+          // put a finished workout back on screen as "ongoing".
+          if (w.finished_at != null) return;
           await applyWorkout(isLocalSessionId(activeId) ? { ...w, id: activeId } : w);
         } catch {
           /* still offline — keep showing what we have */

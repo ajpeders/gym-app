@@ -334,6 +334,7 @@ export function ActiveExerciseCard({
               value={duration}
               onChangeText={setDuration}
               keyboardType="number-pad"
+              accessibilityLabel="Seconds"
               placeholder={last?.duration_seconds != null ? String(last.duration_seconds) : '30'}
               placeholderTextColor="#64748b"
               selectionColor="#5eead4"
@@ -350,6 +351,11 @@ export function ActiveExerciseCard({
                 value={weight}
                 onChangeText={setWeight}
                 keyboardType="decimal-pad"
+                // The visible label isn't tied to the field, so a screen
+                // reader (and any test) would otherwise announce it as an
+                // unnamed box whose placeholder changes to the last set's
+                // weight after every log.
+                accessibilityLabel={isBodyweight ? 'Added weight' : 'Weight'}
                 placeholder={last?.weight != null ? String(last.weight) : 'BW'}
                 placeholderTextColor="#64748b"
                 selectionColor="#5eead4"
@@ -364,6 +370,7 @@ export function ActiveExerciseCard({
                 value={reps}
                 onChangeText={setReps}
                 keyboardType="number-pad"
+                accessibilityLabel="Reps"
                 placeholder={last?.reps != null ? String(last.reps) : '0'}
                 placeholderTextColor="#64748b"
                 selectionColor="#5eead4"
@@ -380,6 +387,7 @@ export function ActiveExerciseCard({
             value={rpe}
             onChangeText={setRpe}
             keyboardType="decimal-pad"
+            accessibilityLabel="RPE"
             placeholder="-"
             placeholderTextColor="#64748b"
             selectionColor="#5eead4"
@@ -389,6 +397,8 @@ export function ActiveExerciseCard({
         <Pressable
           disabled={saving}
           onPress={addFromInputs}
+          accessibilityRole="button"
+          accessibilityLabel="Log set"
           className="min-h-[44px] flex-1 items-center justify-center rounded-lg bg-brand px-3 py-3 active:bg-brand-600">
           <Text numberOfLines={1} className="text-sm font-bold text-iron-950">
             Log set
