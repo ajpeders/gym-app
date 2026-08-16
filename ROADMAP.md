@@ -154,7 +154,7 @@ gym-app/
 - [ ] **Contextual AI prompts during the set** (e.g. nudge, form cue) — toggleable; `feature_flags.in_set_prompts` defaults off, not yet wired
 
 ### Phase 3 — AI provider layer + natural-language logging (largely done)
-- [x] Provider abstraction: Ollama ⇄ Claude; pick provider/model in settings *(BYO per-user, no silent default; `/ai/providers`,`/models`,`/test`)*
+- [x] Provider abstraction: Ollama ⇄ Claude ⇄ ChatGPT/OpenAI; pick provider/model in settings *(BYO per-user, no silent default; `/ai/providers`,`/models`,`/test`). OpenAI shipped 2026-08-16 via the existing companion OpenAI-compatible provider, with per-user write-only API keys and `gpt-5.6-luna` as the default model.*
 - [ ] **On-device AI — iPhone first** (capable phones): run a small model directly on the phone's hardware (iOS: Apple Foundation Models / MLX / Core ML; Android: `llama.rn` / ExecuTorch) — fully private, works offline with no Ollama/Claude needed. Auto-detect support and offer it as a third provider alongside Ollama/Claude. The ultimate "no-setup, no-cost, no-network" local option.
 - [ ] **Admin page** — there is no admin concept at all today: `User` has no role
       column, and several things now exist with no way to observe them.
@@ -395,8 +395,11 @@ Found while actually training with the app. Ordered by how much they hurt.
       that every later queued op references and that gets rewritten across the
       cache, the router and the active-workout state once the server assigns a
       real one — worth doing deliberately, and worth having frontend tests first.
-- [ ] **UI/UX pass** — a deliberate visual + flow review of every screen before
-      launch (in progress).
+- [~] **UI/UX pass** — a deliberate visual + flow review of every screen before
+      launch. In progress: the shared dark palette was refreshed 2026-08-16
+      from purple-navy to graphite/cyan, and the Home + Spotter surfaces have
+      had dedicated passes. Remaining work is screen-by-screen interaction
+      polish rather than another global palette swing.
 - [~] **Launch checklist** — accounts/onboarding for a non-homelab user, EAS
       build + distribution, error reporting, and a data-export/delete story.
   - [x] **Data export / delete** *(2026-08-13)* — `DELETE /auth/me` already
@@ -406,7 +409,7 @@ Found while actually training with the app. Ordered by how much they hurt.
         from the same `*Out` schemas the API already serves so a new field can't
         be silently left behind. The shared catalog is excluded (828 rows nobody
         owns is noise) and nothing secret leaves — no password hash is on any
-        `Out` schema and `SettingsOut` omits the Claude key. Settings → Your data.
+        `Out` schema and `SettingsOut` omits the Claude/OpenAI keys. Settings → Your data.
   - [x] **Error reporting** *(2026-08-13)* — `POST /api/errors` takes a client
         crash (message, stack, context, platform, version) and writes it to a
         `gym.client` logger, next to the API's own unhandled exceptions, so
@@ -488,14 +491,12 @@ Found while actually training with the app. Ordered by how much they hurt.
         from the model's own knowledge; resolving parsed foods against a real
         database makes "chicken and rice" a lookup instead of a guess — the
         same matcher problem the exercise catalog already solved.
-- [ ] **Coach chat UI redesign** — the chat works but looks like a debug view.
-      Wants a deliberate pass: message bubbles and spacing, how tool calls and
-      the write-confirm gate are presented (currently raw-ish cards mid-stream),
-      streaming/typing affordance, error states now that they carry real
-      guidance, empty state, and getting the composer out of the way of the
-      keyboard. *Specifics TBD — worth Alex listing what actually annoys him
-      before anyone restyles it, since "looks bad" and "is awkward to use" want
-      different fixes.* Related: the broader **UI/UX pass** in Launch prep.
+- [x] **Coach chat UI redesign** — *shipped 2026-08-16.* The Coach tab was
+      reframed as **Spotter** to match its tool-running role, gained a
+      persistent top bar, stronger empty state, explicit disclaimer, clearer
+      message bubbles, consolidated streaming text, compact activity chips,
+      and readable write-confirm cards with a composer lockout while an action
+      is pending. Related: the broader **UI/UX pass** in Launch prep.
 - [ ] PRs, achievements, streaks
 - [~] Offline-first sync (native): a persisted set-log queue with retries survives restarts/dead zones (`lib/offline.ts`); **conflict resolution not yet built**
 - [ ] Push notifications (rest done, workout reminders) via ntfy/web-push *(no `expo-notifications` yet)*
