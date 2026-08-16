@@ -65,6 +65,16 @@ function parseNumberRange(value: string, integer = false): [number | null, numbe
   return low < high ? [low, high] : [high, low];
 }
 
+function draftSummary(exercise: DraftExercise, units: string): string {
+  const parts = [
+    exercise.target_sets ? `${exercise.target_sets} sets` : null,
+    exercise.target_reps ? `${exercise.target_reps} reps` : null,
+    exercise.target_weight ? `${exercise.target_weight} ${units}` : null,
+    exercise.target_duration ? `${exercise.target_duration} sec` : null,
+  ].filter(Boolean);
+  return parts.join(' · ') || 'Tap to add targets';
+}
+
 export function WorkoutEditor({
   title,
   initialName = '',
@@ -83,6 +93,7 @@ export function WorkoutEditor({
   const [name, setName] = useState(initialName);
   const [notes, setNotes] = useState(initialNotes);
   const [exercises, setExercises] = useState<DraftExercise[]>(initialExercises);
+  const [openExercise, setOpenExercise] = useState<number | null>(initialExercises.length ? 0 : null);
   const exerciseStats = useExerciseStats(exercises.map((e) => e.exercise_id));
   const [weekdays, setWeekdays] = useState<number[]>(initialWeekdays);
   const [floating, setFloating] = useState(initialFloating);
@@ -146,6 +157,7 @@ export function WorkoutEditor({
   }
 
   function addExercise(ex: Exercise) {
+    setOpenExercise(exercises.length);
     setExercises((prev) => [
       ...prev,
       {
@@ -169,16 +181,22 @@ export function WorkoutEditor({
 
   function remove(idx: number) {
     setExercises((prev) => prev.filter((_, i) => i !== idx));
+    setOpenExercise((current) => {
+      if (current == null) return null;
+      if (current === idx) return null;
+      return current > idx ? current - 1 : current;
+    });
   }
 
   function move(idx: number, dir: -1 | 1) {
+    const target = idx + dir;
+    if (target < 0 || target >= exercises.length) return;
     setExercises((prev) => {
       const next = [...prev];
-      const target = idx + dir;
-      if (target < 0 || target >= next.length) return prev;
       [next[idx], next[target]] = [next[target], next[idx]];
       return next;
     });
+    setOpenExercise(target);
   }
 
   async function save() {
@@ -267,95 +285,116 @@ export function WorkoutEditor({
             <Text variant="muted">No exercises yet. Add some below.</Text>
           </Card>
         ) : (
-          exercises.map((e, idx) => (
-            <Card key={`${e.exercise_id}-${idx}`} className="mb-3">
-              <View className="flex-row items-center justify-between">
-                <ExerciseThumb images={e.image ? [e.image] : null} size={36} radius={6} />
-                <View className="ml-2 flex-1">
-                  <Text variant="subheading" numberOfLines={1}>
-                    {idx + 1}. {titleCase(e.name)}
-                  </Text>
-                  {(() => {
-                    const pr = formatExerciseStats(
-                      statsFor(exerciseStats, e.exercise_id),
-                      settings.units,
-                    );
-                    return pr ? (
-                      <Text variant="caption" numberOfLines={1} className="mt-0.5 text-iron-400">
-                        {pr}
+          exercises.map((e, idx) => {
+            const isOpen = openExercise === idx;
+            return (
+              <Card key={`${e.exercise_id}-${idx}`} className="mb-3 p-3.5">
+                <View className="flex-row items-center justify-between">
+                  <ExerciseThumb images={e.image ? [e.image] : null} size={36} radius={6} />
+                  <Pressable
+                    onPress={() => setOpenExercise(isOpen ? null : idx)}
+                    accessibilityRole="button"
+                    accessibilityState={{ expanded: isOpen }}
+                    className="ml-2 min-w-0 flex-1 active:opacity-70">
+                    <View className="flex-row items-center">
+                      <Text variant="subheading" numberOfLines={1} className="min-w-0 flex-1">
+                        {idx + 1}. {titleCase(e.name)}
                       </Text>
-                    ) : null;
-                  })()}
+                      <Ionicons
+                        name={isOpen ? 'chevron-up' : 'chevron-down'}
+                        size={16}
+                        color="#64748b"
+                      />
+                    </View>
+                    <Text variant="caption" numberOfLines={1} className="mt-0.5 text-iron-400">
+                      {draftSummary(e, settings.units)}
+                    </Text>
+                    {(() => {
+                      const pr = formatExerciseStats(
+                        statsFor(exerciseStats, e.exercise_id),
+                        settings.units,
+                      );
+                      return pr ? (
+                        <Text variant="caption" numberOfLines={1} className="mt-0.5 text-brand">
+                          {pr}
+                        </Text>
+                      ) : null;
+                    })()}
+                  </Pressable>
+                  <View className="flex-row items-center gap-1">
+                    <Pressable
+                      onPress={() => move(idx, -1)}
+                      disabled={idx === 0}
+                      accessibilityLabel={`Move ${e.name} earlier`}
+                      hitSlop={6}
+                      className="h-9 w-9 items-center justify-center rounded-lg border border-iron-700 bg-iron-900 disabled:opacity-25">
+                      <Ionicons name="arrow-up" size={17} color="#94a3b8" />
+                    </Pressable>
+                    <Pressable
+                      onPress={() => move(idx, 1)}
+                      disabled={idx === exercises.length - 1}
+                      accessibilityLabel={`Move ${e.name} later`}
+                      hitSlop={6}
+                      className="h-9 w-9 items-center justify-center rounded-lg border border-iron-700 bg-iron-900 disabled:opacity-25">
+                      <Ionicons name="arrow-down" size={17} color="#94a3b8" />
+                    </Pressable>
+                    <Pressable
+                      onPress={() => remove(idx)}
+                      accessibilityLabel={`Remove ${e.name}`}
+                      hitSlop={6}
+                      className="h-9 w-9 items-center justify-center rounded-lg">
+                      <Ionicons name="trash-outline" size={17} color="#f87171" />
+                    </Pressable>
+                  </View>
                 </View>
-                <View className="flex-row items-center gap-1">
-                  <Pressable
-                    onPress={() => move(idx, -1)}
-                    disabled={idx === 0}
-                    accessibilityLabel={`Move ${e.name} earlier`}
-                    hitSlop={6}
-                    className="h-9 w-9 items-center justify-center rounded-lg border border-iron-700 bg-iron-900 disabled:opacity-25">
-                    <Ionicons name="arrow-up" size={17} color="#94a3b8" />
-                  </Pressable>
-                  <Pressable
-                    onPress={() => move(idx, 1)}
-                    disabled={idx === exercises.length - 1}
-                    accessibilityLabel={`Move ${e.name} later`}
-                    hitSlop={6}
-                    className="h-9 w-9 items-center justify-center rounded-lg border border-iron-700 bg-iron-900 disabled:opacity-25">
-                    <Ionicons name="arrow-down" size={17} color="#94a3b8" />
-                  </Pressable>
-                  <Pressable
-                    onPress={() => remove(idx)}
-                    accessibilityLabel={`Remove ${e.name}`}
-                    hitSlop={6}
-                    className="h-9 w-9 items-center justify-center rounded-lg">
-                    <Ionicons name="trash-outline" size={17} color="#f87171" />
-                  </Pressable>
-                </View>
-              </View>
 
-              <View className="mt-3 flex-row flex-wrap gap-2">
-                <Field
-                  label="Sets"
-                  value={e.target_sets}
-                  onChangeText={(v) => update(idx, { target_sets: v })}
-                />
-                <Field
-                  label="Reps"
-                  value={e.target_reps}
-                  onChangeText={(v) => update(idx, { target_reps: v })}
-                  range
-                />
-                <Field
-                  label={`Wt (${settings.units})`}
-                  value={e.target_weight}
-                  onChangeText={(v) => update(idx, { target_weight: v })}
-                  range
-                />
-                <Field
-                  label="Time (sec)"
-                  value={e.target_duration}
-                  onChangeText={(v) => update(idx, { target_duration: v })}
-                  range
-                />
-                <Field
-                  label="Rest (sec)"
-                  value={e.rest_seconds}
-                  onChangeText={(v) => update(idx, { rest_seconds: v })}
-                />
-              </View>
+                {isOpen ? (
+                  <View className="mt-3 border-t border-iron-800 pt-3">
+                    <View className="flex-row flex-wrap gap-2">
+                      <Field
+                        label="Sets"
+                        value={e.target_sets}
+                        onChangeText={(v) => update(idx, { target_sets: v })}
+                      />
+                      <Field
+                        label="Reps"
+                        value={e.target_reps}
+                        onChangeText={(v) => update(idx, { target_reps: v })}
+                        range
+                      />
+                      <Field
+                        label={`Wt (${settings.units})`}
+                        value={e.target_weight}
+                        onChangeText={(v) => update(idx, { target_weight: v })}
+                        range
+                      />
+                      <Field
+                        label="Time (sec)"
+                        value={e.target_duration}
+                        onChangeText={(v) => update(idx, { target_duration: v })}
+                        range
+                      />
+                      <Field
+                        label="Rest (sec)"
+                        value={e.rest_seconds}
+                        onChangeText={(v) => update(idx, { rest_seconds: v })}
+                      />
+                    </View>
 
-              <FormField
-                label="Exercise notes"
-                value={e.notes}
-                onChangeText={(value) => update(idx, { notes: value })}
-                placeholder="Cues, setup, tempo, substitutions..."
-                multiline
-                containerClassName="mt-3"
-                inputClassName="bg-iron-950"
-              />
-            </Card>
-          ))
+                    <FormField
+                      label="Exercise notes"
+                      value={e.notes}
+                      onChangeText={(value) => update(idx, { notes: value })}
+                      placeholder="Cues, setup, tempo, substitutions..."
+                      multiline
+                      containerClassName="mt-3"
+                      inputClassName="bg-iron-950"
+                    />
+                  </View>
+                ) : null}
+              </Card>
+            );
+          })
         )}
 
         <Button
@@ -406,12 +445,21 @@ export function WorkoutEditor({
         </>
         )}
 
-        {error ? <Text className="text-red-500 text-sm mt-3">{error}</Text> : null}
+        {error ? <Text className="mt-3 text-sm text-red-500">{error}</Text> : null}
+
+        {onDelete ? (
+          <Pressable
+            onPress={onDelete}
+            accessibilityRole="button"
+            className="mt-8 flex-row items-center justify-center rounded-xl border border-red-500/30 bg-red-500/5 px-4 py-3 active:bg-red-500/10">
+            <Ionicons name="trash-outline" size={17} color="#f87171" />
+            <Text className="ml-2 text-sm font-bold text-red-400">Delete workout</Text>
+          </Pressable>
+        ) : null}
       </ScrollView>
 
-      <BottomAction contentClassName={onDelete ? 'gap-2' : undefined}>
+      <BottomAction>
         <Button title="Save workout" size="lg" loading={saving} onPress={save} />
-        {onDelete ? <Button title="Delete workout" variant="danger" onPress={onDelete} /> : null}
       </BottomAction>
 
       <ModalSheet
@@ -422,7 +470,13 @@ export function WorkoutEditor({
         contentClassName="px-0">
         <ExerciseBrowser
           onSelect={addExercise}
-          renderTrailing={() => <Text className="text-xl font-black text-brand">ADD</Text>}
+          renderTrailing={() => (
+            <View className="rounded-full bg-brand px-3 py-1">
+              <Text variant="caption" className="font-black text-iron-950">
+                Add
+              </Text>
+            </View>
+          )}
         />
       </ModalSheet>
 

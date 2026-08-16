@@ -158,7 +158,9 @@ export default function WorkoutImportScreen() {
       const drafts: Record<string, ExerciseDraft> = {};
       res.workouts.forEach((r, di) => {
         days[di] = !r.rest_day; // rest days default to excluded from saving
-        exp[di] = true;
+        // Keep the review scannable: open the first real workout and leave the
+        // rest collapsed until the user chooses to inspect them.
+        exp[di] = di === 0 && !r.rest_day;
         r.exercises.forEach((ex, ei) => {
           const key = exKey(di, ei);
           exs[key] = true;
@@ -752,6 +754,8 @@ function DayCard({
   onCustomExercise,
   onRemoveExercise,
 }: DayCardProps) {
+  const [editingExercise, setEditingExercise] = useState<number | null>(null);
+
   return (
     <Card className={`mb-2.5 ${included ? 'border-brand/50' : 'opacity-60'}`}>
       <View className="flex-row items-center">
@@ -882,49 +886,67 @@ function DayCard({
                 ),
                 notes: ex.notes ?? '',
               };
+              const editing = editingExercise === ei;
+              const targetSummary = [
+                draft.sets ? `${draft.sets} sets` : null,
+                draft.reps ? `${draft.reps} reps` : null,
+                draft.weight ? `${draft.weight} ${units}` : null,
+                draft.duration ? `${draft.duration} sec` : null,
+              ]
+                .filter(Boolean)
+                .join(' · ');
               return (
                 <View
                   key={ei}
-                  className={`flex-row rounded-lg border border-iron-700 bg-iron-950 p-2.5 ${
+                  className={`rounded-xl border border-iron-700 bg-iron-950 p-3 ${
                     exIncluded ? '' : 'opacity-50'
                   }`}>
-                  <Pressable
-                    onPress={() => onToggleExercise(ei)}
-                    disabled={disabled}
-                    hitSlop={6}
-                    accessibilityRole="checkbox"
-                    accessibilityState={{ checked: exIncluded }}
-                    className="mr-2.5 mt-0.5 active:opacity-60">
-                    <Ionicons
-                      name={exIncluded ? 'checkbox' : 'square-outline'}
-                      size={20}
-                      color={exIncluded ? '#5eead4' : '#64748b'}
-                    />
-                  </Pressable>
-                  <View className="flex-1">
-                    <View className="flex-row items-start justify-between gap-2">
-                      <View className="flex-1">
-                        <Text variant="body" numberOfLines={1}>
+                  <View className="flex-row items-start">
+                    <Pressable
+                      onPress={() => onToggleExercise(ei)}
+                      disabled={disabled}
+                      hitSlop={6}
+                      accessibilityRole="checkbox"
+                      accessibilityState={{ checked: exIncluded }}
+                      className="mr-2.5 mt-0.5 active:opacity-60">
+                      <Ionicons
+                        name={exIncluded ? 'checkbox' : 'square-outline'}
+                        size={20}
+                        color={exIncluded ? '#5eead4' : '#64748b'}
+                      />
+                    </Pressable>
+                    <Pressable
+                      onPress={() => setEditingExercise(editing ? null : ei)}
+                      disabled={disabled || !exIncluded}
+                      accessibilityRole="button"
+                      accessibilityState={{ expanded: editing }}
+                      className="min-w-0 flex-1 active:opacity-70">
+                      <View className="flex-row items-start gap-2">
+                        <Text variant="subheading" numberOfLines={1} className="min-w-0 flex-1">
                           {ex.exercise_name}
                         </Text>
-                        <Text variant="caption" numberOfLines={1} className="mt-0.5 text-iron-400">
-                          Database: {resolution.exercise_name}
-                          {resolution.mode === 'custom'
-                            ? ' · custom'
-                            : resolution.mode === 'swapped'
-                              ? ' · swapped'
-                              : ''}
-                        </Text>
+                        <MatchBadge match={resolution.match} />
                       </View>
-                      <MatchBadge match={resolution.match} />
-                    </View>
-                    {ex.exercise_name.trim().toLowerCase() !==
-                    resolution.exercise_name.trim().toLowerCase() ? (
-                      <Text variant="caption" className="mt-1 text-amber-200">
-                        Changed from AI match to “{resolution.exercise_name}”.
+                      <Text variant="caption" numberOfLines={1} className="mt-0.5 text-iron-400">
+                        {resolution.mode === 'custom' ? 'Custom exercise' : `Matched to ${resolution.exercise_name}`}
+                        {resolution.mode === 'swapped' ? ' · swapped' : ''}
                       </Text>
-                    ) : null}
-                    <View className="mt-3 flex-row flex-wrap gap-2">
+                      <Text variant="caption" numberOfLines={1} className="mt-1 font-semibold text-brand">
+                        {targetSummary || 'No targets detected'}
+                      </Text>
+                    </Pressable>
+                  </View>
+
+                  {ex.exercise_name.trim().toLowerCase() !==
+                  resolution.exercise_name.trim().toLowerCase() ? (
+                    <Text variant="caption" className="ml-8 mt-1 text-amber-200">
+                      Using “{resolution.exercise_name}” from the exercise library.
+                    </Text>
+                  ) : null}
+
+                  {editing ? (
+                    <View className="ml-8 mt-3 border-t border-iron-800 pt-3">
+                      <View className="flex-row flex-wrap gap-2">
                       <ReviewTargetField
                         label="Sets"
                         value={draft.sets}
@@ -954,54 +976,103 @@ function DayCard({
                         disabled={disabled}
                         onChangeText={(duration) => onUpdateExercise(ei, { duration })}
                       />
+                      </View>
+                      <Text variant="caption" className="mb-1 mt-3 text-iron-400">
+                        Notes and alternatives
+                      </Text>
+                      <TextInput
+                        value={draft.notes}
+                        onChangeText={(notes) => onUpdateExercise(ei, { notes })}
+                        editable={!disabled}
+                        multiline
+                        placeholder="Set history, cues, or substitutions"
+                        placeholderTextColor="#64748b"
+                        selectionColor="#5eead4"
+                        className="min-h-[64px] rounded-lg border border-iron-700 bg-iron-900 px-3 py-2.5 text-sm text-iron-50"
+                      />
+                      <View className="mt-3 flex-row flex-wrap gap-2">
+                        <ActionPill
+                          icon="arrow-up"
+                          label="Earlier"
+                          disabled={disabled || ei === 0}
+                          onPress={() => {
+                            onMoveExercise(ei, -1);
+                            setEditingExercise(null);
+                          }}
+                        />
+                        <ActionPill
+                          icon="arrow-down"
+                          label="Later"
+                          disabled={disabled || ei === workout.exercises.length - 1}
+                          onPress={() => {
+                            onMoveExercise(ei, 1);
+                            setEditingExercise(null);
+                          }}
+                        />
+                        <ActionPill
+                          icon="swap-horizontal"
+                          label="Swap"
+                          disabled={disabled}
+                          onPress={() => onSwapExercise(ei)}
+                        />
+                        <ActionPill
+                          icon="create-outline"
+                          label="Custom"
+                          disabled={disabled}
+                          onPress={() => onCustomExercise(ei)}
+                        />
+                        <ActionPill
+                          icon="trash-outline"
+                          label="Remove"
+                          danger
+                          disabled={disabled}
+                          onPress={() => {
+                            onRemoveExercise(ei);
+                            setEditingExercise(null);
+                          }}
+                        />
+                        <ActionPill
+                          icon="checkmark"
+                          label="Done"
+                          disabled={disabled}
+                          onPress={() => setEditingExercise(null)}
+                        />
+                      </View>
                     </View>
-                    <Text variant="caption" className="mb-1 mt-3 text-iron-400">
-                      Notes and alternatives
-                    </Text>
-                    <TextInput
-                      value={draft.notes}
-                      onChangeText={(notes) => onUpdateExercise(ei, { notes })}
-                      editable={!disabled}
-                      multiline
-                      placeholder="Set history, cues, or substitutions"
-                      placeholderTextColor="#64748b"
-                      selectionColor="#5eead4"
-                      className="min-h-[64px] rounded-lg border border-iron-700 bg-iron-900 px-3 py-2.5 text-sm text-iron-50"
-                    />
-                    <View className="mt-3 flex-row flex-wrap gap-2">
-                      <ActionPill
-                        icon="arrow-up"
-                        label="Earlier"
-                        disabled={disabled || ei === 0}
-                        onPress={() => onMoveExercise(ei, -1)}
-                      />
-                      <ActionPill
-                        icon="arrow-down"
-                        label="Later"
-                        disabled={disabled || ei === workout.exercises.length - 1}
-                        onPress={() => onMoveExercise(ei, 1)}
-                      />
-                      <ActionPill
-                        icon="swap-horizontal"
-                        label="Swap"
-                        disabled={disabled}
-                        onPress={() => onSwapExercise(ei)}
-                      />
-                      <ActionPill
-                        icon="create-outline"
-                        label="Custom"
-                        disabled={disabled}
-                        onPress={() => onCustomExercise(ei)}
-                      />
-                      <ActionPill
-                        icon="trash-outline"
-                        label={exIncluded ? 'Remove' : 'Removed'}
-                        danger
-                        disabled={disabled}
-                        onPress={() => onRemoveExercise(ei)}
-                      />
+                  ) : (
+                    <View className="ml-8 mt-3 flex-row flex-wrap gap-2">
+                      {exIncluded ? (
+                        <>
+                          <ActionPill
+                            icon="create-outline"
+                            label="Edit"
+                            disabled={disabled}
+                            onPress={() => setEditingExercise(ei)}
+                          />
+                          <ActionPill
+                            icon="swap-horizontal"
+                            label="Swap"
+                            disabled={disabled}
+                            onPress={() => onSwapExercise(ei)}
+                          />
+                          <ActionPill
+                            icon="trash-outline"
+                            label="Remove"
+                            danger
+                            disabled={disabled}
+                            onPress={() => onRemoveExercise(ei)}
+                          />
+                        </>
+                      ) : (
+                        <ActionPill
+                          icon="add-circle-outline"
+                          label="Restore"
+                          disabled={disabled}
+                          onPress={() => onToggleExercise(ei)}
+                        />
+                      )}
                     </View>
-                  </View>
+                  )}
                 </View>
               );
             })
