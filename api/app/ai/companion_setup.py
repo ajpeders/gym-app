@@ -38,8 +38,16 @@ EXPOSE = [
     "PATCH /api/sessions/*",
     "POST /api/exercises",
 ]
-# Never expose auth/settings/profile/ai as tools.
-EXCLUDE = ["* /api/auth/*", "* /api/settings*", "* /api/profile*", "* /api/ai/*"]
+# Never expose auth/settings/profile/ai as tools. Also hide the raw JSON log
+# endpoint: the spotter must use /sessions/log-text so the parser expands NxM
+# and resolves exercise ids instead of letting the model guess payloads.
+EXCLUDE = [
+    "* /api/auth/*",
+    "* /api/settings*",
+    "* /api/profile*",
+    "* /api/ai/*",
+    "POST /api/sessions/log",
+]
 
 # Tool-usage guidance lives in editable skill files, appended by companion.
 SKILLS_DIR = Path(__file__).parent / "skills"

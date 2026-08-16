@@ -148,7 +148,7 @@ export function SplitAiEdit({ visible, initialWorking, onApply, onClose }: Props
               onChangeText={setInput}
               placeholder="e.g. move leg day to Wednesday"
               placeholderTextColor="#64748b"
-              selectionColor="#38bdf8"
+              selectionColor="#5eead4"
               multiline
               editable={!sending}
               className="max-h-32 min-h-[44px] flex-1 rounded-lg border border-iron-700 bg-iron-900 px-4 py-2.5 text-base text-iron-50"
@@ -160,7 +160,7 @@ export function SplitAiEdit({ visible, initialWorking, onApply, onClose }: Props
               className={`ml-2 h-11 w-11 items-center justify-center rounded-lg ${
                 input.trim() && !sending ? 'bg-brand active:bg-brand-600' : 'bg-iron-800 opacity-50'
               }`}>
-              <Ionicons name="arrow-up" size={20} color="#05080f" />
+              <Ionicons name="arrow-up" size={20} color="#030712" />
             </Pressable>
           </View>
         </BottomAction>
@@ -208,7 +208,7 @@ export function SplitAiEdit({ visible, initialWorking, onApply, onClose }: Props
 
             {sending ? (
               <View className="mb-3 flex-row items-center">
-                <Ionicons name="sparkles" size={15} color="#38bdf8" />
+                <Ionicons name="sparkles" size={15} color="#5eead4" />
                 <Text variant="body" className="ml-2 text-iron-100">
                   Reworking your split<Text className="text-brand">…</Text>
                 </Text>

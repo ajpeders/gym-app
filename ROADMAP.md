@@ -154,7 +154,7 @@ gym-app/
 - [ ] **Contextual AI prompts during the set** (e.g. nudge, form cue) — toggleable; `feature_flags.in_set_prompts` defaults off, not yet wired
 
 ### Phase 3 — AI provider layer + natural-language logging (largely done)
-- [x] Provider abstraction: Ollama ⇄ Claude ⇄ ChatGPT/OpenAI; pick provider/model in settings *(BYO per-user, no silent default; `/ai/providers`,`/models`,`/test`). OpenAI shipped 2026-08-16 via the existing companion OpenAI-compatible provider, with per-user write-only API keys and `gpt-5.6-luna` as the default model.*
+- [x] Provider abstraction: Ollama ⇄ Claude ⇄ ChatGPT/OpenAI; pick provider/model in settings *(BYO per-user, no silent default; `/ai/providers`,`/models`,`/test`). OpenAI shipped 2026-08-16 via the existing companion OpenAI-compatible provider, with per-user write-only API keys and `gpt-5.6` as the default API model.*
 - [ ] **On-device AI — iPhone first** (capable phones): run a small model directly on the phone's hardware (iOS: Apple Foundation Models / MLX / Core ML; Android: `llama.rn` / ExecuTorch) — fully private, works offline with no Ollama/Claude needed. Auto-detect support and offer it as a third provider alongside Ollama/Claude. The ultimate "no-setup, no-cost, no-network" local option.
 - [ ] **Admin page** — there is no admin concept at all today: `User` has no role
       column, and several things now exist with no way to observe them.
@@ -217,7 +217,12 @@ gym-app/
       5/3/1 and GZCLP *are* their progression schemes, so this leans on the
       progression work rather than just being a list of exercises. Check
       licensing/attribution before shipping anyone's named program verbatim.
-- [ ] **Stop the AI hand-building log payloads** — the spotter constructs
+- [x] **Stop the AI hand-building log payloads** *(2026-08-16)* — the spotter no longer sees the raw
+      `POST /sessions/log` payload tool. It sees `POST /sessions/log-text`,
+      which routes the phrase through the parser/matcher so NxM expansion,
+      catalog id resolution, and "no invented date" stay deterministic. The
+      companion manifest test asserts `log-text` is exposed and raw `log` is not.
+      Earlier context: the spotter used to construct
       `POST /sessions/log` JSON itself, and it guesses `exercise_id`. Measured
       2026-08-14 against both local models: "log 3x5 squats at 100kg" produced
       `exercise_id: 1` — "Step Jack", the first row of the catalog — because it
@@ -384,9 +389,10 @@ Found while actually training with the app. Ordered by how much they hurt.
       real one — worth doing deliberately, and worth having frontend tests first.
 - [~] **UI/UX pass** — a deliberate visual + flow review of every screen before
       launch. In progress: the shared dark palette was refreshed 2026-08-16
-      from purple-navy to graphite/cyan, and the Home + Spotter surfaces have
-      had dedicated passes. Remaining work is screen-by-screen interaction
-      polish rather than another global palette swing.
+      from purple-navy to a deeper midnight/aqua system, with softer surfaces,
+      a clearer Home "Up next" hero, and more explicit ChatGPT/OpenAI setup
+      copy. Remaining work is screen-by-screen interaction polish rather than
+      another global palette swing.
 - [~] **Launch checklist** — accounts/onboarding for a non-homelab user, EAS
       build + distribution, error reporting, and a data-export/delete story.
   - [x] **Data export / delete** *(2026-08-13)* — `DELETE /auth/me` already

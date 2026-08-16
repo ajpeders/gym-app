@@ -34,12 +34,12 @@ export function ActionRow({
       onPress={onPress}
       disabled={disabled}
       accessibilityRole={onPress ? 'button' : undefined}
-      className={`flex-row items-center rounded-lg px-3 py-3 ${
+      className={`flex-row items-center rounded-xl px-3 py-3 ${
         selected ? 'bg-brand/10' : ''
       } ${onPress && !disabled ? 'active:bg-brand/10' : ''} ${disabled ? 'opacity-60' : ''}`}>
       {icon ? (
-        <View className="mr-3 h-9 w-9 items-center justify-center rounded-lg border border-iron-700 bg-iron-900">
-          <Ionicons name={icon} size={17} color={selected ? '#38bdf8' : '#94a3b8'} />
+        <View className="mr-3 h-9 w-9 items-center justify-center rounded-xl border border-iron-700 bg-iron-850">
+          <Ionicons name={icon} size={17} color={selected ? '#5eead4' : '#94a3b8'} />
         </View>
       ) : null}
       <View className="min-w-0 flex-1">
@@ -60,7 +60,7 @@ export function ActionRow({
           {meta}
         </Text>
       ) : null}
-      {trailing ?? (onPress ? <Ionicons name="chevron-forward" size={16} color="#475569" /> : null)}
+      {trailing ?? (onPress ? <Ionicons name="chevron-forward" size={16} color="#64748b" /> : null)}
     </Wrapper>
   );
 }

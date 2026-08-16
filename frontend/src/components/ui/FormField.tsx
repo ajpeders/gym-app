@@ -30,9 +30,9 @@ export function FormField({
       </View>
       <TextInput
         placeholderTextColor="#64748b"
-        selectionColor="#38bdf8"
+        selectionColor="#5eead4"
         multiline={multiline}
-        className={`rounded-lg border bg-iron-900 px-4 py-2.5 text-base text-iron-50 ${
+        className={`rounded-xl border bg-iron-900 px-4 py-2.5 text-base text-iron-50 ${
           multiline ? 'min-h-[80px]' : 'min-h-[48px]'
         } ${error ? 'border-red-500' : 'border-iron-700'} ${inputClassName ?? ''}`}
         style={multiline ? { textAlignVertical: 'top' } : undefined}

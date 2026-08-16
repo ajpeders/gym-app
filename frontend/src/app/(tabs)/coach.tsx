@@ -103,8 +103,8 @@ const markdownStyles = {
   bullet_list: { marginBottom: 4 },
   ordered_list: { marginBottom: 4 },
   list_item: { marginBottom: 4, flexDirection: 'row' as const },
-  bullet_list_icon: { color: '#38bdf8', marginRight: 6 },
-  ordered_list_icon: { color: '#38bdf8', marginRight: 6, fontWeight: '700' as const },
+  bullet_list_icon: { color: '#5eead4', marginRight: 6 },
+  ordered_list_icon: { color: '#5eead4', marginRight: 6, fontWeight: '700' as const },
   heading2: { color: '#f8fafc', fontSize: 18, fontWeight: '800' as const, marginBottom: 6 },
   heading3: { color: '#f8fafc', fontSize: 16, fontWeight: '700' as const, marginBottom: 4 },
   code_inline: {
@@ -120,7 +120,7 @@ function UserBubble({ content }: { content: string }) {
   return (
     <View className="mb-4 flex-row justify-end">
       <View className="max-w-[84%] rounded-2xl rounded-br-md border border-brand/40 bg-brand px-3.5 py-2.5 shadow-black/30">
-        <Text variant="body" className="text-iron-50">
+        <Text variant="body" className="font-semibold text-iron-950">
           {content}
         </Text>
       </View>
@@ -132,7 +132,7 @@ function AssistantBubble({ content, error }: { content: string; error?: boolean 
   return (
     <View className="mb-4 flex-row justify-start">
       <View className="mr-2 mt-1 h-8 w-8 items-center justify-center rounded-full border border-brand/30 bg-brand/10">
-        <Ionicons name={error ? 'warning-outline' : 'sparkles'} size={15} color={error ? '#f87171' : '#38bdf8'} />
+        <Ionicons name={error ? 'warning-outline' : 'sparkles'} size={15} color={error ? '#f87171' : '#5eead4'} />
       </View>
       <View
         className={`max-w-[86%] rounded-2xl rounded-tl-md border px-3.5 py-2.5 ${
@@ -182,7 +182,7 @@ function ConfirmCard({
   return (
     <View className="mb-4 flex-row justify-start">
       <View className="mr-2 mt-1 h-8 w-8 items-center justify-center rounded-full border border-brand/30 bg-brand/10">
-        <Ionicons name="shield-checkmark-outline" size={15} color="#38bdf8" />
+        <Ionicons name="shield-checkmark-outline" size={15} color="#5eead4" />
       </View>
       <View className="max-w-[86%] rounded-2xl rounded-tl-md border border-brand/40 bg-brand/10 px-3.5 py-3">
         <View className="mb-2">
@@ -239,10 +239,10 @@ function TypingBubble() {
   return (
     <View className="mb-4 flex-row justify-start">
       <View className="mr-2 mt-1 h-8 w-8 items-center justify-center rounded-full border border-brand/30 bg-brand/10">
-        <Ionicons name="sparkles" size={15} color="#38bdf8" />
+        <Ionicons name="sparkles" size={15} color="#5eead4" />
       </View>
       <View className="flex-row items-center rounded-2xl rounded-tl-md border border-iron-800 bg-iron-900 px-3.5 py-3">
-        <Ionicons name="ellipsis-horizontal" size={18} color="#38bdf8" />
+        <Ionicons name="ellipsis-horizontal" size={18} color="#5eead4" />
         <Text variant="muted" className="ml-2">
           Working…
         </Text>
@@ -283,7 +283,7 @@ function EmptyIntro({ onPick }: { onPick: (q: string) => void }) {
       <View className="mb-5 rounded-2xl border border-brand/30 bg-brand/10 p-5">
         <View className="mb-4 flex-row items-center">
           <View className="h-14 w-14 items-center justify-center rounded-2xl border border-brand/30 bg-brand/15">
-            <Ionicons name="sparkles" size={25} color="#38bdf8" />
+            <Ionicons name="sparkles" size={25} color="#5eead4" />
           </View>
           <View className="ml-3 flex-1">
             <Text variant="eyebrow">AI spotter</Text>
@@ -308,7 +308,7 @@ function EmptyIntro({ onPick }: { onPick: (q: string) => void }) {
             accessibilityRole="button"
             className="flex-row items-center rounded-xl border border-iron-800 bg-iron-900/90 px-4 py-3.5 active:bg-brand/10">
             <View className="mr-3 h-9 w-9 items-center justify-center rounded-xl bg-iron-800">
-              <Ionicons name="arrow-up-outline" size={16} color="#38bdf8" style={{ transform: [{ rotate: '45deg' }] }} />
+              <Ionicons name="arrow-up-outline" size={16} color="#5eead4" style={{ transform: [{ rotate: '45deg' }] }} />
             </View>
             <Text variant="label" className="flex-1 text-iron-100">{s}</Text>
             <Ionicons name="chevron-forward" size={16} color="#475569" />
@@ -330,7 +330,7 @@ function CoachTopBar({
     <View className="border-b border-iron-800 bg-iron-950/95 px-4 pb-3 pt-2">
       <View className="flex-row items-center">
         <View className="mr-3 h-10 w-10 items-center justify-center rounded-2xl border border-brand/30 bg-brand/10">
-          <Ionicons name="sparkles" size={18} color="#38bdf8" />
+          <Ionicons name="sparkles" size={18} color="#5eead4" />
         </View>
         <View className="min-w-0 flex-1">
           <Text variant="heading" numberOfLines={1}>
@@ -520,13 +520,14 @@ export default function CoachScreen() {
       <Screen scroll={false} padded={false}>
         <View className="flex-1 items-center justify-center px-8">
           <View className="mb-4 h-16 w-16 items-center justify-center rounded-2xl border border-brand/40 bg-brand/10">
-            <Ionicons name="sparkles" size={28} color="#38bdf8" />
+            <Ionicons name="sparkles" size={28} color="#5eead4" />
           </View>
           <Text variant="heading" className="text-center">
             Set up your AI to use the spotter
           </Text>
           <Text variant="muted" className="mt-2 text-center">
-            Add your Ollama server or Claude key in Settings, then come back.
+            Add your Ollama server, Claude key, or OpenAI API key in Settings,
+            then come back.
           </Text>
           <Button
             title="Go to Settings"
@@ -540,10 +541,19 @@ export default function CoachScreen() {
 
   const hasConfirm = items.some((i) => i.kind === 'confirm');
   const canSend = input.trim().length > 0 && !sending && !hasConfirm;
+  const activeProvider =
+    settings.ai_provider === 'openai'
+      ? 'ChatGPT'
+      : settings.ai_provider === 'claude'
+        ? 'Claude'
+        : 'Ollama';
 
   return (
     <Screen scroll={false} padded={false}>
-      <CoachTopBar model={activeModel ?? 'AI model'} onSettings={() => router.push('/settings')} />
+      <CoachTopBar
+        model={`${activeProvider} · ${activeModel ?? 'AI model'}`}
+        onSettings={() => router.push('/settings')}
+      />
       <KeyboardAvoidingView
         className="flex-1"
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -589,7 +599,7 @@ export default function CoachScreen() {
         <View className="border-t border-iron-800 bg-iron-950/95 px-3 pb-6 pt-2.5">
           {hasConfirm ? (
             <View className="mb-2 flex-row items-center rounded-lg border border-brand/25 bg-brand/10 px-3 py-2">
-              <Ionicons name="lock-closed-outline" size={13} color="#38bdf8" />
+              <Ionicons name="lock-closed-outline" size={13} color="#5eead4" />
               <Text variant="caption" className="ml-2 flex-1 text-iron-300">
                 Approve or dismiss the pending action before sending another message.
               </Text>
@@ -601,7 +611,7 @@ export default function CoachScreen() {
               onChangeText={setInput}
               placeholder={hasConfirm ? 'Respond to the action above…' : 'Ask your spotter'}
               placeholderTextColor="#64748b"
-              selectionColor="#38bdf8"
+              selectionColor="#5eead4"
               multiline
               editable={!sending && !hasConfirm}
               className="max-h-32 min-h-[48px] flex-1 rounded-xl border border-iron-700 bg-iron-900 px-4 py-3 text-base text-iron-50"
@@ -615,7 +625,7 @@ export default function CoachScreen() {
               className={`ml-2 h-12 w-12 items-center justify-center rounded-xl ${
                 canSend ? 'bg-brand active:bg-brand-600' : 'bg-iron-800 opacity-50'
               }`}>
-              <Ionicons name="arrow-up" size={20} color="#05080f" />
+              <Ionicons name="arrow-up" size={20} color="#030712" />
             </Pressable>
           </View>
         </View>

@@ -6,8 +6,8 @@ import { Text } from './Text';
 type Size = 'md' | 'lg';
 
 const box: Record<Size, string> = {
-  md: 'h-12 w-12 rounded-lg',
-  lg: 'h-14 w-14 rounded-lg',
+  md: 'h-12 w-12 rounded-2xl',
+  lg: 'h-14 w-14 rounded-2xl',
 };
 
 const icon: Record<Size, number> = {
@@ -19,8 +19,8 @@ const icon: Record<Size, number> = {
 export function Logo({ size = 'md' }: { size?: Size }) {
   return (
     <View className="flex-row items-center">
-      <View className={`items-center justify-center bg-brand ${box[size]}`}>
-        <Ionicons name="barbell" size={icon[size]} color="#05080f" />
+      <View className={`items-center justify-center border border-brand/30 bg-brand ${box[size]}`}>
+        <Ionicons name="barbell" size={icon[size]} color="#030712" />
       </View>
       <View className="ml-3">
         <Text

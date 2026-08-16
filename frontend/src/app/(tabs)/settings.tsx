@@ -71,8 +71,8 @@ function Row({
       <Switch
         value={value}
         onValueChange={onValueChange}
-        trackColor={{ false: '#223047', true: '#38bdf8' }}
-        thumbColor={value ? '#05080f' : '#64748b'}
+        trackColor={{ false: '#223047', true: '#5eead4' }}
+        thumbColor={value ? '#030712' : '#64748b'}
       />
     </View>
   );
@@ -124,7 +124,7 @@ export default function SettingsScreen() {
       <Card className="mb-4 rounded-lg p-5" onPress={() => router.push('/profile')}>
         <View className="flex-row items-center justify-between">
           <View className="mr-3 h-12 w-12 items-center justify-center rounded-2xl border border-brand/30 bg-brand/10">
-            <Ionicons name="person-outline" size={21} color="#38bdf8" />
+            <Ionicons name="person-outline" size={21} color="#5eead4" />
           </View>
           <View className="flex-1 pr-3">
             <Text variant="subheading">{user?.display_name ?? 'Your profile'}</Text>
@@ -348,7 +348,7 @@ function AiProviderControl({
   const claudeConfigured = providers?.providers.claude.configured ?? false;
   const openaiConfigured = providers?.providers.openai.configured ?? false;
   const cloudConfigured = isOpenAI ? openaiConfigured : claudeConfigured;
-  const cloudLabel = isOpenAI ? 'ChatGPT' : 'Claude';
+  const cloudLabel = isOpenAI ? 'ChatGPT / OpenAI' : 'Claude';
   const cloudKeyName = isOpenAI ? 'OpenAI API key' : 'Claude API key';
   const cloudKeyPlaceholder = isOpenAI ? 'sk-proj-…' : 'sk-ant-…';
   const cloudKeyHelp = isOpenAI
@@ -454,7 +454,7 @@ function AiProviderControl({
       <Card className="mb-3 gap-1">
         {loading ? (
           <View className="flex-row items-center py-1">
-            <ActivityIndicator color="#38bdf8" />
+            <ActivityIndicator color="#5eead4" />
             <Text variant="muted" className="ml-2">
               Checking providers…
             </Text>
@@ -482,8 +482,13 @@ function AiProviderControl({
         )}
       </Card>
 
-      <Card className="mb-1">
-        <View className="flex-row rounded-lg border border-iron-700 bg-iron-950 p-1">
+      <Card className="mb-3">
+        <Text variant="eyebrow">AI engine</Text>
+        <Text variant="muted" className="mb-3 mt-1">
+          Pick the model provider that powers imports, plain-English logging,
+          and Spotter chat.
+        </Text>
+        <View className="flex-row rounded-2xl border border-iron-700 bg-iron-950 p-1">
           {PROVIDER_OPTIONS.map((opt) => {
             const active = opt.value === selected;
             return (
@@ -491,7 +496,7 @@ function AiProviderControl({
                 key={opt.value}
                 disabled={opt.disabled}
                 onPress={() => patch(() => update({ ai_provider: opt.value }))}
-                className={`flex-1 items-center rounded-md py-2 ${active ? 'bg-brand' : ''} ${
+                className={`flex-1 items-center rounded-xl py-2.5 ${active ? 'bg-brand' : ''} ${
                   opt.disabled ? 'opacity-40' : ''
                 }`}>
                 <Text
@@ -529,8 +534,26 @@ function AiProviderControl({
         )
       ) : null}
 
+      {isOpenAI ? (
+        <Card className="mb-3 border-brand/20 bg-brand/5">
+          <View className="flex-row items-start">
+            <View className="mr-3 h-10 w-10 items-center justify-center rounded-2xl border border-brand/30 bg-brand/10">
+              <Ionicons name="sparkles" size={18} color="#5eead4" />
+            </View>
+            <View className="flex-1">
+              <Text variant="subheading">ChatGPT uses the OpenAI API</Text>
+              <Text variant="caption" className="mt-1 text-iron-300">
+                Paste an OpenAI platform API key below. The app stores it on the
+                server, never returns it in Settings, and uses it only for your
+                account’s AI requests.
+              </Text>
+            </View>
+          </View>
+        </Card>
+      ) : null}
+
       <Text variant="caption" className="mb-2 mt-1">
-        Parse sets from plain English on the active-workout screen.
+        The active provider powers imports, set parsing, and Spotter chat.
       </Text>
 
       {isOllama ? (
@@ -583,7 +606,7 @@ function AiProviderControl({
 
           {modelsLoading ? (
             <View className="flex-row items-center py-2">
-              <ActivityIndicator color="#38bdf8" />
+              <ActivityIndicator color="#5eead4" />
               <Text variant="muted" className="ml-2">
                 Finding installed models…
               </Text>
@@ -635,7 +658,7 @@ function AiProviderControl({
                       ) : null}
                     </View>
                     {active ? (
-                      <Ionicons name="checkmark-circle" size={18} color="#38bdf8" />
+                      <Ionicons name="checkmark-circle" size={18} color="#5eead4" />
                     ) : null}
                   </Pressable>
                 );
@@ -751,10 +774,10 @@ function AiProviderControl({
             checkingModel ? 'opacity-60' : ''
           }`}>
           {checkingModel ? (
-            <ActivityIndicator color="#38bdf8" />
+            <ActivityIndicator color="#5eead4" />
           ) : (
             <>
-              <Ionicons name="flash-outline" size={16} color="#38bdf8" />
+              <Ionicons name="flash-outline" size={16} color="#5eead4" />
               <Text className="ml-1.5 text-base font-semibold text-iron-50">Check this model</Text>
             </>
           )}

@@ -170,7 +170,7 @@ export default function CatchUpPasteScreen() {
                 onChangeText={setText}
                 placeholder={PLACEHOLDER}
                 placeholderTextColor="#64748b"
-                selectionColor="#38bdf8"
+                selectionColor="#5eead4"
                 multiline
                 editable={!busy}
                 className="min-h-[200px] rounded-lg border border-iron-700 bg-iron-900 px-3.5 py-2.5 text-base text-iron-50"
@@ -206,7 +206,7 @@ export default function CatchUpPasteScreen() {
                       </Text>
                       {day.saved ? (
                         <View className="flex-row items-center">
-                          <Ionicons name="checkmark-circle" size={16} color="#2dd4bf" />
+                          <Ionicons name="checkmark-circle" size={16} color="#34d399" />
                           <Text variant="caption" className="ml-1 text-mint">
                             Saved
                           </Text>
@@ -227,7 +227,7 @@ export default function CatchUpPasteScreen() {
                         onChangeText={(v) => setDate(i, v)}
                         placeholder="YYYY-MM-DD"
                         placeholderTextColor="#64748b"
-                        selectionColor="#38bdf8"
+                        selectionColor="#5eead4"
                         autoCapitalize="none"
                         editable={!day.saved}
                         className={`flex-1 rounded-md border bg-iron-950 px-3 py-2 text-base text-iron-50 ${

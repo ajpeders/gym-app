@@ -26,7 +26,9 @@ class Settings(BaseSettings):
     claude_api_key: str = ""
     claude_model: str = "claude-opus-4-8"  # configurable; claude-haiku-4-5 is the cheap option
     openai_api_key: str = ""
-    openai_model: str = "gpt-5.6-luna"
+    # Public OpenAI API model default. Users can override this per account in
+    # Settings; keep Codex-only model aliases out of the production default.
+    openai_model: str = "gpt-5.6"
     openai_base_url: str = "https://api.openai.com/v1"
     ai_timeout: float = 120.0  # generous for cold model loads on first request
 

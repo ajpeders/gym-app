@@ -118,7 +118,7 @@ export default function SessionDetailScreen() {
                   <Ionicons
                     name={editing ? 'checkmark' : 'create-outline'}
                     size={22}
-                    color="#38bdf8"
+                    color="#5eead4"
                   />
                 </Pressable>
                 <Pressable
@@ -133,7 +133,7 @@ export default function SessionDetailScreen() {
                   accessibilityRole="button"
                   accessibilityLabel="Export session"
                   className="pl-3 active:opacity-60">
-                  <Ionicons name="share-outline" size={22} color="#38bdf8" />
+                  <Ionicons name="share-outline" size={22} color="#5eead4" />
                 </Pressable>
               </View>
             ) : null,
@@ -159,7 +159,7 @@ export default function SessionDetailScreen() {
 
           {editing ? (
             <View className="mb-3 flex-row items-center rounded-lg border border-brand/40 bg-brand/10 px-3.5 py-2.5">
-              <Ionicons name="information-circle-outline" size={16} color="#38bdf8" />
+              <Ionicons name="information-circle-outline" size={16} color="#5eead4" />
               <Text variant="caption" className="ml-2 flex-1 text-brand">
                 Swapping keeps the sets — use it when you trained a different movement than
                 you logged.
@@ -205,7 +205,7 @@ export default function SessionDetailScreen() {
                         accessibilityRole="button"
                         accessibilityLabel="Swap exercise"
                         className="ml-2 h-9 w-9 items-center justify-center rounded-lg bg-brand/10 active:opacity-60">
-                        <Ionicons name="swap-horizontal" size={17} color="#38bdf8" />
+                        <Ionicons name="swap-horizontal" size={17} color="#5eead4" />
                       </Pressable>
                       <Pressable
                         onPress={() =>

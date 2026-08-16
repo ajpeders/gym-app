@@ -18,8 +18,8 @@ export function Input({ label, error, className, containerClassName, ...rest }: 
       ) : null}
       <TextInput
         placeholderTextColor="#64748b"
-        selectionColor="#38bdf8"
-        className={`min-h-[50px] rounded-lg border bg-iron-900 px-4 py-3 text-base text-iron-50 ${
+        selectionColor="#5eead4"
+        className={`min-h-[50px] rounded-xl border bg-iron-900 px-4 py-3 text-base text-iron-50 ${
           error ? 'border-red-500' : 'border-iron-700'
         } ${className ?? ''}`}
         {...rest}

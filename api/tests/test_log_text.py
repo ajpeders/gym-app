@@ -81,3 +81,13 @@ def test_an_exercise_with_no_sets_is_dropped() -> None:
 def test_nothing_loggable_is_an_error_not_an_empty_session() -> None:
     with pytest.raises(UnmatchedExercises):
         session_log_from_items([_item("Zercher Widget", None, [_set()])])
+
+
+def test_spotter_sees_log_text_but_not_raw_log_payload_tool(client) -> None:
+    """The structural fix is the tool surface: the model gets the safe text
+    logger, not the old endpoint where it could invent exercise ids."""
+    tools = client.get("/api/companion/manifest").json()["tools"]
+    by_path = {(t["method"], t["path"]) for t in tools}
+
+    assert ("POST", "/api/sessions/log-text") in by_path
+    assert ("POST", "/api/sessions/log") not in by_path

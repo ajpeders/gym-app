@@ -81,7 +81,7 @@ export function HomeNutritionCard() {
   return (
     <Card className="mb-4 rounded-[20px] p-4" onPress={() => router.push('/nutrition')}>
       <View className="mb-3 flex-row items-center">
-        <Ionicons name="restaurant-outline" size={16} color="#38bdf8" />
+        <Ionicons name="restaurant-outline" size={16} color="#5eead4" />
         <Text variant="label" className="ml-2 flex-1 text-brand">
           Nutrition today
         </Text>

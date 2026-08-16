@@ -433,7 +433,7 @@ export default function WorkoutImportScreen() {
         <Stack.Screen options={{ headerShown: true, title: 'Import workouts' }} />
         <View className="flex-1 items-center justify-center px-6">
           <View className="mb-4 h-16 w-16 items-center justify-center rounded-full border border-brand/40 bg-brand/10">
-            <Ionicons name="checkmark" size={34} color="#38bdf8" />
+            <Ionicons name="checkmark" size={34} color="#5eead4" />
           </View>
           <Text variant="heading" className="text-center">
             Saved {savedCount} {savedCount === 1 ? 'workout' : 'workouts'}
@@ -472,7 +472,7 @@ export default function WorkoutImportScreen() {
               editable={!saving}
               placeholder="My split"
               placeholderTextColor="#64748b"
-              selectionColor="#38bdf8"
+              selectionColor="#5eead4"
               className="mt-2 min-h-[50px] rounded-lg border border-iron-700 bg-iron-950 px-3.5 text-base font-bold text-iron-50"
             />
             <Text variant="caption" className="mt-2 text-iron-400">
@@ -682,7 +682,7 @@ function ParseProgress({ received = 0 }: { received?: number }) {
   return (
     <View className="flex-1 items-center justify-center px-8">
       <View className="mb-5 h-16 w-16 items-center justify-center rounded-lg border border-brand/40 bg-brand/10">
-        <Ionicons name="sparkles" size={28} color="#38bdf8" />
+        <Ionicons name="sparkles" size={28} color="#5eead4" />
       </View>
       <Text variant="heading" className="text-center">
         {PARSE_STAGES[stage]}
@@ -765,7 +765,7 @@ function DayCard({
           <Ionicons
             name={included ? 'checkmark-circle' : 'ellipse-outline'}
             size={26}
-            color={included ? '#38bdf8' : '#64748b'}
+            color={included ? '#5eead4' : '#64748b'}
           />
         </Pressable>
 
@@ -808,7 +808,7 @@ function DayCard({
               editable={!disabled}
               placeholder={`Workout ${dayIdx + 1}`}
               placeholderTextColor="#64748b"
-              selectionColor="#38bdf8"
+              selectionColor="#5eead4"
               className="mt-2 min-h-[48px] rounded-lg border border-iron-700 bg-iron-900 px-3 text-base font-bold text-iron-50"
             />
 
@@ -898,7 +898,7 @@ function DayCard({
                     <Ionicons
                       name={exIncluded ? 'checkbox' : 'square-outline'}
                       size={20}
-                      color={exIncluded ? '#38bdf8' : '#64748b'}
+                      color={exIncluded ? '#5eead4' : '#64748b'}
                     />
                   </Pressable>
                   <View className="flex-1">
@@ -965,7 +965,7 @@ function DayCard({
                       multiline
                       placeholder="Set history, cues, or substitutions"
                       placeholderTextColor="#64748b"
-                      selectionColor="#38bdf8"
+                      selectionColor="#5eead4"
                       className="min-h-[64px] rounded-lg border border-iron-700 bg-iron-900 px-3 py-2.5 text-sm text-iron-50"
                     />
                     <View className="mt-3 flex-row flex-wrap gap-2">
@@ -1039,7 +1039,7 @@ function ReviewTargetField({
         keyboardType={keyboardType}
         placeholder={placeholder}
         placeholderTextColor="#475569"
-        selectionColor="#38bdf8"
+        selectionColor="#5eead4"
         className="min-h-[44px] rounded-lg border border-iron-700 bg-iron-900 px-3 text-sm text-iron-50"
       />
     </View>
@@ -1068,7 +1068,7 @@ function ScheduleMode({
       className={`min-h-[48px] flex-1 flex-row items-center justify-center rounded-lg border px-3 active:opacity-75 ${
         active ? 'border-brand bg-brand/15' : 'border-iron-700 bg-iron-900'
       } ${disabled ? 'opacity-50' : ''}`}>
-      <Ionicons name={icon} size={16} color={active ? '#38bdf8' : '#94a3b8'} />
+      <Ionicons name={icon} size={16} color={active ? '#5eead4' : '#94a3b8'} />
       <Text
         variant="caption"
         className={`ml-2 font-bold ${active ? 'text-brand' : 'text-iron-200'}`}>
@@ -1099,7 +1099,7 @@ function ActionPill({
       className={`flex-row items-center rounded-full border px-3 py-1.5 active:opacity-70 ${
         danger ? 'border-red-500/40 bg-red-500/10' : 'border-iron-700 bg-iron-900'
       } ${disabled ? 'opacity-50' : ''}`}>
-      <Ionicons name={icon} size={14} color={danger ? '#fca5a5' : '#38bdf8'} />
+      <Ionicons name={icon} size={14} color={danger ? '#fca5a5' : '#5eead4'} />
       <Text
         variant="caption"
         className={`ml-1.5 font-bold ${danger ? 'text-red-200' : 'text-iron-100'}`}>

@@ -31,7 +31,9 @@ export function Screen({
 
   return (
     <SafeAreaView edges={edges} className={`flex-1 bg-iron-950 ${className ?? ''}`}>
-      <View pointerEvents="none" className="absolute inset-x-0 top-0 h-36 bg-iron-900/40" />
+      <View pointerEvents="none" className="absolute inset-x-0 top-0 h-64 bg-iron-900/70" />
+      <View pointerEvents="none" className="absolute -right-24 top-8 h-56 w-56 rounded-full bg-brand/10" />
+      <View pointerEvents="none" className="absolute -left-28 top-40 h-52 w-52 rounded-full bg-steel/10" />
       {scroll ? (
         <ScrollView
           className="flex-1"

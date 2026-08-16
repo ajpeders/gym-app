@@ -232,7 +232,7 @@ export function WorkoutEditor({
                   accessibilityRole="button"
                   accessibilityLabel="Export workout"
                   className="pl-3 active:opacity-60">
-                  <Ionicons name="share-outline" size={22} color="#38bdf8" />
+                  <Ionicons name="share-outline" size={22} color="#5eead4" />
                 </Pressable>
               )
             : undefined,
@@ -253,7 +253,7 @@ export function WorkoutEditor({
           <Pressable
             onPress={() => setAiOpen(true)}
             className="mt-4 flex-row items-center justify-center rounded-lg border border-brand/40 bg-brand/10 py-2.5 active:opacity-80">
-            <Ionicons name="sparkles" size={16} color="#38bdf8" />
+            <Ionicons name="sparkles" size={16} color="#5eead4" />
             <Text className="ml-2 font-semibold text-brand">Edit with AI</Text>
           </Pressable>
         ) : null}
@@ -387,7 +387,7 @@ export function WorkoutEditor({
             className={`h-6 w-6 items-center justify-center rounded-md border ${
               floating ? 'border-brand bg-brand' : 'border-iron-600 bg-iron-950'
             }`}>
-            {floating ? <Ionicons name="checkmark" size={16} color="#05080f" /> : null}
+            {floating ? <Ionicons name="checkmark" size={16} color="#030712" /> : null}
           </View>
         </Pressable>
 

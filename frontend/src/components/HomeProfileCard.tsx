@@ -73,7 +73,7 @@ export function HomeProfileCard() {
         accessibilityRole="button"
         className="mb-3 flex-row items-center active:opacity-70">
         <View className="mr-3 h-10 w-10 items-center justify-center rounded-lg border border-brand/25 bg-brand/10">
-          <Ionicons name="medkit-outline" size={19} color="#38bdf8" />
+          <Ionicons name="medkit-outline" size={19} color="#5eead4" />
         </View>
         <View className="flex-1">
           <Text variant="heading">Injuries & limitations</Text>
@@ -153,7 +153,7 @@ export function HomeProfileCard() {
           className={`h-11 w-11 items-center justify-center rounded-lg ${
             newInjury.trim() ? 'bg-brand active:bg-brand-600' : 'bg-iron-800 opacity-50'
           }`}>
-          <Ionicons name="add" size={22} color="#05080f" />
+          <Ionicons name="add" size={22} color="#030712" />
         </Pressable>
       </View>
     </Card>

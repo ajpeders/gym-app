@@ -25,7 +25,7 @@
     "web": {
       "output": "static",
       "favicon": "./assets/images/favicon.png",
-      "themeColor": "#070b12",
+      "themeColor": "#030712",
       "backgroundColor": "#070b12"
     },
     "plugins": [

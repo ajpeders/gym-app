@@ -39,17 +39,17 @@ function QuickLink({
       onPress={onPress}
       disabled={disabled}
       accessibilityRole="button"
-      className={`min-h-[96px] flex-1 rounded-lg border border-iron-800 bg-iron-900/75 p-3.5 active:bg-iron-850 ${
+      className={`min-h-[104px] flex-1 rounded-2xl border border-iron-800 bg-iron-900/80 p-3.5 active:bg-iron-850 ${
         disabled ? 'opacity-50' : ''
       }`}>
       <View className="flex-row items-start">
-        <View className="h-10 w-10 items-center justify-center rounded-lg border border-brand/25 bg-brand/10">
-          <Ionicons name={icon} size={18} color="#38bdf8" />
+        <View className="h-10 w-10 items-center justify-center rounded-2xl border border-brand/25 bg-brand/10">
+          <Ionicons name={icon} size={18} color="#5eead4" />
         </View>
         <Ionicons
           name="arrow-up-outline"
           size={15}
-          color="#64748b"
+          color="#94a3b8"
           style={{ marginLeft: 'auto', transform: [{ rotate: '45deg' }] }}
         />
       </View>
@@ -73,9 +73,9 @@ function StatTile({
   label: string;
 }) {
   return (
-    <View className="flex-1 rounded-lg border border-iron-700 bg-iron-950 px-3 py-2">
+    <View className="flex-1 rounded-2xl border border-iron-800 bg-iron-850 px-3 py-2.5">
       <View className="flex-row items-center">
-        <Ionicons name={icon} size={15} color="#38bdf8" />
+        <Ionicons name={icon} size={15} color="#5eead4" />
         <Text variant="label" className="ml-1.5 text-brand" numberOfLines={1}>
           {value}
         </Text>
@@ -214,7 +214,7 @@ export default function HomeScreen() {
           <Card elevated className="mb-4 border-brand/35 bg-iron-900 p-4">
             <View className="flex-row items-center">
               <View className="mr-3 h-12 w-12 items-center justify-center rounded-lg bg-brand">
-                <Ionicons name="barbell" size={23} color="#05080f" />
+                <Ionicons name="barbell" size={23} color="#030712" />
               </View>
               <View className="flex-1">
                 <View className="mb-1 self-start rounded-full bg-brand px-2 py-0.5">
@@ -245,7 +245,7 @@ export default function HomeScreen() {
           subtitle="Use the active split, or switch to another program when it fits."
           className="mt-0"
         />
-        <Card elevated className="p-4">
+        <Card elevated className="border-brand/20 bg-iron-900 p-4">
           <View className="flex-row gap-2">
             <StatTile
               icon="calendar-outline"
@@ -259,29 +259,69 @@ export default function HomeScreen() {
             />
           </View>
 
-          <View className="mt-4 overflow-hidden rounded-lg border border-iron-800">
+          <View className="mt-4 rounded-3xl border border-brand/25 bg-brand/10 p-4">
+            <View className="mb-3 flex-row items-center justify-between">
+              <View className="rounded-full border border-brand/30 bg-iron-950/80 px-3 py-1">
+                <Text variant="caption" className="font-black uppercase tracking-[2px] text-brand">
+                  Up next
+                </Text>
+              </View>
+              <Text variant="caption" className="text-iron-300">
+                {dueLabel}
+              </Text>
+            </View>
             {primaryToday ? (
-              <ActionRow
-                title={primaryToday.name}
-                subtitle={`${primaryToday.exercises.length} exercises - ${dueLabel}`}
-                icon={
-                  rolling
-                    ? 'repeat-outline'
-                    : scheduledToday.length > 0
-                      ? 'today-outline'
-                      : 'refresh-outline'
-                }
+              <Pressable
                 onPress={() => router.push(`/workout/${primaryToday.id}`)}
-              />
+                accessibilityRole="button"
+                className="active:opacity-80">
+                <View className="flex-row items-center">
+                  <View className="mr-3 h-14 w-14 items-center justify-center rounded-2xl bg-brand">
+                    <Ionicons
+                      name={
+                        rolling
+                          ? 'repeat-outline'
+                          : scheduledToday.length > 0
+                            ? 'today-outline'
+                            : 'refresh-outline'
+                      }
+                      size={25}
+                      color="#030712"
+                    />
+                  </View>
+                  <View className="min-w-0 flex-1">
+                    <Text variant="heading" numberOfLines={1}>
+                      {primaryToday.name}
+                    </Text>
+                    <Text variant="muted" className="mt-0.5 text-iron-200">
+                      {primaryToday.exercises.length} exercises in this workout
+                    </Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={18} color="#94a3b8" />
+                </View>
+              </Pressable>
             ) : (
-              <ActionRow
-                title={rolling ? 'Nothing in the rotation yet' : 'No workout scheduled today'}
-                subtitle={activeSplit ? 'Open your split to pick a day.' : 'Import or create a split to start.'}
-                icon="bed-outline"
+              <Pressable
                 onPress={() =>
                   activeSplit ? router.push(`/split/${activeSplit.id}`) : router.push('/workout-import')
                 }
-              />
+                accessibilityRole="button"
+                className="active:opacity-80">
+                <View className="flex-row items-center">
+                  <View className="mr-3 h-14 w-14 items-center justify-center rounded-2xl border border-iron-700 bg-iron-850">
+                    <Ionicons name="bed-outline" size={25} color="#94a3b8" />
+                  </View>
+                  <View className="min-w-0 flex-1">
+                    <Text variant="heading" numberOfLines={1}>
+                      {rolling ? 'Nothing in rotation' : 'Open day'}
+                    </Text>
+                    <Text variant="muted" className="mt-0.5 text-iron-200">
+                      {activeSplit ? 'Pick a day from your split.' : 'Import or create a split to start.'}
+                    </Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={18} color="#94a3b8" />
+                </View>
+              </Pressable>
             )}
           </View>
 
