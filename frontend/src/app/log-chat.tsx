@@ -141,7 +141,24 @@ export default function LogChatScreen() {
 
   return (
     <SafeAreaView edges={['left', 'right', 'bottom']} className="flex-1 bg-iron-950">
-      <Stack.Screen options={{ headerShown: true, title: 'Log by sentence' }} />
+      <Stack.Screen
+        options={{
+          headerShown: true,
+          title: 'Log sets',
+          headerRight: targetId
+            ? () => (
+                <Pressable
+                  onPress={() => router.push(`/session/active/${targetId}`)}
+                  accessibilityRole="button"
+                  accessibilityLabel="Open the active session"
+                  className="flex-row items-center active:opacity-70">
+                  <Ionicons name="open-outline" size={16} color="#5eead4" />
+                  <Text className="ml-1.5 text-sm font-bold text-brand">Session</Text>
+                </Pressable>
+              )
+            : undefined,
+        }}
+      />
       <KeyboardAvoidingView
         className="flex-1"
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -150,23 +167,31 @@ export default function LogChatScreen() {
           ref={scrollRef}
           className="flex-1"
           contentContainerClassName="px-4 pt-3 pb-4"
+          contentContainerStyle={{ flexGrow: 1 }}
           keyboardShouldPersistTaps="handled"
           onContentSizeChange={scrollToEnd}>
           {turns.length === 0 ? (
-            <View className="py-4">
-              <Text variant="muted" className="mb-3">
-                Describe your sets in plain English and I'll turn them into a log. Nothing is saved
-                until you tap Add.
+            <View className="flex-1 justify-center py-6">
+              <View className="mb-4 h-12 w-12 items-center justify-center rounded-2xl border border-brand/30 bg-brand/10">
+                <Ionicons name="sparkles" size={22} color="#5eead4" />
+              </View>
+              <Text variant="heading">Describe what you did</Text>
+              <Text variant="muted" className="mb-4 mt-1">
+                Write one sentence and review the sets before adding them.
                 {targetId ? '' : ' With no session running, adding starts a new one.'}
+              </Text>
+              <Text variant="caption" className="mb-2 font-bold uppercase tracking-wider text-iron-500">
+                Try an example
               </Text>
               {SUGGESTIONS.map((s) => (
                 <Pressable
                   key={s}
                   onPress={() => setInput(s)}
-                  className="mb-2 self-start rounded-full border border-iron-700 bg-iron-900/90 px-3.5 py-2 active:opacity-70">
-                  <Text variant="caption" className="text-iron-100">
+                  className="mb-2 flex-row items-center rounded-xl border border-iron-700 bg-iron-900/90 px-3.5 py-3 active:opacity-70">
+                  <Text variant="caption" numberOfLines={2} className="flex-1 text-iron-100">
                     {s}
                   </Text>
+                  <Ionicons name="arrow-forward" size={15} color="#64748b" />
                 </Pressable>
               ))}
             </View>
@@ -249,23 +274,12 @@ export default function LogChatScreen() {
           {error ? <Text className="mt-2 text-sm text-red-400">{error}</Text> : null}
         </ScrollView>
 
-        {targetId ? (
-          <Pressable
-            onPress={() => router.push(`/session/active/${targetId}`)}
-            className="mx-4 mb-2 flex-row items-center justify-center rounded-lg border border-iron-700 bg-iron-900 py-2.5 active:opacity-70">
-            <Ionicons name="open-outline" size={15} color="#94a3b8" />
-            <Text variant="caption" className="ml-1.5 text-iron-200">
-              Open the session
-            </Text>
-          </Pressable>
-        ) : null}
-
         <View className="border-t border-iron-800 bg-iron-950 px-3 pb-6 pt-2.5">
           <View className="flex-row items-end">
             <TextInput
               value={input}
               onChangeText={setInput}
-              placeholder='e.g. "bench 3x8 @60, last set hard"'
+              placeholder="Describe your sets…"
               placeholderTextColor="#64748b"
               selectionColor="#5eead4"
               multiline
@@ -276,6 +290,8 @@ export default function LogChatScreen() {
             <Pressable
               onPress={() => void send(input)}
               disabled={!input.trim() || busy}
+              accessibilityRole="button"
+              accessibilityLabel="Read these sets"
               className={`ml-2 h-11 w-11 items-center justify-center rounded-lg ${
                 input.trim() && !busy ? 'bg-brand active:bg-brand-600' : 'bg-iron-800 opacity-50'
               }`}>

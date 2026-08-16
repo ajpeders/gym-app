@@ -39,7 +39,7 @@ export default function AddExerciseScreen() {
   }
 
   return (
-    <SafeAreaView edges={['top', 'left', 'right']} className="flex-1 bg-iron-950">
+    <SafeAreaView edges={['left', 'right']} className="flex-1 bg-iron-950">
       <Stack.Screen
         options={{ headerShown: true, title: swapping ? 'Swap exercise' : 'Add exercise' }}
       />
@@ -47,7 +47,7 @@ export default function AddExerciseScreen() {
         <Text variant="muted">
           {swapping
             ? `Pick what you did instead${swapName ? ` of ${swapName}` : ''} — your logged sets stay.`
-            : 'Tap an exercise to add it to your session'}
+            : 'Tap an exercise to add it to your session.'}
         </Text>
       </View>
       <ExerciseBrowser
@@ -56,7 +56,11 @@ export default function AddExerciseScreen() {
           addingId === ex.id ? (
             <ActivityIndicator color="#5eead4" />
           ) : (
-            <Text className="text-xl font-black text-brand">{swapping ? 'SWAP' : 'ADD'}</Text>
+            <View className="rounded-full bg-brand px-3 py-1">
+              <Text variant="caption" className="font-black text-iron-950">
+                {swapping ? 'Swap' : 'Add'}
+              </Text>
+            </View>
           )
         }
       />

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, View } from 'react-native';
 import { Link } from 'expo-router';
 
 import { ApiError } from '@/api/client';
@@ -49,68 +49,73 @@ export default function RegisterScreen() {
     <Screen scroll={false} padded={false} edges={['top', 'bottom', 'left', 'right']}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        className="w-full max-w-[440px] flex-1 self-center justify-center px-6">
-        <View className="mb-10 items-start">
-          <Logo size="lg" />
-          <Text variant="title" className="mt-6">
-            Create account
-          </Text>
-          <Text variant="muted" className="mt-1">
-            Build the habit. Keep the record.
-          </Text>
-        </View>
+        className="flex-1">
+        <ScrollView
+          contentContainerClassName="w-full max-w-[440px] flex-grow self-center justify-center px-6 py-8"
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}>
+          <View className="mb-10 items-start">
+            <Logo size="lg" />
+            <Text variant="title" className="mt-6">
+              Create account
+            </Text>
+            <Text variant="muted" className="mt-1">
+              Build the habit. Keep the record.
+            </Text>
+          </View>
 
-        <AuthForm onSubmit={onSubmit} className="gap-4">
-          <Input
-            label="Display name"
-            value={displayName}
-            onChangeText={setDisplayName}
-            placeholder="Alex"
-            autoCapitalize="words"
-          />
-          <Input
-            label="Email"
-            value={email}
-            onChangeText={setEmail}
-            autoCapitalize="none"
-            autoComplete="username"
-            textContentType="username"
-            keyboardType="email-address"
-            placeholder="you@example.com"
-          />
-          <Input
-            label="Password"
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
-            // new-password is what tells a manager to *offer to generate*, and
-            // to save the pair rather than trying to autofill an old one.
-            autoComplete="new-password"
-            textContentType="newPassword"
-            placeholder="At least 6 characters"
-          />
-          <Input
-            label="Confirm password"
-            value={confirmPassword}
-            onChangeText={setConfirmPassword}
-            secureTextEntry
-            autoComplete="new-password"
-            textContentType="newPassword"
-            placeholder="Re-enter your password"
-            onSubmitEditing={onSubmit}
-          />
+          <AuthForm onSubmit={onSubmit} className="gap-4">
+            <Input
+              label="Display name"
+              value={displayName}
+              onChangeText={setDisplayName}
+              placeholder="Alex"
+              autoCapitalize="words"
+            />
+            <Input
+              label="Email"
+              value={email}
+              onChangeText={setEmail}
+              autoCapitalize="none"
+              autoComplete="username"
+              textContentType="username"
+              keyboardType="email-address"
+              placeholder="you@example.com"
+            />
+            <Input
+              label="Password"
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry
+              // new-password is what tells a manager to *offer to generate*, and
+              // to save the pair rather than trying to autofill an old one.
+              autoComplete="new-password"
+              textContentType="newPassword"
+              placeholder="At least 6 characters"
+            />
+            <Input
+              label="Confirm password"
+              value={confirmPassword}
+              onChangeText={setConfirmPassword}
+              secureTextEntry
+              autoComplete="new-password"
+              textContentType="newPassword"
+              placeholder="Re-enter your password"
+              onSubmitEditing={onSubmit}
+            />
 
-          {error ? <FormError message={error} /> : null}
+            {error ? <FormError message={error} /> : null}
 
-          <Button title="Sign up" size="lg" loading={submitting} onPress={onSubmit} />
-        </AuthForm>
+            <Button title="Sign up" size="lg" loading={submitting} onPress={onSubmit} />
+          </AuthForm>
 
-        <View className="mt-6 flex-row justify-center">
-          <Text variant="muted">Already have an account? </Text>
-          <Link href="/login">
-            <Text className="text-brand font-bold">Log in</Text>
-          </Link>
-        </View>
+          <View className="mt-6 flex-row justify-center">
+            <Text variant="muted">Already have an account? </Text>
+            <Link href="/login">
+              <Text className="text-brand font-bold">Log in</Text>
+            </Link>
+          </View>
+        </ScrollView>
       </KeyboardAvoidingView>
     </Screen>
   );

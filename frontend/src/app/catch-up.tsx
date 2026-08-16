@@ -83,7 +83,7 @@ function DayRow({
         ) : (
           <Pressable onPress={() => onLog(day)} hitSlop={8} className="px-2 py-1">
             <Text variant="caption" className="text-iron-500">
-              Add
+              Log workout
             </Text>
           </Pressable>
         )}
