@@ -34,14 +34,13 @@ export async function signIn(
   expect(res.ok(), `register failed: ${res.status()} ${await res.text()}`).toBeTruthy();
   const token = (await res.json()).token as string;
 
-  // Registration marks an account as not-yet-onboarded, which sends the app to
-  // the welcome tour. Tests that aren't about onboarding skip past it.
-  if (opts.onboarded !== false) {
-    await request.patch(`${API}/settings`, {
-      headers: { authorization: `Bearer ${token}` },
-      data: { feature_flags: { onboarded: true } },
-    });
-  }
+  // The app's own register screen writes `onboarded: false`, which is what
+  // sends a new account to the welcome tour; registering through the API sets
+  // no flag at all. Both states are worth testing, so both are set explicitly.
+  await request.patch(`${API}/settings`, {
+    headers: { authorization: `Bearer ${token}` },
+    data: { feature_flags: { onboarded: opts.onboarded !== false } },
+  });
 
   // Seed the token the way the app stores it, before any app code runs.
   await page.addInitScript((t) => {

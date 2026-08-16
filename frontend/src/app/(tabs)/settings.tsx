@@ -349,8 +349,11 @@ function AiProviderControl({
   }, [loadProviders]);
 
   // ---- Cloud API key (per-user, write-only) ----
-  const claudeConfigured = providers?.providers.claude.configured ?? false;
-  const openaiConfigured = providers?.providers.openai.configured ?? false;
+  // Optional all the way down: an API older than a provider simply omits it,
+  // and a missing key must read as "not configured" rather than white-screening
+  // the only place the provider can be configured from.
+  const claudeConfigured = providers?.providers.claude?.configured ?? false;
+  const openaiConfigured = providers?.providers.openai?.configured ?? false;
   const cloudConfigured = isOpenAI ? openaiConfigured : claudeConfigured;
   const cloudLabel = isOpenAI ? 'ChatGPT / OpenAI' : 'Claude';
   const cloudKeyName = isOpenAI ? 'OpenAI API key' : 'Claude API key';
