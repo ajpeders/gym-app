@@ -924,6 +924,56 @@ def _patch_program_schedule(data: dict) -> dict:
     return data
 
 
+async def exercise_qa(db: Session, user: User, exercise_id: int, question: str) -> dict:
+    """Answer a question about one movement, grounded in its catalog entry.
+
+    Retrieval is trivial here and that's the point: there is exactly one
+    relevant document — the exercise the athlete is looking at — so "RAG" is a
+    primary-key lookup rather than a vector store. The model is told to answer
+    from that entry and to say when it doesn't cover the question, which is the
+    difference between a grounded answer and a confident guess.
+    """
+    exercise = db.get(Exercise, exercise_id)
+    if exercise is None or (exercise.owner_id is not None and exercise.owner_id != user.id):
+        raise AIError("That exercise isn't in your library.")
+
+    provider, _units = _resolve(db, user)
+    profile = profile_summary(get_or_create_profile(db, user.id))
+
+    t0 = time.monotonic()
+    completion = await provider.complete_text(
+        system=prompts.exercise_qa_system_prompt(),
+        messages=[
+            Message(
+                role="user",
+                content=prompts.exercise_qa_user_prompt(
+                    {
+                        "name": exercise.name,
+                        "equipment": exercise.equipment,
+                        "level": exercise.level,
+                        "primary_muscles": exercise.primary_muscles,
+                        "secondary_muscles": exercise.secondary_muscles,
+                        "instructions": exercise.instructions,
+                    },
+                    question,
+                    profile,
+                ),
+            )
+        ],
+    )
+    return {
+        "answer": completion.text.strip(),
+        "exercise_id": exercise_id,
+        "exercise_name": exercise.name,
+        # Whether the catalog had anything to ground the answer in — the client
+        # says so, because an answer from an empty entry is worth less trust.
+        "grounded": bool(exercise.instructions),
+        "provider": provider.name,
+        "model": provider.model,
+        "latency_ms": int((time.monotonic() - t0) * 1000),
+    }
+
+
 async def generate_program(
     db: Session,
     user: User,

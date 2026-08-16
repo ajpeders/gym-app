@@ -174,6 +174,44 @@ def workout_user_prompt(text: str) -> str:
     return f"Program:\n{text}"
 
 
+_EXERCISE_QA_RULES = (
+    "You are answering a question about ONE exercise, for someone standing in a gym.\n"
+    "You are given that exercise's own catalog entry — its instructions, the muscles it "
+    "trains, its equipment — and what the app knows about the athlete.\n"
+    "Rules:\n"
+    "- Answer from the catalog entry. If it doesn't cover the question, say so plainly "
+    "rather than filling the gap from memory.\n"
+    "- Two or three sentences. They are between sets, not reading an article.\n"
+    "- If they describe pain, say that pain is a reason to stop and ask someone qualified. "
+    "Do not diagnose it, and do not suggest working through it.\n"
+    "- Respect any injury or limitation listed; suggest a substitution rather than a fix.\n"
+    "- No programming advice unless they asked for it — this is about the movement."
+)
+
+
+def exercise_qa_system_prompt() -> str:
+    return _EXERCISE_QA_RULES
+
+
+def exercise_qa_user_prompt(exercise: dict, question: str, profile: str) -> str:
+    """Everything the answer is allowed to draw on, stated plainly."""
+    lines = [f"Exercise: {exercise.get('name')}"]
+    for label, key in (("Equipment", "equipment"), ("Primary muscles", "primary_muscles"),
+                       ("Secondary muscles", "secondary_muscles"), ("Level", "level")):
+        value = exercise.get(key)
+        if value:
+            lines.append(f"{label}: {', '.join(value) if isinstance(value, list) else value}")
+    steps = exercise.get("instructions") or []
+    if steps:
+        lines.append("Catalog instructions:\n" + "\n".join(f"- {s}" for s in steps))
+    else:
+        lines.append("Catalog instructions: none recorded for this exercise.")
+    if profile:
+        lines.append(f"About them:\n{profile}")
+    lines.append(f"Their question: {question}")
+    return "\n".join(lines)
+
+
 _GENERATE_RULES = (
     "You are writing a strength-training program for one person, in the SAME JSON shape used "
     "for imported programs.\n"

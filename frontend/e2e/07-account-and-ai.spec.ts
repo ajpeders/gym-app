@@ -118,3 +118,15 @@ test('settings offer the providers and never silently pick one', async ({ page, 
   await api.patch('/settings', { units: before === 'kg' ? 'lb' : 'kg' });
   expect((await api.get('/settings')).units).not.toBe(before);
 });
+
+test('the exercise Q&A is offered only when AI is configured', async ({ page, request }) => {
+  const account = await signIn(page, request);
+  const api = authed(request, account.token);
+  const rows = await api.get('/exercises?limit=1');
+  const exercise = (Array.isArray(rows) ? rows : rows.items)[0];
+
+  await page.goto(`/exercise/${exercise.id}`);
+  await expect(shown(page, exercise.name)).toBeVisible({ timeout: 30_000 });
+  // No provider set up: the box isn't offered at all, rather than failing on tap.
+  await expect(page.getByLabel('Question about this exercise')).toHaveCount(0);
+});

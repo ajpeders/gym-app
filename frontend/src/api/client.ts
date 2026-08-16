@@ -789,6 +789,21 @@ export const api = {
     }),
   // A program written from a description rather than pasted. Same shape as a
   // parse, so it goes through the same review before anything is saved.
+  // A question about one movement, answered from that exercise's catalog entry.
+  exerciseQa: (exerciseId: string, question: string) =>
+    request<{
+      answer: string;
+      exercise_id: number;
+      exercise_name: string;
+      grounded: boolean;
+      provider: string;
+      model: string;
+      latency_ms: number;
+    }>('/ai/exercise-qa', {
+      method: 'POST',
+      body: { exercise_id: Number(exerciseId), question },
+      timeoutMs: 120_000,
+    }),
   // A Hevy or Strong export, read deterministically (no model involved).
   importCsv: (csv: string) =>
     request<{ format: string; sessions_created: number; sets_imported: number; unmatched: string[] }>(

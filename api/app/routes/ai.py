@@ -83,6 +83,24 @@ def providers(
     return service.available_providers(db, user)
 
 
+class ExerciseQuestion(BaseModel):
+    exercise_id: int
+    question: str
+
+
+@router.post("/exercise-qa")
+async def exercise_qa(
+    payload: ExerciseQuestion,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> dict:
+    """Ask about one movement — grounded in that exercise's catalog entry."""
+    try:
+        return await service.exercise_qa(db, user, payload.exercise_id, payload.question)
+    except AIError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+
 class GenerateProgramRequest(BaseModel):
     """Who the program is for. Everything is optional — an empty request still
     produces something sensible, grounded in the athlete profile."""

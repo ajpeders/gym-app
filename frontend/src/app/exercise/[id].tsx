@@ -1,11 +1,12 @@
 import { useCallback, useState } from 'react';
-import { Dimensions, ScrollView, View } from 'react-native';
+import { Dimensions, ScrollView, TextInput, View } from 'react-native';
 import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 
 import { api } from '@/api/client';
 import type { Exercise } from '@/api/types';
 import { useActiveWorkout } from '@/state/active-workout';
+import { useAiStatus } from '@/hooks/use-ai-status';
 import { Screen } from '@/components/ui/Screen';
 import { Text } from '@/components/ui/Text';
 import { Card } from '@/components/ui/Card';
@@ -19,8 +20,15 @@ export default function ExerciseDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const { activeId, addExercise, start, load } = useActiveWorkout();
+  const { configured: aiConfigured } = useAiStatus();
 
   const [exercise, setExercise] = useState<Exercise | null>(null);
+  // Asking about the movement you're looking at.
+  const [question, setQuestion] = useState('');
+  const [answer, setAnswer] = useState<string | null>(null);
+  const [grounded, setGrounded] = useState(true);
+  const [asking, setAsking] = useState(false);
+  const [askError, setAskError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
@@ -112,6 +120,23 @@ export default function ExerciseDetailScreen() {
   }
 
   const imgWidth = Math.min(Dimensions.get('window').width - 32, 480);
+
+  async function ask() {
+    const text = question.trim();
+    if (!text || !id) return;
+    setAsking(true);
+    setAskError(null);
+    setAnswer(null);
+    try {
+      const result = await api.exerciseQa(id, text);
+      setAnswer(result.answer);
+      setGrounded(result.grounded);
+    } catch (e) {
+      setAskError(e instanceof Error ? e.message : 'Could not answer that right now');
+    } finally {
+      setAsking(false);
+    }
+  }
 
   return (
     <Screen scroll={false} padded={false} edges={['left', 'right']}>
@@ -207,6 +232,49 @@ export default function ExerciseDetailScreen() {
                   </View>
                 ))}
               </View>
+            </Card>
+          ) : null}
+
+          {/* Ask about the movement. Grounded in the entry above — the model is
+            * given that and told to say when it doesn't cover the question. */}
+          {aiConfigured ? (
+            <Card className="mb-3">
+              <Text variant="label" className="mb-2">
+                Ask about this movement
+              </Text>
+              <TextInput
+                value={question}
+                onChangeText={setQuestion}
+                accessibilityLabel="Question about this exercise"
+                placeholder="e.g. where should the bar touch?"
+                placeholderTextColor="#64748b"
+                className="rounded-lg border border-iron-700 bg-iron-950 px-3 py-2.5 text-base text-iron-100"
+              />
+              <Button
+                title="Ask"
+                variant="secondary"
+                icon="help-circle-outline"
+                className="mt-2"
+                loading={asking}
+                disabled={!question.trim()}
+                onPress={() => void ask()}
+              />
+              {answer ? (
+                <View className="mt-3 rounded-lg border border-iron-800 bg-iron-950/60 p-3">
+                  <Text variant="body">{answer}</Text>
+                  {!grounded ? (
+                    <Text variant="caption" className="mt-2 text-amber-300">
+                      This exercise has no instructions in the catalog, so that answer isn&apos;t
+                      grounded in anything the app knows.
+                    </Text>
+                  ) : null}
+                </View>
+              ) : null}
+              {askError ? (
+                <Text variant="caption" className="mt-2 text-red-400">
+                  {askError}
+                </Text>
+              ) : null}
             </Card>
           ) : null}
 
