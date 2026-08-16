@@ -160,6 +160,16 @@ export default function WorkoutsScreen() {
           subtitle="Pick a program, start a day, or edit your weekly calendar."
         />
 
+        {/* The programs shelf goes on its own row: for a new account it's the
+          * fastest route to a real plan, and it shouldn't be squeezed between
+          * two secondary actions. */}
+        <Button
+          title="Browse programs"
+          variant="secondary"
+          icon="library-outline"
+          className="mb-2"
+          onPress={() => router.push('/presets')}
+        />
         <View className="mb-5 flex-row gap-2">
           <Button
             title="Import"
@@ -182,7 +192,7 @@ export default function WorkoutsScreen() {
           <EmptyState
             icon="PLAN"
             title="No splits yet"
-            subtitle="Import a program or create your first workout day above."
+            subtitle="Start from a known program, import one you already follow, or build a day."
           />
         ) : (
           <>

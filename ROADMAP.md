@@ -235,27 +235,27 @@ gym-app/
       modes so "push/pull/legs, rest whenever" creates a rolling split.
       *Shipped 2026-08-16, raised 2026-08-14 by Alex moving to a rolling split
       because his rest days are unpredictable — the common case, not an edge one.*
-- [ ] **Preset splits (well-known programs) as a shared library** — ship a set of
-      established programs (PPL, Upper/Lower, Full Body 3x, 5/3/1, Starting
-      Strength, GZCLP, nSuns, Arnold, Bro split) as first-class presets, stored
-      like any other split with exercises resolved against the catalog.
-      **Two consumers, one library, and that's the point:**
-      1. **The user** picks one at onboarding or from Splits — an instant
-         credible plan without pasting or building anything. This is the answer
-         to a new account's empty home screen, and it pairs with the preset
-         being *editable* once adopted (copy-on-adopt, never a live link).
-      2. **The AI** reads them as grounding. Generation and coaching currently
-         invent structure from scratch; a library of known-good programs gives
-         the model real templates to adapt ("this is PPL with your equipment and
-         your Thursday conflict") instead of freelancing a plan. Also gives the
-         importer something to *recognise*: "this looks like 5/3/1" is a much
-         better import than 4 loose days.
-      Notes / open questions: keep them owner-less like the exercise catalog and
-      copy on adopt, so a user editing PPL doesn't mutate it for everyone (same
-      rule as custom exercises). Progression rules are the interesting part —
-      5/3/1 and GZCLP *are* their progression schemes, so this leans on the
-      progression work rather than just being a list of exercises. Check
-      licensing/attribution before shipping anyone's named program verbatim.
+- [x] **Preset splits (well-known programs) as a shared library** *(2026-08-16)* —
+      seven programs ship as data (`api/app/presets.py`): PPL, Upper/Lower,
+      Full Body 3x, Starting Strength, StrongLifts 5x5, Arnold, and a body-part
+      split. `GET /api/splits/presets` lists them; `POST
+      /api/splits/presets/{slug}/adopt` copies one in.
+      **Both consumers, as intended.** The athlete taps *Browse programs* on
+      Splits — the answer to a new account's empty screen. The spotter has the
+      same two tools and its skill file now tells it to adopt a preset rather
+      than hand-build a program it wasn't asked for in detail.
+      Movements are named in English and resolved at adopt time by the same
+      matcher the importer uses — hard-coded catalog ids would break on the next
+      reseed. A test pins every preset name against the real 828-row catalog
+      (skipped where that database isn't present), because the in-test catalog
+      would happily hide a program naming a lift that doesn't exist. Anything
+      unmatched is reported to the user, not dropped: a program missing two of
+      its lifts is not the program.
+      Copy on adopt, never a live link. Adopting with no plan makes it active;
+      adopting while mid-program does not, because browsing the shelf must not
+      switch what you're training. Programs that are cycles (PPL, 5x5, Starting
+      Strength) adopt as `rolling` rather than having weekdays invented for them.
+
 - [x] **Stop the AI hand-building log payloads** *(2026-08-16)* — the spotter no longer sees the raw
       `POST /sessions/log` payload tool. It sees `POST /sessions/log-text`,
       which routes the phrase through the parser/matcher so NxM expansion,

@@ -109,6 +109,23 @@ export interface SplitInput {
   is_active?: boolean;
 }
 
+/** A well-known program from the shared library (GET /splits/presets). */
+export interface PresetSplit {
+  slug: string;
+  name: string;
+  description: string;
+  level: string;
+  days_per_week: number;
+  mode: SplitMode;
+  days: { name: string; exercises: { exercise: string; target_sets: number; target_reps: number; target_reps_max: number | null }[] }[];
+}
+
+/** The adopted copy, plus anything the catalog couldn't match. */
+export interface AdoptedPreset {
+  split: Split;
+  unmatched: string[];
+}
+
 /** Summary of a plan workout scheduled for today (GET /splits/today). */
 export interface TodayWorkout {
   id: string;

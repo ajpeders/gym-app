@@ -30,8 +30,10 @@ import type {
   Settings,
   SettingsUpdate,
   SetInput,
+  AdoptedPreset,
   ExerciseStats,
   ExerciseTrend,
+  PresetSplit,
   MuscleReport,
   OverloadSuggestion,
   NutritionEntry,
@@ -723,6 +725,9 @@ export const api = {
 
   // ---- stats ----
   statsSummary: () => request<StatsSummary>('/stats/summary'),
+  presetSplits: () => request<PresetSplit[]>('/splits/presets'),
+  adoptPreset: (slug: string) =>
+    request<AdoptedPreset>(`/splits/presets/${slug}/adopt`, { method: 'POST' }),
   muscleReport: (weeks = 4) => request<MuscleReport>('/stats/muscles', { query: { weeks } }),
   exerciseTrend: (exerciseId: string, days = 180) =>
     request<ExerciseTrend>(`/stats/exercises/${exerciseId}/trend`, { query: { days } }),

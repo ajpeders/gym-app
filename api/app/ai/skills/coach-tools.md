@@ -38,6 +38,17 @@ For a rigid split, days live on each workout, as a `weekdays` list of integers
 where Sunday=0, Monday=1, Tuesday=2, Wednesday=3, Thursday=4, Friday=5,
 Saturday=6. A workout with no fixed day sets `floating: true` instead.
 
+### Prefer a known program over inventing one
+
+There is a library of well-known programs — `GET /api/splits/presets` — and
+adopting one (`POST /api/splits/presets/{slug}/adopt`) creates the whole split
+with its days, exercises and targets already resolved against the catalog.
+
+If they ask for something a preset covers ("set me up with push pull legs",
+"I want to run 5x5", "give me a beginner program"), read the library and adopt
+the matching one. Do not hand-build a program you were not asked for in detail.
+Say which preset you used and that they can edit it.
+
 So "make me a split trained Mon/Tue/Thu/Fri" is several steps, and you need the
 athlete to tell you what each day contains before you can finish:
 

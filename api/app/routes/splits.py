@@ -8,13 +8,17 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session as SASession
 
 from ..db import get_db
-from ..models import Session, Split, User, Workout
+from ..models import Session, Split, User, Workout, WorkoutExercise
 from ..rotation import done_this_cycle, up_next
+from .. import presets as preset_library
+from ..ai.service import match_exercise
 from ..schemas import (
+    AdoptedPreset,
     CatchupDay,
     CatchupSession,
     CatchupWorkout,
     SplitCreate,
+    PresetSplit,
     SplitOut,
     SplitUpdate,
     TodayWorkout,
@@ -276,6 +280,88 @@ def catchup(
             if due is not None and due in by_workout:
                 row.scheduled = [by_workout[due]]
     return out
+
+
+@router.get("/presets", response_model=list[PresetSplit])
+def list_presets(user: User = Depends(get_current_user)) -> list[PresetSplit]:
+    """The library of well-known programs (PPL, Upper/Lower, 5x5, ...).
+
+    Deliberately unauthenticated-safe data — it's the same for everyone — but
+    it sits behind the router's usual auth so the spotter reaches it with the
+    caller's token like every other tool.
+    """
+    return [PresetSplit(**p) for p in preset_library.summaries()]
+
+
+@router.post("/presets/{slug}/adopt", response_model=AdoptedPreset, status_code=status.HTTP_201_CREATED)
+def adopt_preset(
+    slug: str,
+    db: SASession = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> AdoptedPreset:
+    """Copy a preset into the athlete's own splits.
+
+    A copy, never a live link: from here it's an ordinary split, editable
+    without touching the library and unaffected by any change to it.
+
+    Movement names resolve through the same matcher the importer and the
+    spotter use, so the preset can name lifts the way a person would. Anything
+    the catalog can't match is reported back rather than dropped in silence —
+    a program missing two of its lifts is not the program.
+    """
+    preset = preset_library.get(slug)
+    if preset is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Unknown preset")
+
+    split = Split(
+        owner_id=user.id,
+        name=preset["name"],
+        mode=preset["mode"],
+        rules=list(preset_library.DEFAULT_RULES),
+        notes=preset["description"],
+        # Adopting with no plan at all should just work; adopting while
+        # mid-program must not silently switch what you're training.
+        is_active=db.scalar(
+            select(Split.id).where(Split.owner_id == user.id).limit(1)
+        ) is None,
+    )
+    db.add(split)
+    db.flush()
+
+    unmatched: list[str] = []
+    for order, day in enumerate(preset["days"]):
+        workout = Workout(
+            owner_id=user.id,
+            name=day["name"],
+            split_id=split.id,
+            # A rolling program is a cycle; giving its days weekdays would be
+            # inventing a schedule the program doesn't have.
+            weekdays=[] if preset["mode"] == "rolling" else list(day["weekdays"]),
+            order=order,
+        )
+        db.add(workout)
+        db.flush()
+        position = 0
+        for item in day["exercises"]:
+            exercise_id, _ = match_exercise(db, user.id, item["exercise"])
+            if exercise_id is None:
+                unmatched.append(item["exercise"])
+                continue
+            db.add(
+                WorkoutExercise(
+                    workout_id=workout.id,
+                    exercise_id=exercise_id,
+                    order=position,
+                    target_sets=item["target_sets"],
+                    target_reps=item["target_reps"],
+                    target_reps_max=item.get("target_reps_max"),
+                )
+            )
+            position += 1
+
+    db.commit()
+    db.refresh(split)
+    return AdoptedPreset(split=SplitOut.model_validate(split), unmatched=unmatched)
 
 
 @router.get("/{split_id}", response_model=SplitOut)

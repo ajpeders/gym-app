@@ -33,6 +33,10 @@ EXPOSE = [
     # left split_id null so the workout was orphaned, and reported it back as a
     # created split. A missing capability is worse than a refused one.
     "POST /api/splits", "PATCH /api/splits/*",
+    # Adopting a preset ("set me up with PPL") is one call that produces a
+    # correct, catalog-resolved plan — far better than the model authoring one
+    # workout at a time and inventing the structure as it goes.
+    "POST /api/splits/*",
     "PATCH /api/workouts/*",
     "POST /api/sessions", "POST /api/sessions/*",
     "PATCH /api/sessions/*",

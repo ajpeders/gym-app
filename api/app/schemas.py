@@ -273,6 +273,43 @@ class SplitUpdate(BaseModel):
     is_active: Optional[bool] = None
 
 
+class PresetExercise(BaseModel):
+    """A movement named in English; the catalog decides which row it is."""
+
+    exercise: str
+    target_sets: int
+    target_reps: int
+    target_reps_max: Optional[int] = None
+
+
+class PresetDay(BaseModel):
+    name: str
+    exercises: list[PresetExercise] = []
+
+
+class PresetSplit(BaseModel):
+    """A well-known program, ready to adopt. See app/presets.py."""
+
+    slug: str
+    name: str
+    description: str
+    level: str
+    days_per_week: int
+    mode: SplitMode
+    days: list[PresetDay] = []
+
+
+class AdoptedPreset(BaseModel):
+    """The adopted copy, plus anything the catalog couldn't match.
+
+    Unmatched movements are reported rather than silently dropped: a program
+    missing two of its lifts isn't the program.
+    """
+
+    split: SplitOut
+    unmatched: list[str] = []
+
+
 # ---------------------------------------------------------------------------
 # Session / sets (a logged bout)
 # ---------------------------------------------------------------------------
