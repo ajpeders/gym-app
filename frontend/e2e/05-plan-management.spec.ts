@@ -20,7 +20,7 @@ test('a split can be created, filled with a day, and made active', async ({ page
   await page.goto('/');
   await appReady(page);
   await page.getByRole('tab', { name: /Splits/ }).click();
-  await expect(shown(page, 'Organize your week')).toBeVisible({ timeout: 20_000 });
+  await expect(shown(page, 'Pick a program, start a day')).toBeVisible({ timeout: 20_000 });
 
   await page.getByRole('button', { name: /New day/ }).click();
   await expect(shown(page, /Add exercise/)).toBeVisible({ timeout: 20_000 });

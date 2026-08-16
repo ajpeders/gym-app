@@ -19,7 +19,7 @@ test('a planned day can be started, logged and finished', async ({ page, request
   await appReady(page);
   await expect(page.getByText('Push Day').first()).toBeVisible();
 
-  await page.getByText("Start today's plan").first().click();
+  await page.getByRole('button', { name: 'Start now' }).click();
   await expect(page.getByLabel('Log set')).toBeVisible({ timeout: 20_000 });
 
   // Two working sets at different weights: enough to catch a set collapsing
@@ -59,7 +59,7 @@ test('a set logged by mistake can be removed', async ({ page, request }) => {
 
   await page.goto('/');
   await appReady(page);
-  await page.getByText("Start today's plan").first().click();
+  await page.getByRole('button', { name: 'Start now' }).click();
   await expect(page.getByLabel('Log set')).toBeVisible({ timeout: 20_000 });
 
   await logSet(page, '40', '10');
@@ -87,7 +87,7 @@ test('a discarded session leaves nothing behind', async ({ page, request }) => {
   page.on('dialog', (d) => void d.accept());
   await page.goto('/');
   await appReady(page);
-  await page.getByText("Start today's plan").first().click();
+  await page.getByRole('button', { name: 'Start now' }).click();
   await expect(page.getByLabel('Log set')).toBeVisible({ timeout: 20_000 });
 
   await page.getByLabel('Discard session').click();

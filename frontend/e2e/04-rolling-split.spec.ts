@@ -5,9 +5,12 @@
  * be unit-tested — that the screens actually read the mode, so someone whose
  * rest days move around is told what's next instead of what today's date says.
  */
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 
 import { appReady, authed, logSet, seedPlan, signIn } from './helpers';
+
+const shown = (page: Page, text: string | RegExp) =>
+  page.getByText(text).locator('visible=true').first();
 
 const PPL = ['Push', 'Pull', 'Legs'];
 
@@ -23,11 +26,11 @@ test('home offers the next day in the rotation, and advances when it is done', a
   await appReady(page);
 
   // Not "scheduled today" — a rolling day was never given a date.
-  await expect(page.getByText('next in rotation').first()).toBeVisible({ timeout: 20_000 });
-  await expect(page.getByText('Start next in rotation')).toBeVisible();
-  await expect(page.getByText('Push').first()).toBeVisible();
+  await expect(shown(page, 'next in rotation')).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByRole('button', { name: 'Start now' })).toBeVisible();
+  await expect(shown(page, 'Push')).toBeVisible();
 
-  await page.getByText('Start next in rotation').click();
+  await page.getByRole('button', { name: 'Start now' }).click();
   await expect(page.getByLabel('Log set')).toBeVisible({ timeout: 20_000 });
   await logSet(page, '60', '8');
   await expect(page.getByText('60 kg').first()).toBeVisible();
@@ -41,9 +44,9 @@ test('home offers the next day in the rotation, and advances when it is done', a
   expect(today.every((w: { missed: boolean }) => !w.missed), 'nothing is ever missed').toBeTruthy();
 
   await page.getByRole('tab', { name: /Home/ }).click();
-  await expect(page.getByRole('button', { name: /Pull.*next in rotation/ })).toBeVisible({
-    timeout: 20_000,
-  });
+  // The card names the day and labels it by where the cycle stands.
+  await expect(shown(page, 'next in rotation')).toBeVisible({ timeout: 20_000 });
+  await expect(shown(page, 'Pull')).toBeVisible();
   // And the finished day must not still be sitting there as "ongoing".
   await expect(page.getByText('ONGOING')).toHaveCount(0);
 });

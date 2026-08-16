@@ -38,7 +38,7 @@ test('a workout started offline arrives intact when signal returns', async ({
 
   await context.setOffline(true);
 
-  await page.getByText("Start today's plan").first().click();
+  await page.getByRole('button', { name: 'Start now' }).click();
   // The session opens with the plan's exercise and targets already on it,
   // rather than an empty shell to rebuild by hand.
   await expect(page.getByLabel('Log set')).toBeVisible({ timeout: 20_000 });
@@ -102,7 +102,7 @@ test('an offline session survives the app being closed and reopened', async ({
   const cutTheApi = (route: { abort: () => Promise<void> }) => route.abort();
   await page.route('**/api/**', cutTheApi);
 
-  await page.getByText("Start today's plan").first().click();
+  await page.getByRole('button', { name: 'Start now' }).click();
   await expect(page.getByLabel('Log set')).toBeVisible({ timeout: 20_000 });
   await logSet(page, '50', '12');
   await expect(page.getByText('50 kg').first()).toBeVisible();
@@ -138,7 +138,7 @@ test('a set logged offline is not lost when the queue is flushed twice', async (
   await page.goto('/');
   await appReady(page);
   await context.setOffline(true);
-  await page.getByText("Start today's plan").first().click();
+  await page.getByRole('button', { name: 'Start now' }).click();
   await expect(page.getByLabel('Log set')).toBeVisible({ timeout: 20_000 });
   await logSet(page, '80', '5');
   await expect(page.getByText('80 kg').first()).toBeVisible();

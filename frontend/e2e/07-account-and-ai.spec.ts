@@ -95,7 +95,7 @@ test('the AI screens say they are not set up rather than hanging', async ({ page
   // With no provider it must say so plainly and point at the fix, rather than
   // spinning or failing silently.
   await expect(shown(page, /Set up your AI to use the spotter/i)).toBeVisible({ timeout: 20_000 });
-  await expect(shown(page, /Ollama server or Claude key in Settings/i)).toBeVisible();
+  await expect(shown(page, /Ollama server, Claude key, or OpenAI API key in Settings/i)).toBeVisible();
 });
 
 test('settings offer the providers and never silently pick one', async ({ page, request }) => {
