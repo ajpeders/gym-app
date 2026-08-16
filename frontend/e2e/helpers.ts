@@ -8,6 +8,11 @@ export function newUser() {
   return { email: `e2e-${tag}@example.com`, password: 'Testing123!', name: `E2E ${tag}` };
 }
 
+/** The address the test API treats as its operator (see e2e/api.sh). Signing
+ * in as an admin uses the real bootstrap path rather than a test-only door. */
+export const ADMIN_EMAIL = 'e2e-admin@example.com';
+const ADMIN_PASSWORD = 'Testing123!';
+
 export interface Account {
   email: string;
   password: string;
@@ -25,14 +30,27 @@ export interface Account {
 export async function signIn(
   page: Page,
   request: APIRequestContext,
-  opts: { onboarded?: boolean } = {},
+  opts: { onboarded?: boolean; admin?: boolean } = {},
 ): Promise<Account> {
-  const user = newUser();
+  const user = opts.admin
+    ? { email: ADMIN_EMAIL, password: ADMIN_PASSWORD, name: 'E2E Admin' }
+    : newUser();
   const res = await request.post(`${API}/auth/register`, {
     data: { email: user.email, password: user.password, display_name: user.name },
   });
-  expect(res.ok(), `register failed: ${res.status()} ${await res.text()}`).toBeTruthy();
-  const token = (await res.json()).token as string;
+  // The admin account is shared across tests, so the second one to ask for it
+  // logs in rather than failing on the duplicate.
+  let token: string;
+  if (res.ok()) {
+    token = (await res.json()).token as string;
+  } else {
+    expect(opts.admin, `register failed: ${res.status()} ${await res.text()}`).toBeTruthy();
+    const login = await request.post(`${API}/auth/login`, {
+      data: { email: user.email, password: user.password },
+    });
+    expect(login.ok(), `admin login failed: ${login.status()}`).toBeTruthy();
+    token = (await login.json()).token as string;
+  }
 
   // The app's own register screen writes `onboarded: false`, which is what
   // sends a new account to the welcome tour; registering through the API sets
@@ -61,7 +79,9 @@ export function authed(request: APIRequestContext, token: string) {
     post: async (path: string, data: unknown) => {
       const r = await request.post(`${API}${path}`, { headers, data });
       expect(r.ok(), `POST ${path} -> ${r.status()} ${await r.text()}`).toBeTruthy();
-      return r.json();
+      // 204s (a password reset, say) have no body to parse.
+      const body = await r.text();
+      return body ? JSON.parse(body) : null;
     },
     patch: async (path: string, data: unknown) => {
       const r = await request.patch(`${API}${path}`, { headers, data });

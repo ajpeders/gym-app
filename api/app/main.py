@@ -7,9 +7,11 @@ from contextlib import asynccontextmanager
 from fastapi import APIRouter, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from .ai import telemetry as ai_telemetry
 from .config import get_settings
 from .db import SessionLocal, init_db
 from .routes import (
+    admin,
     ai,
     auth,
     errors,
@@ -62,6 +64,10 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="gym-app API", version="0.1.0", lifespan=lifespan)
 
 _cfg = get_settings()
+# Every AI call is recorded (provider, model, outcome, latency) so the operator
+# view can answer "is the AI working" without a hunt. See ai/telemetry.py.
+app.middleware("http")(ai_telemetry.middleware)
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=_cfg.cors_origin_list,
@@ -71,7 +77,7 @@ app.add_middleware(
 )
 
 api = APIRouter(prefix="/api")
-for module in (health, errors, auth, exercises, exercise_media, workouts, splits, sessions, metrics, nutrition, settings, stats, profile, progress_photos, tools, ai):
+for module in (health, errors, auth, admin, exercises, exercise_media, workouts, splits, sessions, metrics, nutrition, settings, stats, profile, progress_photos, tools, ai):
     api.include_router(module.router)
 app.include_router(api)
 

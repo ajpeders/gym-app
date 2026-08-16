@@ -19,7 +19,7 @@ from pydantic import BaseModel, Field, field_validator
 from sqlalchemy.orm import Session
 
 from ..db import get_db
-from ..models import User
+from ..models import ClientError, User
 from ..security import bearer_scheme, decode_token
 
 router = APIRouter(tags=["errors"])
@@ -83,4 +83,23 @@ def report_error(
     if payload.stack:
         parts.append(f"\n{payload.stack[:_MAX_STACK]}")
     logger.error(" ".join(parts))
+
+    # Also stored, so reading crash reports doesn't require shell access to the
+    # container — which in practice meant nobody read them. Storage failing must
+    # not turn a crash report into a second error.
+    try:
+        db.add(
+            ClientError(
+                user_id=user.id if user is not None else None,
+                message=payload.message[:2000],
+                stack=payload.stack[:_MAX_STACK] if payload.stack else None,
+                context=payload.context[:_MAX_FIELD] if payload.context else None,
+                platform=payload.platform[:_MAX_FIELD] if payload.platform else None,
+                app_version=payload.app_version[:_MAX_FIELD] if payload.app_version else None,
+            )
+        )
+        db.commit()
+    except Exception:  # noqa: BLE001 - the log line above is already the record
+        logger.debug("client error not stored", exc_info=True)
+
     return {"status": "recorded"}

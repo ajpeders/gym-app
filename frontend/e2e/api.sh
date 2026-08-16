@@ -27,5 +27,7 @@ cd "$api"
 python="$api/.venv/bin/python"
 [ -x "$python" ] || python="$(command -v python3)"
 
-GYM_DATA_DIR="$data" GYM_SEED_ON_START=false \
+# The admin-bootstrap address: an install with no admin yet grants it to this
+# email, which is how the operator tests sign in as one without a back door.
+GYM_DATA_DIR="$data" GYM_SEED_ON_START=false GYM_ADMIN_EMAIL=e2e-admin@example.com \
   exec "$python" -m uvicorn app.main:app --host 127.0.0.1 --port "${E2E_API_PORT:-8011}"

@@ -195,26 +195,31 @@ gym-app/
 ### Phase 3 — AI provider layer + natural-language logging (largely done)
 - [x] Provider abstraction: Ollama ⇄ Claude ⇄ ChatGPT/OpenAI; pick provider/model in settings *(BYO per-user, no silent default; `/ai/providers`,`/models`,`/test`). OpenAI shipped 2026-08-16 via the existing companion OpenAI-compatible provider, with per-user write-only API keys and `gpt-5.6` as the default API model.*
 - [ ] **On-device AI — iPhone first** (capable phones): run a small model directly on the phone's hardware (iOS: Apple Foundation Models / MLX / Core ML; Android: `llama.rn` / ExecuTorch) — fully private, works offline with no Ollama/Claude needed. Auto-detect support and offer it as a third provider alongside Ollama/Claude. The ultimate "no-setup, no-cost, no-network" local option.
-- [ ] **Admin page** — there is no admin concept at all today: `User` has no role
-      column, and several things now exist with no way to observe them.
-      What it would actually be for, roughly in order of how much it's missed:
-      - **Crash reports.** `POST /api/errors` writes to the `gym.client` logger
-        and that's it — reading them means `docker logs` over SSH. Persist them
-        and show them, or the reporting only helps whoever has shell access.
-      - **Catalog curation.** 338 of 828 exercises have no image and some are
-        plain wrong (the Plank photo). Per-user upload shipped, but fixing the
-        *shared* catalog needs a trusted editor — that's an admin, not a user.
-      - **Accounts.** List users, reset a forgotten password, delete an account.
-        Live example: turning DEMO_MODE off risked locking Alex out with no
-        recovery path except editing SQLite in the container by hand.
-      - **AI health.** Per-provider success/failure and `latency_ms` over time,
-        which would have made "Ollama returns 400" obvious instead of a hunt.
-      - **DB / seed state.** Row counts, seed version, when the catalog last
-        refreshed.
-      Needs `user.role` (or a single `GYM_ADMIN_EMAIL`) plus an admin-only
-      dependency — and note this is the first thing in the app that would let
-      one account read another's data, so scope it deliberately: aggregate and
-      operational data, not other people's training logs.
+- [x] **Admin page** *(2026-08-16)* — `user.role` plus `GYM_ADMIN_EMAIL` as the
+      bootstrap for an install with no admin yet (otherwise granting the first
+      one means editing SQLite in the container by hand, which is the problem
+      this page exists to remove). `require_admin` 403s a signed-in non-admin
+      and leaves the 401 to `get_current_user`, because sending someone to a
+      login screen that won't help is worse than saying no.
+      All four things it was for:
+      - **Crash reports** are now stored (`client_error`) as well as logged, and
+        listed newest-first. Reading them used to need shell access, so nobody
+        did. A report from a signed-out client is kept — the login screen can
+        crash too.
+      - **AI health** — every call to `/api/ai/*` and `/api/companion/*` is
+        recorded with provider, model, outcome and latency by one middleware
+        rather than a dozen instrumented call sites, and the view shows
+        per-provider success plus the recent calls. This is the screen that
+        would have made "Ollama returns 400" a glance instead of an afternoon.
+      - **Accounts** — who exists, how much they train, when they last did, and
+        a password reset. Never what they lifted: the operator view is
+        aggregate and operational data, which the tests assert field by field.
+        An admin can't delete their own account from here.
+      - **DB / catalog state** — row counts, custom exercises, and how many
+        catalog rows still have no image.
+      Entry point appears in Settings only for an admin (`is_admin` on
+      `/auth/me`), and the API enforces it regardless.
+
 - [x] **Rolling / cycle-based splits** — `split.mode` = `rigid | rolling`, an
       explicit choice on the plan rather than something faked with `floating` on
       every day, because it changes what today, missed and done each mean.

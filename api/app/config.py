@@ -16,6 +16,10 @@ class Settings(BaseSettings):
     jwt_expire_hours: int = 720
     jwt_algorithm: str = "HS256"
     cors_origins: str = "*"
+    # Bootstrap for an install with no admin yet: this address is treated as one
+    # even before any user row says so. Otherwise the first admin could only be
+    # granted by editing the database by hand.
+    admin_email: str = ""
     seed_on_start: bool = True
 
     # --- AI (Phase 3) ---

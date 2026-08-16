@@ -31,6 +31,10 @@ class User(Base):
     email: Mapped[str] = mapped_column(String, unique=True, index=True, nullable=False)
     password_hash: Mapped[str] = mapped_column(String, nullable=False)
     display_name: Mapped[str] = mapped_column(String, nullable=False, default="")
+    # "user" or "admin". The operator's view is the first thing in the app that
+    # lets one account see anything about another, so it's an explicit role
+    # rather than "whoever has id 1".
+    role: Mapped[str] = mapped_column(String, default="user", server_default="user")
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
 
     settings: Mapped[Optional["Settings"]] = relationship(
@@ -375,3 +379,49 @@ class IdempotentWrite(Base):
     response: Mapped[str] = mapped_column(Text, nullable=False)
     status_code: Mapped[int] = mapped_column(Integer, nullable=False, default=200)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+
+
+class ClientError(Base):
+    """A crash the app caught and sent home.
+
+    Previously these only reached a logger, which meant reading them required
+    shell access to the container — so in practice nobody read them.
+    """
+
+    __tablename__ = "client_error"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    # Nullable: the login screen can crash too, and that report still matters.
+    user_id: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("user.id", ondelete="SET NULL"), nullable=True
+    )
+    message: Mapped[str] = mapped_column(Text, nullable=False)
+    stack: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    context: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    platform: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    app_version: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, index=True)
+
+
+class AiCall(Base):
+    """One AI request and how it went.
+
+    "Ollama returns HTTP 400" cost an afternoon because nothing recorded the
+    attempts — provider, model, and whether it worked are exactly what turns
+    that into a glance.
+    """
+
+    __tablename__ = "ai_call"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("user.id", ondelete="SET NULL"), nullable=True
+    )
+    provider: Mapped[str] = mapped_column(String, nullable=False)
+    model: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    # Which surface asked: coach, parse-sets, check-model, ...
+    endpoint: Mapped[str] = mapped_column(String, nullable=False)
+    ok: Mapped[bool] = mapped_column(Boolean, default=True)
+    latency_ms: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    error: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, index=True)

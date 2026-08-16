@@ -26,6 +26,21 @@ class UserOut(BaseModel):
     email: str
     display_name: str
     created_at: datetime
+    role: str = "user"
+
+    @computed_field
+    @property
+    def is_admin(self) -> bool:
+        """Whether to show the operator entry point at all.
+
+        Derived rather than sent separately, and it mirrors the server's own
+        rule — role, or the bootstrap address for an install that has no admin
+        yet — so the app never has to know how admin is decided.
+        """
+        from .config import get_settings
+
+        admin_email = (get_settings().admin_email or "").strip().lower()
+        return self.role == "admin" or bool(admin_email and self.email.lower() == admin_email)
 
 
 # NOTE: `email` is a plain string (not EmailStr) and the password minimum is 1,

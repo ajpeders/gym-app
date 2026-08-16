@@ -207,6 +207,17 @@ export default function SettingsScreen() {
         ) : null}
       </Card>
 
+      {/* Only for whoever runs the server; the API enforces it either way. */}
+      {user?.is_admin ? (
+        <Button
+          title="Admin"
+          variant="secondary"
+          icon="server-outline"
+          className="mb-3"
+          onPress={() => router.push('/admin')}
+        />
+      ) : null}
+
       <Button title="Log out" variant="danger" onPress={() => void logout()} />
 
       <Text variant="caption" className="mt-6 text-center text-iron-500">

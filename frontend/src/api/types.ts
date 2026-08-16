@@ -9,6 +9,57 @@ export interface User {
   email: string;
   display_name: string;
   created_at: string;
+  role?: string;
+  /** Whether to show the operator entry point at all. Server-derived. */
+  is_admin?: boolean;
+}
+
+/** Operator views — aggregate and operational data only, never another
+ * person's training. */
+export interface AdminOverview {
+  users: number;
+  sessions: number;
+  exercises: number;
+  custom_exercises: number;
+  exercises_without_images: number;
+  client_errors_7d: number;
+  ai_calls_7d: number;
+  ai_failures_7d: number;
+}
+
+export interface AdminUser {
+  id: number;
+  email: string;
+  display_name: string;
+  role: string;
+  created_at: string;
+  session_count: number;
+  last_session_at: string | null;
+}
+
+export interface ClientErrorReport {
+  id: number;
+  user_id: number | null;
+  message: string;
+  stack: string | null;
+  context: string | null;
+  platform: string | null;
+  app_version: string | null;
+  created_at: string;
+}
+
+export interface AiHealth {
+  providers: { provider: string; calls: number; failures: number; avg_latency_ms: number }[];
+  recent: {
+    id: number;
+    provider: string;
+    model: string | null;
+    endpoint: string;
+    ok: boolean;
+    latency_ms: number | null;
+    error: string | null;
+    created_at: string;
+  }[];
 }
 
 export interface AuthResponse {

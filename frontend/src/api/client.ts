@@ -31,7 +31,11 @@ import type {
   SettingsUpdate,
   SetInput,
   Units,
+  AdminOverview,
+  AdminUser,
   AdoptedPreset,
+  AiHealth,
+  ClientErrorReport,
   ExerciseStats,
   Food,
   OneRepMax,
@@ -730,6 +734,14 @@ export const api = {
 
   // ---- stats ----
   statsSummary: () => request<StatsSummary>('/stats/summary'),
+  adminOverview: () => request<AdminOverview>('/admin/overview'),
+  adminUsers: () => request<AdminUser[]>('/admin/users'),
+  adminResetPassword: (userId: number, password: string) =>
+    request<void>(`/admin/users/${userId}/password`, { method: 'POST', body: { password } }),
+  adminDeleteUser: (userId: number) =>
+    request<void>(`/admin/users/${userId}`, { method: 'DELETE' }),
+  adminErrors: () => request<ClientErrorReport[]>('/admin/errors'),
+  adminAiHealth: () => request<AiHealth>('/admin/ai'),
   foods: (q = '') => request<Food[]>('/nutrition/foods', { query: { q } }),
   plateBreakdown: (target: number, units: Units) =>
     request<PlateBreakdown>('/tools/plates', { query: { target, units } }),
