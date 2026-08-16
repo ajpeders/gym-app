@@ -122,6 +122,10 @@ class ExerciseUpdate(BaseModel):
 class WorkoutExerciseIn(BaseModel):
     exercise_id: int
     order: int = 0
+    # Exercises sharing a label are alternated as a superset. A short label
+    # ("A", "B"), because it's rendered as a badge on a phone — free text here
+    # would be a caption nobody can read.
+    superset_group: Optional[str] = Field(default=None, max_length=4)
     target_sets: Optional[int] = None
     target_reps: Optional[int] = None
     target_reps_max: Optional[int] = None
@@ -148,6 +152,7 @@ class WorkoutExerciseOut(BaseModel):
     target_duration_seconds_max: Optional[int] = None
     rest_seconds: Optional[int] = None
     notes: Optional[str] = None
+    superset_group: Optional[str] = None
     exercise: Optional[ExerciseOut] = None
 
 
@@ -389,6 +394,7 @@ class SessionExerciseOut(BaseModel):
     target_weight_max: Optional[float] = None
     target_duration_seconds: Optional[int] = None
     target_duration_seconds_max: Optional[int] = None
+    superset_group: Optional[str] = None
     exercise: Optional[ExerciseOut] = None
     sets: list[SetOut] = []
 

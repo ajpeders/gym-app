@@ -190,6 +190,15 @@ export function ActiveExerciseCard({
           <ExerciseThumb images={sessionExercise.exercise?.images} size={40} radius={8} />
           <View className="ml-3 flex-1">
             <View className="flex-row items-center">
+              {/* Part of a superset: alternate with the other exercises
+                * carrying the same letter, and take one rest for the group. */}
+              {sessionExercise.superset_group ? (
+                <View className="mr-1.5 rounded bg-brand/20 px-1.5 py-0.5">
+                  <Text variant="caption" className="font-black text-brand">
+                    {sessionExercise.superset_group}
+                  </Text>
+                </View>
+              ) : null}
               <Text variant="subheading" numberOfLines={1} className="flex-shrink">
                 {name}
               </Text>

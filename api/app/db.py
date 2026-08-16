@@ -50,6 +50,8 @@ _ADDED_COLUMNS: list[tuple[str, str, str]] = [
     # splits stays exactly what it already was: rigid.
     ("split", "mode", "VARCHAR NOT NULL DEFAULT 'rigid'"),
     ("user", "role", "VARCHAR NOT NULL DEFAULT 'user'"),
+    ("workout_exercise", "superset_group", "VARCHAR"),
+    ("session_exercise", "superset_group", "VARCHAR"),
     ("settings", "openai_api_key", "VARCHAR"),
     ("settings", "openai_model", "VARCHAR"),
 ]

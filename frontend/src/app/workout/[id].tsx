@@ -41,6 +41,7 @@ function toDraft(workout: Workout): DraftExercise[] {
           : '',
       rest_seconds: e.rest_seconds != null ? String(e.rest_seconds) : '',
       notes: e.notes ?? '',
+      superset_group: e.superset_group ?? null,
     }));
 }
 

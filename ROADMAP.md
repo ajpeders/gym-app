@@ -188,7 +188,18 @@ gym-app/
 ### Phase 2 — Live workout mode ✅ (mostly)
 - [x] Start session (blank or from routine); active-session screen *(`workout/active/[id]`)*
 - [x] **Quick-action set buttons** (auto-fill from last session) — toggleable via `feature_flags.quick_buttons`
-- [ ] Rest timer + supersets — *live timer UI, `use-rest-timer` hook, and the `rest_timer_default` setting removed 2026-07-26 at user request; per-routine `rest_seconds` (planned rest) kept. Local notifications never built (no `expo-notifications` dep).*
+- [x] Rest timer + supersets — the live rest timer shipped earlier (tap to start,
+      counts up, saved with the next set). **Supersets shipped 2026-08-16**:
+      `superset_group` on the plan exercise and snapshotted onto the session,
+      because A1/A2 changes what the session *is* — you take one rest for the
+      pair, not one each. Modelled as a short label rather than a groups table:
+      one nullable column, survives reordering, and "no group" stays the
+      default that costs nothing. The label is never typed — the editor asks
+      "superset with the next exercise?" and the runs are relabelled A, B, C
+      from adjacency (`lib/supersets.ts`, unit-tested), so a group whose
+      members aren't next to each other, or a group of one, can't exist. The
+      session card shows the letter beside the movement.
+
 - [x] Inline progress (this session vs last); session summary on finish
 - [ ] **Contextual AI prompts during the set** (e.g. nudge, form cue) — toggleable; `feature_flags.in_set_prompts` defaults off, not yet wired
 

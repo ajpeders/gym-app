@@ -104,6 +104,9 @@ export interface ExerciseQuery {
 
 export interface WorkoutExercise {
   id?: string;
+  /** Exercises sharing a label are a superset — alternated, one rest for the
+   * pair rather than one each. */
+  superset_group?: string | null;
   exercise_id: string;
   exercise?: Exercise;
   order: number;
@@ -222,6 +225,7 @@ export interface CatchupDay {
 
 export interface WorkoutExerciseInput {
   exercise_id: string;
+  superset_group?: string | null;
   order: number;
   target_sets?: number | null;
   target_reps?: number | null;
@@ -269,6 +273,8 @@ export interface SessionSet {
 
 export interface SessionExercise {
   id: string;
+  /** Snapshotted from the plan: which superset this belonged to. */
+  superset_group?: string | null;
   exercise_id: string;
   exercise?: Exercise;
   order: number;

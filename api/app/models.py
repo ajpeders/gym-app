@@ -218,6 +218,11 @@ class WorkoutExercise(Base):
     target_duration_seconds_max: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     rest_seconds: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    # Exercises sharing a label are a superset: alternated, with one rest for
+    # the group rather than one each. A short label ("A", "B") rather than a
+    # groups table — one nullable column, survives reordering, and "no group"
+    # stays the default that costs nothing.
+    superset_group: Mapped[Optional[str]] = mapped_column(String, nullable=True)
 
     workout: Mapped["Workout"] = relationship(back_populates="exercises")
     exercise: Mapped["Exercise"] = relationship()
@@ -266,6 +271,8 @@ class SessionExercise(Base):
     target_weight_max: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
     target_duration_seconds: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     target_duration_seconds_max: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    # Snapshotted with the rest of the plan's intent.
+    superset_group: Mapped[Optional[str]] = mapped_column(String, nullable=True)
 
     session: Mapped["Session"] = relationship(back_populates="exercises")
     exercise: Mapped["Exercise"] = relationship()

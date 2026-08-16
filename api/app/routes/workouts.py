@@ -57,6 +57,7 @@ def _build_workout_exercises(
                 target_duration_seconds_max=item.target_duration_seconds_max,
                 rest_seconds=item.rest_seconds,
                 notes=item.notes,
+                superset_group=item.superset_group,
             )
         )
     return result

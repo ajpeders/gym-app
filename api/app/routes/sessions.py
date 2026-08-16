@@ -188,6 +188,9 @@ def _start_session(payload: SessionStart, db: SASession, user: User) -> SessionO
                     target_weight_max=we.target_weight_max,
                     target_duration_seconds=we.target_duration_seconds,
                     target_duration_seconds_max=we.target_duration_seconds_max,
+                    # Pairing is part of the plan's intent, so it's snapshotted
+                    # with the rest of it.
+                    superset_group=we.superset_group,
                 )
             )
     db.add(session)

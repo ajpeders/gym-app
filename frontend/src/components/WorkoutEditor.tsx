@@ -18,6 +18,7 @@ import { ExerciseThumb } from '@/components/ExerciseThumb';
 import { WeekdayPicker } from '@/components/WeekdayPicker';
 import { WorkoutAiEdit, type WorkoutAiWorking } from '@/components/WorkoutAiEdit';
 import { formatRepRange, parseRepRange, titleCase } from '@/lib/format';
+import { normalise, togglePairAt } from '@/lib/supersets';
 import { formatExerciseStats, statsFor, useExerciseStats } from '@/hooks/use-exercise-stats';
 
 export interface DraftExercise {
@@ -30,6 +31,10 @@ export interface DraftExercise {
   target_duration: string;
   rest_seconds: string;
   notes: string;
+  /** Shared label = superset. Editing offers "pair with the next exercise",
+   * which is how people actually think about it; the labels are derived from
+   * that so the user never types an "A". */
+  superset_group?: string | null;
 }
 
 interface WorkoutEditorProps {
@@ -180,12 +185,19 @@ export function WorkoutEditor({
   }
 
   function remove(idx: number) {
-    setExercises((prev) => prev.filter((_, i) => i !== idx));
+    // Normalising after the removal drops a superset left with one member.
+    setExercises((prev) => normalise(prev.filter((_, i) => i !== idx)));
     setOpenExercise((current) => {
       if (current == null) return null;
       if (current === idx) return null;
       return current > idx ? current - 1 : current;
     });
+  }
+
+  /** Pair an exercise with the one below it, or split them apart. Labels are
+   * derived from adjacency — see lib/supersets.ts. */
+  function togglePair(idx: number) {
+    setExercises((prev) => togglePairAt(prev, idx));
   }
 
   function move(idx: number, dir: -1 | 1) {
@@ -194,7 +206,8 @@ export function WorkoutEditor({
     setExercises((prev) => {
       const next = [...prev];
       [next[idx], next[target]] = [next[target], next[idx]];
-      return next;
+      // Moving one out of a superset ends it; the labels follow adjacency.
+      return normalise(next);
     });
     setOpenExercise(target);
   }
@@ -230,6 +243,7 @@ export function WorkoutEditor({
           target_duration_seconds_max: durationMax,
           rest_seconds: e.rest_seconds ? parseInt(e.rest_seconds, 10) : null,
           notes: e.notes.trim() || null,
+          superset_group: e.superset_group ?? null,
         };
       }),
     };
@@ -380,6 +394,27 @@ export function WorkoutEditor({
                         onChangeText={(v) => update(idx, { rest_seconds: v })}
                       />
                     </View>
+
+                    {idx < exercises.length - 1 ? (
+                      <Pressable
+                        onPress={() => togglePair(idx)}
+                        accessibilityRole="switch"
+                        accessibilityState={{ checked: !!e.superset_group }}
+                        accessibilityLabel={`Superset with ${exercises[idx + 1].name}`}
+                        className="mt-3 flex-row items-center justify-between rounded-lg border border-iron-700 bg-iron-950 px-3 py-2.5 active:opacity-80">
+                        <Text variant="caption" className="flex-1 pr-3">
+                          Superset with {exercises[idx + 1].name}
+                        </Text>
+                        <View
+                          className={`h-6 w-6 items-center justify-center rounded-md border ${
+                            e.superset_group ? 'border-brand bg-brand' : 'border-iron-600 bg-iron-950'
+                          }`}>
+                          {e.superset_group ? (
+                            <Ionicons name="checkmark" size={16} color="#030712" />
+                          ) : null}
+                        </View>
+                      </Pressable>
+                    ) : null}
 
                     <FormField
                       label="Exercise notes"
