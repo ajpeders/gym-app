@@ -174,6 +174,44 @@ def workout_user_prompt(text: str) -> str:
     return f"Program:\n{text}"
 
 
+_GENERATE_RULES = (
+    "You are writing a strength-training program for one person, in the SAME JSON shape used "
+    "for imported programs.\n"
+    "Ground it in established practice — this app ships PPL, Upper/Lower, Full Body, Starting "
+    "Strength, 5x5, Arnold and body-part splits, and one of those adapted is almost always a "
+    "better answer than something invented. Say which pattern you used in 'reply'.\n"
+    "Rules:\n"
+    "- Produce exactly the number of training days asked for, no more.\n"
+    "- Every exercise needs target_sets and a rep range (target_reps low, target_reps_max high). "
+    "Never set a target weight: you do not know what they lift.\n"
+    "- Name movements plainly ('Barbell Row', 'Leg Press'). They are matched against a catalog "
+    "afterwards, so invented or branded names simply fail to resolve.\n"
+    "- Respect the equipment listed. If they have dumbbells only, do not program a barbell squat.\n"
+    "- Work around any stated injury rather than mentioning it in every day.\n"
+    "- Weights are in {units} where any appear.\n"
+    "- 'reply' is ONE short sentence: what the program is and who it suits."
+)
+
+
+def generate_program_system_prompt(units: str) -> str:
+    return _GENERATE_RULES.format(units=units)
+
+
+def generate_program_user_prompt(
+    goal: str, days_per_week: int, experience: str, equipment: str, profile: str
+) -> str:
+    """Everything the model is allowed to base the program on, stated plainly."""
+    lines = [
+        f"Goal: {goal or 'general strength and muscle'}",
+        f"Training days per week: {days_per_week}",
+        f"Experience: {experience or 'unknown'}",
+        f"Equipment available: {equipment or 'a normal commercial gym'}",
+    ]
+    if profile:
+        lines.append(f"What we know about them:\n{profile}")
+    return "\n".join(lines)
+
+
 _EDIT_WORKOUT_RULES = (
     "You are editing ONE strength-training workout. You are given the CURRENT workout as JSON "
     "and a single instruction from the user. Apply the instruction and return the COMPLETE "

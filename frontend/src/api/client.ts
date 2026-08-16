@@ -787,6 +787,20 @@ export const api = {
       body: { text },
       timeoutMs: 180_000,
     }),
+  // A program written from a description rather than pasted. Same shape as a
+  // parse, so it goes through the same review before anything is saved.
+  generateProgram: (input: {
+    goal?: string;
+    days_per_week?: number;
+    experience?: string;
+    equipment?: string;
+  }): Promise<ParseWorkoutResult> =>
+    request<ParseWorkoutResult>('/ai/generate-program', {
+      method: 'POST',
+      body: input,
+      // Local models take their time writing a whole program.
+      timeoutMs: 300_000,
+    }),
   parseWorkout: (text: string): Promise<ParseWorkoutResult> =>
     request<ParseWorkoutResult>('/ai/parse-workout', {
       method: 'POST',

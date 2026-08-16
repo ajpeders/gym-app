@@ -924,6 +924,47 @@ def _patch_program_schedule(data: dict) -> dict:
     return data
 
 
+async def generate_program(
+    db: Session,
+    user: User,
+    *,
+    goal: str = "",
+    days_per_week: int = 3,
+    experience: str = "",
+    equipment: str = "",
+) -> dict:
+    """Write a program from a description of who it's for.
+
+    Deliberately the same output shape as an imported one, run through the same
+    `_build_workout_result`: the exercises are matched against the catalog, the
+    ranges are normalised, and timed movements are repaired. A generated
+    program that names a lift the catalog doesn't have is then visibly
+    unmatched rather than silently wrong, exactly like a pasted one.
+
+    Nothing is saved here. The client reviews the proposal and saves it through
+    the ordinary split/workout endpoints — same rule as every other AI write.
+    """
+    provider, units = _resolve(db, user)
+    profile = profile_summary(get_or_create_profile(db, user.id))
+
+    t0 = time.monotonic()
+    data = await provider.complete_json(
+        system=prompts.generate_program_system_prompt(units),
+        user=prompts.generate_program_user_prompt(
+            goal=goal,
+            days_per_week=max(1, min(days_per_week, 7)),
+            experience=experience,
+            equipment=equipment,
+            profile=profile,
+        ),
+        schema=PROGRAM_SCHEMA,
+    )
+    latency_ms = int((time.monotonic() - t0) * 1000)
+    return _build_workout_result(
+        db, user.id, provider, units, latency_ms, _patch_program_schedule(data)
+    )
+
+
 async def parse_workout(db: Session, user: User, text: str) -> dict:
     """Parse a multi-day program (notes-app text) into structured workouts."""
     provider, units = _resolve(db, user)

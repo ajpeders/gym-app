@@ -112,6 +112,10 @@ export default function WorkoutImportScreen() {
   const router = useRouter();
 
   const [text, setText] = useState('');
+  // "Write me one instead" — the same review flow, a different source.
+  const [goal, setGoal] = useState('');
+  const [daysPerWeek, setDaysPerWeek] = useState('3');
+  const [equipment, setEquipment] = useState('');
   const [phase, setPhase] = useState<Phase>('input');
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<ParseWorkoutResult | null>(null);
@@ -143,14 +147,12 @@ export default function WorkoutImportScreen() {
   }, [result, includeDay, includeExercise]);
   const saveableCount = saveableWorkouts.length;
 
-  async function onParse() {
-    const trimmed = text.trim();
-    if (!trimmed) return;
-    setError(null);
-    setReceived(0);
-    setPhase('parsing');
-    try {
-      const res = await api.parseWorkoutStream(trimmed, (p) => setReceived(p.received));
+  /** Load a parsed *or generated* program into the review state.
+   *
+   * Both arrive in the same shape on purpose, so a generated program gets the
+   * same review — including the unmatched-exercise handling, which a model
+   * writing a program needs at least as much as a paste does. */
+  function review(res: ParseWorkoutResult) {
       const days: Record<number, boolean> = {};
       const exs: Record<string, boolean> = {};
       const exp: Record<number, boolean> = {};
@@ -189,6 +191,34 @@ export default function WorkoutImportScreen() {
       setResolutions(resolved);
       setExerciseDrafts(drafts);
       setPhase('review');
+  }
+
+  async function onParse() {
+    const trimmed = text.trim();
+    if (!trimmed) return;
+    setError(null);
+    setReceived(0);
+    setPhase('parsing');
+    try {
+      review(await api.parseWorkoutStream(trimmed, (p) => setReceived(p.received)));
+    } catch (e) {
+      setPhase('input');
+      setError(aiParseErrorMessage(e));
+    }
+  }
+
+  async function onGenerate() {
+    setError(null);
+    setReceived(0);
+    setPhase('parsing');
+    try {
+      review(
+        await api.generateProgram({
+          goal: goal.trim(),
+          days_per_week: parseInt(daysPerWeek, 10) || 3,
+          equipment: equipment.trim(),
+        }),
+      );
     } catch (e) {
       setPhase('input');
       setError(aiParseErrorMessage(e));
@@ -620,6 +650,52 @@ export default function WorkoutImportScreen() {
             </View>
           ) : null}
 
+          {/* Or have one written. Same review afterwards — including the
+            * unmatched-exercise handling, which a generated program needs at
+            * least as much as a pasted one. */}
+          <View className="mt-6 rounded-lg border border-iron-800 bg-iron-900/60 p-4">
+            <Text variant="heading">Don&apos;t have one?</Text>
+            <Text variant="muted" className="mb-3 mt-0.5">
+              Describe what you want and the AI will write a program, grounded in the
+              standard splits. You review it before anything is saved.
+            </Text>
+            <TextInput
+              value={goal}
+              onChangeText={setGoal}
+              accessibilityLabel="Goal"
+              placeholder="e.g. get stronger, keep my shoulder happy"
+              placeholderTextColor="#64748b"
+              className="rounded-lg border border-iron-700 bg-iron-950 px-3 py-2.5 text-base text-iron-100"
+            />
+            <View className="mt-2 flex-row gap-2">
+              <View className="w-24">
+                <TextInput
+                  value={daysPerWeek}
+                  onChangeText={setDaysPerWeek}
+                  keyboardType="number-pad"
+                  accessibilityLabel="Days per week"
+                  placeholder="3"
+                  placeholderTextColor="#64748b"
+                  className="rounded-lg border border-iron-700 bg-iron-950 px-3 py-2.5 text-base text-iron-100"
+                />
+              </View>
+              <TextInput
+                value={equipment}
+                onChangeText={setEquipment}
+                accessibilityLabel="Equipment"
+                placeholder="Equipment — barbell, dumbbells..."
+                placeholderTextColor="#64748b"
+                className="flex-1 rounded-lg border border-iron-700 bg-iron-950 px-3 py-2.5 text-base text-iron-100"
+              />
+            </View>
+            <Button
+              title="Write me a program"
+              variant="secondary"
+              icon="sparkles"
+              className="mt-3"
+              onPress={onGenerate}
+            />
+          </View>
         </ScrollView>
         <BottomAction>
           <Button title="Parse" size="lg" disabled={!text.trim()} onPress={onParse} />

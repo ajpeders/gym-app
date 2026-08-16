@@ -105,3 +105,20 @@ test('an adopted program is a copy, editable without touching the library', asyn
   const stronglifts = library.find((p: { slug: string }) => p.slug === 'stronglifts-5x5');
   expect(stronglifts.name).toBe('StrongLifts 5x5');
 });
+
+test('asking for a generated program says plainly when AI is not set up', async ({
+  page,
+  request,
+}) => {
+  // The generator lives beside the importer, and with no provider configured
+  // it must explain that rather than spinning — the same rule as every other
+  // AI surface.
+  await signIn(page, request);
+  await page.goto('/workout-import');
+  await expect(shown(page, /Don't have one\?/)).toBeVisible({ timeout: 30_000 });
+
+  await page.getByLabel('Goal').fill('get stronger');
+  await page.getByRole('button', { name: 'Write me a program' }).click();
+
+  await expect(shown(page, /set up|configure|settings/i)).toBeVisible({ timeout: 30_000 });
+});

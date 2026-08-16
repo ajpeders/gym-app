@@ -83,6 +83,36 @@ def providers(
     return service.available_providers(db, user)
 
 
+class GenerateProgramRequest(BaseModel):
+    """Who the program is for. Everything is optional — an empty request still
+    produces something sensible, grounded in the athlete profile."""
+
+    goal: str = ""
+    days_per_week: int = 3
+    experience: str = ""
+    equipment: str = ""
+
+
+@router.post("/generate-program")
+async def generate_program(
+    payload: GenerateProgramRequest,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> dict:
+    """Write a program from a description. A proposal — nothing is saved."""
+    try:
+        return await service.generate_program(
+            db,
+            user,
+            goal=payload.goal,
+            days_per_week=payload.days_per_week,
+            experience=payload.experience,
+            equipment=payload.equipment,
+        )
+    except AIError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+
 @router.get("/models")
 async def models(
     db: Session = Depends(get_db), user: User = Depends(get_current_user)
