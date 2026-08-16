@@ -103,6 +103,16 @@ async def test(
         raise HTTPException(status_code=502, detail=str(exc)) from exc
 
 
+@router.post("/check-model")
+async def check_model(
+    db: Session = Depends(get_db), user: User = Depends(get_current_user)
+) -> dict:
+    try:
+        return await service.check_model(db, user)
+    except AIError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+
 @router.post("/parse-sets")
 async def parse_sets(
     body: ParseRequest,

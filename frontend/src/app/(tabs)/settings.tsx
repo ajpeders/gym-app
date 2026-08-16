@@ -4,7 +4,7 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
 import { api, ApiError } from '@/api/client';
-import type { AiModelsResult, AiProvider, AiProviders, Units } from '@/api/types';
+import type { AiModelCheckResult, AiModelsResult, AiProvider, AiProviders, Units } from '@/api/types';
 import { useAuth } from '@/state/auth';
 import { useSettings } from '@/state/settings';
 import { Screen, ScreenHeader, SectionHeader } from '@/components/ui/Screen';
@@ -251,9 +251,10 @@ function AiProviderControl({
   const [modelsNeedsUrl, setModelsNeedsUrl] = useState(false);
   const [ollamaUrl, setOllamaUrl] = useState<string | null>(null);
 
-  // Test-connection result.
-  const [testing, setTesting] = useState(false);
-  const [testResult, setTestResult] = useState<{ ok: boolean; text: string } | null>(null);
+  // Active model capability probe.
+  const [checkingModel, setCheckingModel] = useState(false);
+  const [modelCheck, setModelCheck] = useState<AiModelCheckResult | null>(null);
+  const [modelCheckError, setModelCheckError] = useState<string | null>(null);
 
   const loadModels = useCallback(async () => {
     setModelsLoading(true);
@@ -286,11 +287,11 @@ function AiProviderControl({
     committedUrlRef.current = settings.ollama_url ?? '';
   }, [settings.ollama_url]);
 
-  // Fix 6: a provider switch must not show a stale Test result from the
-  // previously selected provider.
+  // Provider/model switches must not show a stale probe result.
   useEffect(() => {
-    setTestResult(null);
-  }, [selected]);
+    setModelCheck(null);
+    setModelCheckError(null);
+  }, [selected, settings.ollama_model, settings.claude_model, settings.openai_model]);
 
   async function commitOllamaUrl() {
     const trimmed = urlInput.trim();
@@ -313,20 +314,17 @@ function AiProviderControl({
     if (isOllama) void loadModels();
   }, [isOllama, loadModels]);
 
-  async function runTest() {
-    setTesting(true);
-    setTestResult(null);
+  async function runModelCheck() {
+    setCheckingModel(true);
+    setModelCheck(null);
+    setModelCheckError(null);
     try {
-      const res = await api.aiTest();
-      setTestResult({
-        ok: true,
-        text: `${res.model} responded in ${res.latency_ms} ms`,
-      });
+      setModelCheck(await api.aiCheckModel());
     } catch (err) {
       const message = err instanceof ApiError ? err.message : 'Test failed.';
-      setTestResult({ ok: false, text: message });
+      setModelCheckError(message);
     } finally {
-      setTesting(false);
+      setCheckingModel(false);
     }
   }
 
@@ -747,30 +745,65 @@ function AiProviderControl({
 
       <Card className="mb-6">
         <Pressable
-          onPress={() => void runTest()}
-          disabled={testing}
+          onPress={() => void runModelCheck()}
+          disabled={checkingModel}
           className={`flex-row items-center justify-center rounded-lg border border-iron-700 bg-iron-800 px-4 py-3 active:bg-iron-700 ${
-            testing ? 'opacity-60' : ''
+            checkingModel ? 'opacity-60' : ''
           }`}>
-          {testing ? (
+          {checkingModel ? (
             <ActivityIndicator color="#38bdf8" />
           ) : (
             <>
               <Ionicons name="flash-outline" size={16} color="#38bdf8" />
-              <Text className="ml-1.5 text-base font-semibold text-iron-50">Test connection</Text>
+              <Text className="ml-1.5 text-base font-semibold text-iron-50">Check this model</Text>
             </>
           )}
         </Pressable>
-        {testResult ? (
-          <Text
-            className={`mt-2 text-sm font-medium ${
-              testResult.ok ? 'text-green-400' : 'text-red-400'
-            }`}>
-            {testResult.ok ? `✓ ${testResult.text}` : `✗ ${testResult.text}`}
-          </Text>
+        {modelCheck ? (
+          <View className="mt-3 rounded-lg border border-iron-800 bg-iron-950 p-3">
+            <Text
+              className={`text-sm font-black ${
+                modelCheck.verdict === 'recommended'
+                  ? 'text-green-400'
+                  : modelCheck.verdict === 'parsing_only'
+                    ? 'text-amber-400'
+                    : 'text-red-400'
+              }`}>
+              {modelCheck.verdict === 'recommended'
+                ? 'Recommended'
+                : modelCheck.verdict === 'parsing_only'
+                  ? 'Parsing only'
+                  : 'Not suitable'}
+            </Text>
+            <Text variant="caption" className="mt-1 text-iron-300">
+              {modelCheck.model} · {modelCheck.latency_ms} ms · {modelCheck.summary}
+            </Text>
+            <View className="mt-2 gap-1.5">
+              {modelCheck.checks.map((check) => (
+                <View key={check.key} className="flex-row items-start">
+                  <Ionicons
+                    name={check.passed ? 'checkmark-circle' : 'alert-circle-outline'}
+                    size={15}
+                    color={check.passed ? '#22c55e' : '#f59e0b'}
+                    style={{ marginTop: 1 }}
+                  />
+                  <View className="ml-2 flex-1">
+                    <Text variant="caption" className="font-bold text-iron-100">
+                      {check.label}
+                    </Text>
+                    <Text variant="caption" className="text-iron-400">
+                      {check.detail}
+                    </Text>
+                  </View>
+                </View>
+              ))}
+            </View>
+          </View>
+        ) : modelCheckError ? (
+          <Text className="mt-2 text-sm font-medium text-red-400">✗ {modelCheckError}</Text>
         ) : (
           <Text variant="caption" className="mt-2">
-            Runs a quick round-trip against your active provider and model.
+            Runs a safe fake-tool probe against the active provider. It does not write your data.
           </Text>
         )}
       </Card>

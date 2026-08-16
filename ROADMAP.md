@@ -257,27 +257,14 @@ gym-app/
       So: **don't ship a static list of blessed names** — rank against a real
       probe (below). Pair it with a suggested `ollama pull` when nothing the
       user has installed scores well.
-- [ ] **"Check this model" button** — the concrete, shippable half of the above,
-      and worth building first because it's small and it's the thing that turns
-      "some models struggle" into a specific answer for a specific user.
-      Settings already has `/ai/test`, which only proves the server answers at
-      all — it passed happily for `gemma3:27b`, a model that cannot run the
-      spotter. Replace it with a real battery: four or five scripted turns whose
-      tool calls are scored, reported per capability rather than pass/fail.
-      - **tool calling** — does the provider accept a tool request at all
-        (`gemma*` 400s here)
-      - **argument discipline** — does it invent a name/id it wasn't given
-      - **set expansion** — does `3x5` become three sets
-      - **id resolution** — does it search for the exercise or guess
-      Each maps to a failure observed on 2026-08-14, so the battery is derived
-      from real breakage rather than invented. Runs against the model currently
-      selected, takes ~30s on a local 8B, and its verdict feeds the badges in the
-      picker. A working harness exists as a scratch script (`chat_probe.py`:
-      register a throwaway user, point settings at the model, replay a fixed
-      turn list with history, collapse the SSE stream into tool calls + prose) —
-      productionising that is most of the work.
-      Note it costs real tokens/time and writes through the confirm gate, so it
-      must run against a scratch context and never touch the user's own data.
+- [x] **"Check this model" button** — *shipped 2026-08-16.* Settings now calls
+      `POST /api/ai/check-model`, which runs a safe fake-tool probe against the
+      active provider/model and never writes user data. It scores the exact
+      observed failure modes: tool calling, catalog lookup before ids, `3x5`
+      set expansion, and argument discipline. The UI reports a verdict
+      (`recommended`, `parsing_only`, `not_suitable`) plus per-check details.
+      This is the concrete shippable half of the broader model-recommendation
+      work; badges/ranking across the whole installed Ollama list remain open.
 - [~] **Bring-your-own-model setup guide** (self-hosted / remote Ollama): backend building blocks exist — `/ai/models` (list + pick), `/ai/test` (round-trip), URL normalization — and the `use-ai-status` hook; **the guided onboarding checklist UI itself is still pending**.
 - [x] **Natural-language logging**: "bench 3x8 @60kg, felt easy" → structured sets *(built)*
 - [x] **Notes → a past day's log**: paste a whole day from a notes app on "Add a past session" and the parser prefills the editable set rows, so an AI-read log can be backdated *(`components/NotesToSets.tsx`; the set-parse prompt handles day headers, one-exercise-per-line, and per-set "weight reps" pairs like `95 10, 90 11`)*

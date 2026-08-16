@@ -3,6 +3,7 @@ import { fetch as expoFetch } from 'expo/fetch';
 import { getItem, TOKEN_KEY } from '@/lib/storage';
 import type {
   AiModelsResult,
+  AiModelCheckResult,
   AiProviders,
   AiTestResult,
   AthleteProfile,
@@ -726,6 +727,8 @@ export const api = {
   aiProviders: () => request<AiProviders>('/ai/providers'),
   aiModels: () => request<AiModelsResult>('/ai/models'),
   aiTest: () => request<AiTestResult>('/ai/test', { method: 'POST' }),
+  aiCheckModel: () =>
+    request<AiModelCheckResult>('/ai/check-model', { method: 'POST', timeoutMs: 180_000 }),
   // NB: the request field is `workout_id` but its value is the active SESSION's
   // id (the backend field name is unchanged from the rename).
   parseSets: (input: { text: string; workout_id?: number }) =>

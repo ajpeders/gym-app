@@ -194,6 +194,50 @@ def test_openai_provider_settings_are_write_only(client, auth):
     assert payload["providers"]["openai"]["model"] == "gpt-5.6-luna"
 
 
+def test_check_model_scores_fake_tool_probe(client, auth, monkeypatch):
+    from companion import Completion, ToolCall
+
+    from app.ai import service
+
+    headers, _, _ = auth
+
+    class GoodProvider:
+        name = "ollama"
+        model = "probe-good"
+
+        async def complete_text(self, *, system, messages, tools=None):
+            return Completion(
+                tool_calls=[
+                    ToolCall(
+                        id="1",
+                        name="search_exercise",
+                        arguments={"query": "squat"},
+                    ),
+                    ToolCall(
+                        id="2",
+                        name="log_sets",
+                        arguments={
+                            "exercise_id": 42,
+                            "sets": [
+                                {"reps": 5, "weight": 100},
+                                {"reps": 5, "weight": 100},
+                                {"reps": 5, "weight": 100},
+                            ],
+                        },
+                    ),
+                ]
+            )
+
+    monkeypatch.setattr(service, "_resolve", lambda db, user: (GoodProvider(), "kg"))
+
+    res = client.post("/api/ai/check-model", headers=headers)
+    assert res.status_code == 200, res.text
+    body = res.json()
+    assert body["verdict"] == "recommended"
+    assert body["summary"] == "Passed 4/4 spotter capability checks."
+    assert all(check["passed"] for check in body["checks"])
+
+
 def test_metrics_crud(client, auth):
     headers, _, _ = auth
     created = client.post(

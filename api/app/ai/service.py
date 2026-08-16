@@ -8,7 +8,7 @@ from datetime import datetime
 from collections.abc import AsyncIterator
 
 import httpx
-from companion import AnthropicProvider, Message, OllamaProvider, OpenAICompatibleProvider, Provider
+from companion import AnthropicProvider, Message, OllamaProvider, OpenAICompatibleProvider, Provider, Tool
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -287,6 +287,153 @@ async def test_provider(db: Session, user: User) -> dict:
         "model": provider.model,
         "latency_ms": int((time.monotonic() - t0) * 1000),
         "sample": completion.text[:80],
+    }
+
+
+def _walk_values(value):
+    if isinstance(value, dict):
+        for v in value.values():
+            yield from _walk_values(v)
+    elif isinstance(value, list):
+        for v in value:
+            yield from _walk_values(v)
+    else:
+        yield value
+
+
+def _count_probe_sets(args: dict) -> int:
+    """Best-effort score for whether `3x5` became three explicit sets."""
+    count = 0
+    for value in _walk_values(args):
+        if isinstance(value, (int, float)) and int(value) == 5:
+            count += 1
+    for value in args.values():
+        if isinstance(value, list):
+            count = max(count, len(value))
+    return count
+
+
+async def check_model(db: Session, user: User) -> dict:
+    """Probe the active provider/model with fake tools and score observed failures.
+
+    This deliberately does not call gym's real tools or write user data. The
+    provider only sees an artificial tool surface that mirrors the spotter's
+    two core jobs: look things up before writing, then expand a terse set log.
+    """
+    provider, _units = _resolve(db, user)
+    tools = [
+        Tool(
+            name="search_exercise",
+            description="Search the exercise catalog by name before logging a set.",
+            parameters={
+                "type": "object",
+                "properties": {"query": {"type": "string"}},
+                "required": ["query"],
+                "additionalProperties": False,
+            },
+        ),
+        Tool(
+            name="log_sets",
+            description="Log sets only after an exercise id has been found.",
+            parameters={
+                "type": "object",
+                "properties": {
+                    "exercise_id": {"type": "integer"},
+                    "sets": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "reps": {"type": "integer"},
+                                "weight": {"type": "number"},
+                            },
+                            "required": ["reps", "weight"],
+                            "additionalProperties": False,
+                        },
+                    },
+                },
+                "required": ["exercise_id", "sets"],
+                "additionalProperties": False,
+            },
+        ),
+    ]
+    t0 = time.monotonic()
+    try:
+        completion = await provider.complete_text(
+            system=(
+                "You are testing whether a gym logging model can use tools. "
+                "Use tools only. Search for the exercise before logging. "
+                "Do not invent an exercise_id; if you do not know it, search first."
+            ),
+            messages=[
+                Message(
+                    role="user",
+                    content="Log squat 3x5 at 100kg. Use the catalog instead of guessing ids.",
+                )
+            ],
+            tools=tools,
+        )
+    except Exception as exc:  # noqa: BLE001 - provider-specific failures are the signal here
+        latency_ms = int((time.monotonic() - t0) * 1000)
+        return {
+            "provider": provider.name,
+            "model": provider.model,
+            "latency_ms": latency_ms,
+            "verdict": "not_suitable",
+            "summary": "The model rejected or failed the tool-calling probe.",
+            "checks": [
+                {
+                    "key": "tool_calling",
+                    "label": "Tool calling",
+                    "passed": False,
+                    "detail": str(exc),
+                }
+            ],
+        }
+
+    latency_ms = int((time.monotonic() - t0) * 1000)
+    calls = completion.tool_calls
+    names = [c.name for c in calls]
+    search_call = next((c for c in calls if c.name == "search_exercise"), None)
+    log_call = next((c for c in calls if c.name == "log_sets"), None)
+    set_count = _count_probe_sets(log_call.arguments if log_call else {})
+    guessed_id = bool(log_call and log_call.arguments.get("exercise_id") is not None and not search_call)
+
+    checks = [
+        {
+            "key": "tool_calling",
+            "label": "Tool calling",
+            "passed": bool(calls),
+            "detail": f"{len(calls)} tool call(s): {', '.join(names) if names else 'none'}",
+        },
+        {
+            "key": "id_resolution",
+            "label": "Looks up exercise ids",
+            "passed": search_call is not None,
+            "detail": "Called search_exercise before logging" if search_call else "Did not search the catalog",
+        },
+        {
+            "key": "set_expansion",
+            "label": "Expands 3x5",
+            "passed": set_count >= 3,
+            "detail": f"Detected {set_count} set-like item(s)",
+        },
+        {
+            "key": "argument_discipline",
+            "label": "Doesn't invent ids",
+            "passed": not guessed_id,
+            "detail": "No guessed id before search" if not guessed_id else "Logged with an id before searching",
+        },
+    ]
+    passed = sum(1 for c in checks if c["passed"])
+    verdict = "recommended" if passed == len(checks) else "parsing_only" if passed >= 2 else "not_suitable"
+    return {
+        "provider": provider.name,
+        "model": provider.model,
+        "latency_ms": latency_ms,
+        "verdict": verdict,
+        "summary": f"Passed {passed}/{len(checks)} spotter capability checks.",
+        "checks": checks,
     }
 
 
@@ -1192,6 +1339,7 @@ async def coach(db: Session, user: User, message: str) -> dict:
 
 __all__ = [
     "available_providers",
+    "check_model",
     "parse_sets",
     "parse_workout",
     "edit_workout_stream",

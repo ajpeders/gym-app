@@ -344,6 +344,22 @@ export interface AiTestResult {
   sample: string;
 }
 
+export interface AiModelCheck {
+  key: string;
+  label: string;
+  passed: boolean;
+  detail: string;
+}
+
+export interface AiModelCheckResult {
+  provider: string;
+  model: string;
+  latency_ms: number;
+  verdict: 'recommended' | 'parsing_only' | 'not_suitable';
+  summary: string;
+  checks: AiModelCheck[];
+}
+
 export type ParsedSetType = 'warmup' | 'working' | 'drop' | 'failure';
 export type ParsedMatch = 'exact' | 'fuzzy' | 'none';
 
