@@ -435,3 +435,31 @@ class AiCall(Base):
     latency_ms: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     error: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, index=True)
+
+
+class ReadinessCheck(Base):
+    """How today feels, in the fields a wearable would otherwise fill.
+
+    Deliberately the same shape as what an Apple Watch or Whoop reports —
+    sleep, resting heart rate, HRV — plus the two things only the athlete can
+    say. When a wearable is wired up it fills these rows instead of the form,
+    and nothing downstream changes.
+    """
+
+    __tablename__ = "readiness_check"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    owner_id: Mapped[int] = mapped_column(
+        ForeignKey("user.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    # One per local day; re-checking in replaces it.
+    day: Mapped[str] = mapped_column(String, nullable=False)  # YYYY-MM-DD
+    sleep_hours: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    # 1 = fine, 5 = wrecked.
+    soreness: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    # 1 = flat, 5 = flying.
+    energy: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    resting_hr: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    hrv_ms: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)

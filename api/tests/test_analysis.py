@@ -20,6 +20,7 @@ import pytest
 from app.analysis import (
     balance_ratios,
     coverage,
+    daily_readiness,
     e1rm,
     hard_sets_by_muscle,
     readiness,
@@ -194,3 +195,37 @@ def test_a_muscle_never_trained_is_reported_without_a_date() -> None:
 def test_the_least_recovered_muscles_come_first() -> None:
     rows = readiness({"chest": 0.2, "back": 3.0}, {"chest": 10.0, "back": 10.0}, weeks=1)
     assert rows[0]["muscle"] == "chest"
+
+
+# --- daily readiness -------------------------------------------------------
+
+def test_a_good_night_and_no_soreness_reads_as_ready() -> None:
+    result = daily_readiness(sleep_hours=8, soreness=1, energy=5)
+    assert result["score"] >= 80
+    assert result["status"] == "good"
+
+
+def test_short_sleep_pulls_it_down() -> None:
+    rested = daily_readiness(sleep_hours=8, soreness=2, energy=3)
+    tired = daily_readiness(sleep_hours=4, soreness=2, energy=3)
+    assert tired["score"] < rested["score"]
+    assert "sleep" in tired["advice"].lower()
+
+
+def test_being_wrecked_says_so_plainly() -> None:
+    result = daily_readiness(sleep_hours=4, soreness=5, energy=1)
+    assert result["status"] == "poor"
+    # Advice, not permission: it suggests, it doesn't forbid.
+    assert "lighter" in result["advice"].lower()
+
+
+def test_a_partial_check_in_still_answers() -> None:
+    """Nobody fills in three fields every morning; one is enough to be useful."""
+    result = daily_readiness(sleep_hours=None, soreness=5, energy=None)
+    assert result["status"] in {"fair", "poor"}
+    assert result["advice"]
+
+
+def test_no_check_in_at_all_is_not_a_score_of_zero() -> None:
+    """An empty form isn't a bad day — saying nothing must not read as awful."""
+    assert daily_readiness(None, None, None) is None

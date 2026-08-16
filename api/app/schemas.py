@@ -609,6 +609,35 @@ class BalanceRatio(BaseModel):
     balanced: bool = False
 
 
+class ReadinessCheckIn(BaseModel):
+    """Today's check-in. Every field optional — one answer is still useful."""
+
+    day: Optional[str] = None  # YYYY-MM-DD, local to the client; default today
+    sleep_hours: Optional[float] = Field(default=None, ge=0, le=24)
+    soreness: Optional[int] = Field(default=None, ge=1, le=5)
+    energy: Optional[int] = Field(default=None, ge=1, le=5)
+    resting_hr: Optional[int] = Field(default=None, ge=20, le=220)
+    hrv_ms: Optional[int] = Field(default=None, ge=1, le=400)
+    notes: Optional[str] = None
+
+
+class ReadinessOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    day: str
+    sleep_hours: Optional[float] = None
+    soreness: Optional[int] = None
+    energy: Optional[int] = None
+    resting_hr: Optional[int] = None
+    hrv_ms: Optional[int] = None
+    notes: Optional[str] = None
+    # Derived from the fields above — advisory, never a gate.
+    score: Optional[int] = None
+    status: Optional[str] = None
+    advice: Optional[str] = None
+
+
 class MuscleReadiness(BaseModel):
     """How recovered one muscle is, inferred from the log's own timing."""
 

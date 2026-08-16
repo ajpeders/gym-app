@@ -660,6 +660,21 @@ export interface BalanceRatio {
   balanced: boolean;
 }
 
+/** Today's check-in — the same fields a wearable would fill. */
+export interface ReadinessCheck {
+  id: number;
+  day: string;
+  sleep_hours: number | null;
+  soreness: number | null;
+  energy: number | null;
+  resting_hr: number | null;
+  hrv_ms: number | null;
+  notes: string | null;
+  score: number | null;
+  status: 'good' | 'fair' | 'poor' | null;
+  advice: string | null;
+}
+
 /** How recovered a muscle is, inferred from the log's own timing. */
 export interface MuscleReadiness {
   muscle: string;

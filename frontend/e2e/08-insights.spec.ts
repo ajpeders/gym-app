@@ -188,3 +188,19 @@ test('recovery is read from when each muscle was last trained', async ({ page, r
   // And muscles that haven't been touched are named, not just the tired ones.
   await expect(shown(page, /Not trained lately/)).toBeVisible();
 });
+
+test('a check-in is advice, and it sticks', async ({ page, request }) => {
+  const account = await signIn(page, request);
+  const api = authed(request, account.token);
+
+  await page.goto('/insights');
+  await expect(shown(page, 'How today feels')).toBeVisible({ timeout: 30_000 });
+
+  await page.getByRole('button', { name: 'Rough night' }).click();
+  // Advisory wording, not a prohibition.
+  await expect(shown(page, /sleep/i)).toBeVisible({ timeout: 20_000 });
+
+  const checks = await api.get('/readiness');
+  expect(checks[0].sleep_hours).toBe(5);
+  expect(checks[0].status).not.toBeNull();
+});

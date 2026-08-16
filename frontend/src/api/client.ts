@@ -41,6 +41,7 @@ import type {
   Food,
   OneRepMax,
   PlateBreakdown,
+  ReadinessCheck,
   WarmupSet,
   ExerciseTrend,
   PresetSplit,
@@ -762,6 +763,14 @@ export const api = {
   presetSplits: () => request<PresetSplit[]>('/splits/presets'),
   adoptPreset: (slug: string) =>
     request<AdoptedPreset>(`/splits/presets/${slug}/adopt`, { method: 'POST' }),
+  readiness: () => request<ReadinessCheck[]>('/readiness'),
+  // Named for what it records, not for the verb — `checkIn` is already the AI
+  // profile check-in, which is a different thing entirely.
+  recordReadiness: (input: {
+    sleep_hours?: number | null;
+    soreness?: number | null;
+    energy?: number | null;
+  }) => request<ReadinessCheck>('/readiness', { method: 'POST', body: input }),
   achievements: () => request<Achievement[]>('/stats/achievements'),
   muscleReport: (weeks = 4) => request<MuscleReport>('/stats/muscles', { query: { weeks } }),
   exerciseTrend: (exerciseId: string, days = 180) =>

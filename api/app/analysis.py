@@ -284,3 +284,62 @@ def readiness(
     order = {"recovering": 0, "overreached": 1, "neglected": 2, "ready": 3}
     rows.sort(key=lambda r: (order[r["status"]], r["days_since"] if r["days_since"] is not None else 999))
     return rows
+
+
+# --- how today feels -------------------------------------------------------
+#
+# The same three numbers a wearable would supply — how long you slept, how sore
+# you are, how you feel — entered by hand until there's a wearable to read them
+# from. Keeping the shape identical is the point: when HRV and sleep arrive from
+# a watch they fill these fields, and nothing downstream changes.
+#
+# Advisory, never a gate. The app does not get to tell someone they may not
+# train.
+
+def daily_readiness(
+    sleep_hours: float | None, soreness: int | None, energy: int | None
+) -> dict | None:
+    """A 0-100 reading of today, or None if nothing was reported.
+
+    None matters: an empty form is not a bad day, and scoring silence as zero
+    would have the app telling well-rested people to go home.
+    """
+    parts: list[float] = []
+    reasons: list[str] = []
+
+    if sleep_hours is not None:
+        # 8h is the top of the scale; below 6 starts costing real points.
+        slept = max(0.0, min(1.0, sleep_hours / 8))
+        parts.append(slept)
+        if sleep_hours < 6:
+            reasons.append(f"{_trim(sleep_hours)}h of sleep")
+    if soreness is not None:
+        # 1 = fine, 5 = wrecked.
+        parts.append(max(0.0, min(1.0, (5 - soreness) / 4)))
+        if soreness >= 4:
+            reasons.append("still sore")
+    if energy is not None:
+        parts.append(max(0.0, min(1.0, (energy - 1) / 4)))
+        if energy <= 2:
+            reasons.append("low energy")
+
+    if not parts:
+        return None
+
+    score = round(sum(parts) / len(parts) * 100)
+    if score >= 75:
+        status, advice = "good", "Good to train as planned."
+    elif score >= 50:
+        status = "fair"
+        advice = "Fine to train — keep an eye on the top sets."
+    else:
+        status = "poor"
+        advice = "A lighter session, or a different muscle group, is the sensible call."
+
+    if reasons:
+        advice = f"{', '.join(reasons).capitalize()}. {advice}"
+    return {"score": score, "status": status, "advice": advice}
+
+
+def _trim(value: float) -> str:
+    return str(int(value)) if float(value).is_integer() else str(value)

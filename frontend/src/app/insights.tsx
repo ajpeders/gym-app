@@ -9,6 +9,7 @@ import type {
   MuscleCoverage,
   MuscleReadiness,
   MuscleReport,
+  ReadinessCheck,
   OverloadSuggestion,
   StatsSummary,
   TodayWorkout,
@@ -151,6 +152,10 @@ export default function InsightsScreen() {
     null,
   );
   const [awards, setAwards] = useState<Achievement[]>([]);
+  // Today's check-in: the same three numbers a wearable would report, until
+  // there's a wearable to report them.
+  const [today, setToday] = useState<ReadinessCheck | null>(null);
+  const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -164,6 +169,9 @@ export default function InsightsScreen() {
         api.splitToday().catch(() => [] as TodayWorkout[]),
         api.achievements().catch(() => [] as Achievement[]),
       ]);
+      const checks = await api.readiness().catch(() => [] as ReadinessCheck[]);
+      const todayKey = new Date().toISOString().slice(0, 10);
+      setToday(checks.find((c) => c.day === todayKey) ?? null);
       setReport(r);
       setSummary(s);
       setAwards(earned);
@@ -262,6 +270,41 @@ export default function InsightsScreen() {
             </Text>
           </Card>
         ) : null}
+
+        <Card className="mb-4">
+          <Text variant="heading">How today feels</Text>
+          <Text variant="muted" className="mb-3 mt-0.5">
+            Advice, never a gate — the app doesn&apos;t get to tell you not to train.
+          </Text>
+          {today?.advice ? (
+            <Text variant="label" className="mb-3">
+              {today.advice}
+            </Text>
+          ) : null}
+          <View className="flex-row gap-2">
+            {([
+              ['Slept well', { sleep_hours: 8, energy: 4 }],
+              ['Rough night', { sleep_hours: 5, energy: 2 }],
+              ['Still sore', { soreness: 4 }],
+            ] as const).map(([label, patch]) => (
+              <Pressable
+                key={label}
+                accessibilityRole="button"
+                disabled={saving}
+                onPress={() => {
+                  setSaving(true);
+                  void api
+                    .recordReadiness(patch)
+                    .then(setToday)
+                    .catch(() => undefined)
+                    .finally(() => setSaving(false));
+                }}
+                className="flex-1 items-center rounded-lg border border-iron-700 bg-iron-900 py-2 active:opacity-70">
+                <Text variant="caption">{label}</Text>
+              </Pressable>
+            ))}
+          </View>
+        </Card>
 
         <Card className="mb-4">
           <Text variant="heading">Recovery</Text>

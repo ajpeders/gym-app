@@ -19,6 +19,7 @@ from .models import (
     Exercise,
     NutritionEntry,
     ProgressPhoto,
+    ReadinessCheck,
     Split,
     User,
     Workout,
@@ -36,6 +37,7 @@ _OWNED = [
     (CoachMessage, "user_id"),
     (AthleteProfile, "user_id"),
     (NutritionEntry, "owner_id"),
+    (ReadinessCheck, "owner_id"),
     # Custom exercises go; the shared catalog (owner_id NULL) is untouched.
     (Exercise, "owner_id"),
 ]

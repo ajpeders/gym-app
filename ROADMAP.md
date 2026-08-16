@@ -628,7 +628,19 @@ Found while actually training with the app. Ordered by how much they hurt.
 
 ### Tier-3 moat bets (future — bigger builds)
 - [ ] **Camera form-check** (CV/pose): on-device pose estimation → real-time technique feedback. Deepest technical moat; separate mountain (accuracy/safety/latency)
-- [ ] **Wearable / recovery fusion**: HRV / sleep / readiness from Apple Watch / Whoop / Oura feeding the recovery model (moat #4)
+- [~] **Wearable / recovery fusion** — **the half that doesn't need hardware
+      shipped 2026-08-16**: a daily check-in (`/api/readiness`) in exactly the
+      fields a watch reports — sleep hours, resting HR, HRV — plus the two only
+      the athlete can give (soreness, energy). Scored deterministically into
+      good / fair / poor with a one-line reading, and *advisory*: the app does
+      not get to tell someone they may not train. Saying nothing scores
+      nothing, because an empty form is not a bad day. One check-in per day;
+      partial answers are fine.
+      Keeping the shape identical to a wearable's output is the whole point —
+      **still open** is the integration itself (HealthKit / Whoop / Oura),
+      which needs a native build and device APIs. When it lands it fills these
+      rows and nothing downstream changes.
+
 - [ ] **Open / self-hostable**: homelab-native extensibility (MCP-style), self-host tier → community moat (only if personal → product)
 
 ### Cross-cutting (ongoing)
