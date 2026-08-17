@@ -27,6 +27,15 @@ cd "$api"
 python="$api/.venv/bin/python"
 [ -x "$python" ] || python="$(command -v python3)"
 
+# ...except that a catalog of *nothing* does decide whether some tests can run:
+# presets resolve their movements against it, the CSV import matches against it,
+# and the exercise screen needs a row to open. Seed a small fixed catalog when
+# the copy above didn't supply one. No-ops when it did, so local runs keep using
+# the real 828-row dev catalog.
+# PYTHONPATH, because running a script by path puts *its* directory on sys.path
+# (e2e/), not the working directory — so `app` would not import.
+GYM_DATA_DIR="$data" PYTHONPATH="$api" "$python" "$here/seed_catalog.py"
+
 # The admin-bootstrap address: an install with no admin yet grants it to this
 # email, which is how the operator tests sign in as one without a back door.
 GYM_DATA_DIR="$data" GYM_SEED_ON_START=false GYM_ADMIN_EMAIL=e2e-admin@example.com \

@@ -7,7 +7,7 @@
  */
 import { expect, test, type Page } from '@playwright/test';
 
-import { appReady, authed, findExercise, seedPlan, signIn } from './helpers';
+import { appReady, authed, findExercise, rx, seedPlan, signIn } from './helpers';
 
 const shown = (page: Page, text: string | RegExp) =>
   page.getByText(text).locator('visible=true').first();
@@ -35,7 +35,7 @@ test('two exercises can be paired, and the pairing reaches the session', async (
   await expect(shown(page, curl.name)).toBeVisible({ timeout: 30_000 });
   // The first exercise's row is expanded on open, so the pairing toggle for it
   // is already on screen — clicking the name would collapse it.
-  await page.getByLabel(new RegExp(`Superset with ${pushdown.name}`, 'i')).click();
+  await page.getByLabel(new RegExp(`Superset with ${rx(pushdown.name)}`, 'i')).click();
   await page.getByRole('button', { name: /Save workout/ }).click();
   // Saving returns to the splits tab; asserting before that races the request.
   await page.waitForURL(/workouts|\/$/, { timeout: 30_000 });

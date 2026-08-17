@@ -91,15 +91,27 @@ jobs:
         env:
           EXPO_PUBLIC_API_URL: http://127.0.0.1:8011
         run: npx expo export --platform web --output-dir dist
-      # No dev database here, so the API starts with an empty catalog and the
-      # suite creates the exercises it needs. See e2e/api.sh.
+      # No dev database here, so e2e/api.sh seeds a small fixed catalog before
+      # starting the API. Several suites resolve real movement names against it.
       - name: playwright
         working-directory: frontend
         env:
           CI: 'true'
         run: npx playwright test
-      - uses: actions/upload-artifact@v3
+      # No upload-artifact here. It posts to ACTIONS_RUNTIME_URL, which is
+      # https://git.thelunadog.com — and CI jobs cannot hairpin to that host, so
+      # every chunk times out through five retries and the finalize then 500s.
+      # It never failed a green run (it is `if: failure()`), but it added ~6
+      # minutes to every red one and buried the real test failure under a wall
+      # of upload stack traces. Print the failure context into the log instead,
+      # which is where you are already looking.
+      - name: what failed
         if: failure()
-        with:
-          name: playwright-traces
-          path: frontend/test-results/
+        working-directory: frontend
+        run: |
+          for f in test-results/*/error-context.md; do
+            [ -e "$f" ] || continue
+            echo "::group::$f"
+            cat "$f"
+            echo "::endgroup::"
+          done

@@ -68,6 +68,18 @@ export async function signIn(
   return { ...user, token };
 }
 
+/**
+ * Quote a value for use inside `new RegExp(...)`.
+ *
+ * Exercise names reach these tests as data, and `findExercise`'s fallback names
+ * them "<term> (e2e)" — whose parentheses become a *group* once interpolated
+ * into a pattern, so the regex silently stops matching the label it was built
+ * from and the click waits out the full timeout.
+ */
+export function rx(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 export function authed(request: APIRequestContext, token: string) {
   const headers = { authorization: `Bearer ${token}` };
   return {
