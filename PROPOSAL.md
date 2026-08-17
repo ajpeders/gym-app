@@ -44,8 +44,8 @@ on-device-ready) · natural-language set logging · full multi-day routine impor
 
 ## Next
 The generative **in-session companion** + **athlete memory** — the real differentiator.
-Tier-3 bets roadmap'd: camera form-check (CV/pose), wearable/recovery fusion,
-open/self-hostable homelab-native ecosystem.
+Tier-3 bets roadmap'd: wearable/recovery fusion, open/self-hostable
+homelab-native ecosystem.
 
 *Not the moat (table stakes): the public exercise DB, the tracker UI, generic AI chat,
 one-shot generated programs.*

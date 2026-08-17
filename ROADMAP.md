@@ -22,10 +22,11 @@ doesn't have:
    The buttons appear on their own once the server advertises a provider —
    HOWTO has the redirect URI.
 
-No open engineering remains: every checkbox below is ticked or partial. Three
-items that can't be coded from here — on-device AI, Apple Health, and camera
-form-check — live under "Not open work" near the end, with their reasoning, so
-an unchecked box in this document always means work that's actually outstanding.
+No open engineering remains: every checkbox below is ticked or partial. Two
+things that can't be coded from here — on-device AI and Apple Health — live
+under "Not open work" near the end, alongside camera form-check, which was
+dropped outright. An unchecked box in this document always means work that's
+actually outstanding.
 
 ## Launch scope (what "done" means for v1)
 
@@ -64,10 +65,10 @@ optional: OAuth client ids, if you want the social sign-in buttons to appear.
 
 **Nothing below is outstanding engineering.** Everything has shipped, shipped in
 the half that doesn't need hardware, or been closed by decision — each marked
-with what exists and what any remaining step actually is. The three things that
-can't be coded from here (on-device AI, Apple Health, camera form-check) are
-recorded under "Not open work" with their reasoning, rather than sitting in the
-list pretending to be a backlog.
+with what exists and what any remaining step actually is. Two things that can't
+be coded from here (on-device AI, Apple Health) are recorded under "Not open
+work" with their reasoning, rather than sitting in the list pretending to be a
+backlog. Camera form-check was dropped on 2026-08-16.
 
 Two items were **closed by decision rather than by code**, which is worth
 distinguishing from "not done": in-set AI prompts contradict the Spotter's
@@ -129,8 +130,9 @@ Building deliberately:
   that updates the profile ("shoulder's tight, going lighter today") and hands-free logging
   mid-set. On-device speech keeps it private + low-latency.
 
-Tier-3 bets (roadmap'd, not now): camera form-check (CV/pose), wearable/recovery fusion,
-open/self-hostable homelab-native ecosystem.
+Tier-3 bets (roadmap'd, not now): wearable/recovery fusion, open/self-hostable
+homelab-native ecosystem. *Camera form-check was on this list and was dropped
+2026-08-16 — see "Not open work".*
 
 Not moats — don't over-invest: the public exercise DB, the tracker UI, generic AI chat,
 one-shot generated programs.
@@ -706,11 +708,11 @@ Found while actually training with the app. Ordered by how much they hurt.
 
 ## Not open work: blocked externally, or declined
 
-An unchecked box in this roadmap means **outstanding engineering**. These three
-are neither started nor forgotten — two are waiting on an account or a device
-that no amount of coding produces, and one is a decision. Keeping them in the
-open list made it look like there was work left to do; keeping them *here*, with
-their reasoning intact, is the honest version.
+An unchecked box in this roadmap means **outstanding engineering**. What's here
+is neither started nor forgotten: two items wait on an account or a device that
+no amount of coding produces, and one was dropped on purpose. Keeping them in
+the open list made it look like there was work left to do; keeping them *here*,
+with their reasoning intact, is the honest version.
 
 ### Waiting on hardware or an account
 
@@ -732,16 +734,16 @@ their reasoning intact, is the honest version.
   would supply have a manual form in exactly the same shape, so the
   integration fills those rows rather than needing new ones.
 
-### Declined for now
+### Dropped
 
-- **Camera form-check** (CV/pose) — *deliberately unfunded, per the Moats
-  section's own advice.* On-device pose estimation with acceptable accuracy,
-  latency and safety is a separate mountain, and a form checker that is
-  wrong occasionally is worse than none at all: it would be trusted. This
-  stays a Tier-3 bet until the core companion is proven with real use.
+- **Camera form-check** (CV/pose) — *cut 2026-08-16, Alex's call: not a feature
+  this product wants.* Recorded rather than deleted so it doesn't get proposed
+  again as a fresh idea. The reasoning that supports the decision, if it ever
+  comes up: a form checker that is occasionally wrong is worse than none,
+  because it gets trusted.
 
-Revisit any of these by moving it back into the phase lists with a checkbox —
-that's the signal that it's become real work again.
+Bring one of these back by moving it into the phase lists with a checkbox —
+that's the signal it's become real work again.
 
 ## Open questions
 1. **App name** — keep `gym-app` or brand it?
