@@ -22,11 +22,11 @@ doesn't have:
    The buttons appear on their own once the server advertises a provider —
    HOWTO has the redirect URI.
 
-No open engineering remains: every checkbox below is ticked or partial. Two
-things that can't be coded from here — on-device AI and Apple Health — live
-under "Not open work" near the end, alongside camera form-check, which was
-dropped outright. An unchecked box in this document always means work that's
-actually outstanding.
+No open engineering remains: every checkbox below is ticked or partial. Three
+things were decided against rather than deferred — on-device AI, Apple Health
+and camera form-check — and are recorded under "Not open work" with the
+reasoning. An unchecked box in this document always means work that's actually
+outstanding.
 
 ## Launch scope (what "done" means for v1)
 
@@ -65,10 +65,10 @@ optional: OAuth client ids, if you want the social sign-in buttons to appear.
 
 **Nothing below is outstanding engineering.** Everything has shipped, shipped in
 the half that doesn't need hardware, or been closed by decision — each marked
-with what exists and what any remaining step actually is. Two things that can't
-be coded from here (on-device AI, Apple Health) are recorded under "Not open
-work" with their reasoning, rather than sitting in the list pretending to be a
-backlog. Camera form-check was dropped on 2026-08-16.
+with what exists and what any remaining step actually is. Three features were
+cut outright (on-device AI, Apple Health, camera form-check); they're recorded
+under "Not open work" with the reasoning rather than sitting in the list
+pretending to be a backlog.
 
 Two items were **closed by decision rather than by code**, which is worth
 distinguishing from "not done": in-set AI prompts contradict the Spotter's
@@ -116,7 +116,7 @@ Building deliberately:
 - **Athlete memory (Tier 1).** A persistent per-user profile the AI reads + writes every
   session — injuries, what cues landed, RPE→weight calibration, equipment, preferences,
   goals. Compounds daily; a competitor can't replicate it on day one.
-- **Lavish local compute (Tier 1).** Zero marginal AI cost (homelab Ollama / on-device)
+- **Lavish local compute (Tier 1).** Zero marginal AI cost (homelab Ollama)
   lets us run AI generously — regenerate UI per set, coach continuously, re-plan every
   session — an experience SaaS unit economics can't match. Privacy is the trust half of
   the same advantage.
@@ -145,7 +145,7 @@ one-shot generated programs.
 | Styling | **NativeWind** (Tailwind for RN) | keeps the Tailwind muscle memory from your other apps |
 | Backend | **Python FastAPI** + SQLAlchemy (~~Alembic~~ → hand-rolled additive migrations) | matches docuAI/discordbot AI-app pattern; Alembic deferred — `db.py` ALTERs new columns in idempotently |
 | DB | **SQLite** to start → Postgres if needed | lives in `state/gym-app/`, covered by homelab backup |
-| AI | **Provider abstraction**: Ollama (default) ⇄ Claude (toggle) ⇄ **on-device** | Ollama at `192.168.0.40:11434` / `.47`; Claude via API key; on-device on capable phones (Core ML / `llama.rn` / ExecuTorch) — fully private, no signal needed |
+| AI | **Provider abstraction**: Ollama (default) ⇄ Claude ⇄ ChatGPT, per user | Ollama at `192.168.0.40:11434` / `.47`; Claude via API key; on-device on capable phones (Core ML / `llama.rn` / ExecuTorch) — fully private, no signal needed |
 | Exercise data | **free-exercise-db** (~870 exercises + images, public domain) | seeded into our DB at first boot |
 | Auth | Bearer/JWT token (single or few users) | defence-in-depth behind Traefik `local-only@file` |
 | Deploy | `services/gym-app` → `include` `apps/gym-app/docker-compose.yml` | `api` + `web` containers, Traefik TLS, state volume |
@@ -671,9 +671,9 @@ Found while actually training with the app. Ordered by how much they hurt.
       nothing, because an empty form is not a bad day. One check-in per day;
       partial answers are fine.
       Keeping the shape identical to a wearable's output is the whole point —
-      **still open** is the integration itself (HealthKit / Whoop / Oura),
-      which needs a native build and device APIs. When it lands it fills these
-      rows and nothing downstream changes.
+      **the integration itself was cut 2026-08-17** (see "Not open work") — the
+      manual check-in is the feature, and a wearable would only be a nicer way
+      to fill the same rows.
 
 - [~] **Open / self-hostable** — **one-command self-hosting shipped 2026-08-16**:
       `docker-compose.selfhost.yml` runs the whole app with no homelab —
@@ -706,39 +706,38 @@ Found while actually training with the app. Ordered by how much they hurt.
 ---
 
 
-## Not open work: blocked externally, or declined
+## Not open work: features that were cut
 
-An unchecked box in this roadmap means **outstanding engineering**. What's here
-is neither started nor forgotten: two items wait on an account or a device that
-no amount of coding produces, and one was dropped on purpose. Keeping them in
-the open list made it look like there was work left to do; keeping them *here*,
-with their reasoning intact, is the honest version.
-
-### Waiting on hardware or an account
-
-- **On-device AI — iPhone first** — *blocked on a native build, not on design.*
-  The seam it needs already exists: providers are per-user and chosen at
-  runtime (`ai/service.py` `_resolve`), there is no default and no
-  hard-coded model, and the companion package speaks to whatever provider
-  it's handed. Adding a fourth means implementing one `Provider` against a
-  device runtime (Apple Foundation Models / MLX / Core ML; `llama.rn` or
-  ExecuTorch on Android) and shipping it in a dev build — none of which can
-  be written blind or verified from a terminal. Scaffolding a provider that
-  always reports "unavailable" would be dead code pretending to be
-  progress.
-
-- Apple Health / Google Fit + Apple Watch *(stretch)* — *needs HealthKit,
-  which needs a native build and an Apple developer account.* Two things
-  that would have depended on it are already covered another way: getting
-  your data out is CSV export (2026-08-16), and the recovery inputs a watch
-  would supply have a manual form in exactly the same shape, so the
-  integration fills those rows rather than needing new ones.
+An unchecked box in this roadmap means **outstanding engineering**. Nothing here
+is that: each of these was decided against, with the reasoning kept so the
+decision can be revisited on its merits rather than re-argued from scratch.
 
 ### Dropped
 
+Recorded rather than deleted, so none of them comes back around as a fresh idea
+in six months.
+
+- **On-device AI — iPhone first** — *cut 2026-08-17.* The case for it was "AI
+  works at the gym with no network", and it doesn't survive contact with the
+  measurements: gemma can't tool-call at all and there's a real quality gap
+  between qwen2.5:7b and qwen3:8b, so a 1–3B phone-class model would be worse
+  at the two jobs this app actually gives a model — resolving exercises and
+  calling tools. Shipping one deliberately would undo the work that stopped a
+  weak model authoring bad training data. The cheaper answer to the same
+  problem is a VPN back to the homelab, and logging already works fully
+  offline; only the AI extras need reach. *(The provider seam stays BYO and
+  runtime-selected, so nothing about the architecture depended on this.)*
+
+- **Apple Health / Google Fit + Apple Watch** — *cut 2026-08-17.* Both things
+  that motivated it are already covered another way: getting your data out is
+  CSV export, and the recovery inputs a watch would supply have a manual
+  check-in in exactly the same shape. Against that, £79/yr for the Apple
+  Developer Program, a native module and a maintenance surface. Worth
+  revisiting *only* if an Apple developer account is being paid for anyway,
+  at which point it's a small marginal addition.
+
 - **Camera form-check** (CV/pose) — *cut 2026-08-16, Alex's call: not a feature
-  this product wants.* Recorded rather than deleted so it doesn't get proposed
-  again as a fresh idea. The reasoning that supports the decision, if it ever
+  this product wants.* The reasoning that supports the decision, if it ever
   comes up: a form checker that is occasionally wrong is worse than none,
   because it gets trusted.
 
@@ -749,5 +748,5 @@ that's the signal it's become real work again.
 1. **App name** — keep `gym-app` or brand it?
 2. **Who uses it** — just you, or a few accounts (changes auth scope)?
 3. **Getting it on your phone** — Expo Go for dev, then EAS dev build / sideload, or eventual app-store push?
-4. **Default local model** — which Ollama model for parsing/coaching (e.g. `llama3.1`, `qwen2.5`)? Which on-device model/runtime for capable phones?
+4. **Default local model** — which Ollama model for parsing/coaching? Measured 2026-08-14: qwen2.5:7b and qwen3:8b both work, gemma can't tool-call at all. The in-app model check scores an installed model against what the app actually needs.
 5. **First milestone to build** — recommend Phase 0 + Phase 1 (a working tracker you can use), then layer AI.

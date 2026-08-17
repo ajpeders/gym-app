@@ -13,7 +13,7 @@ hardware you own.
 Mobile-first (Expo / React Native, one codebase → iOS / Android / web). A solid tracker is
 the floor; an AI layer (a) understands plain language and (b) generates the right UI for the
 moment — step-by-step form cues, adaptive rest/coaching prompts, surfaced quick-actions.
-Defaults to **local Ollama**, flips to **Claude** or **on-device** per request.
+Defaults to **local Ollama**, flips to **Claude** or **ChatGPT** per user.
 
 It **grows with you**: the same engine adapts its surface from beginner (form cues, "you
 skipped legs") to advanced (volume landmarks, muscle-balance analysis), so it never feels too
@@ -36,11 +36,11 @@ constantly because it's yours.**
 - **Personal calibration + recovery** — predictions sharpen per-user (true working weights,
   recovery rate, form quirks); readiness inferred from your own in-app usage timing.
 - **Voice companion** — talk to it: a spoken pre-session check-in ("shoulder's tight, going
-  lighter") and hands-free logging mid-set, on-device.
+  lighter") and hands-free logging mid-set.
 
 ## Working today
 873-exercise tracker deployed to phone · pluggable AI provider layer (Ollama / Claude /
-on-device-ready) · natural-language set logging · full multi-day routine import from notes.
+per-user) · natural-language set logging · full multi-day routine import from notes.
 
 ## Next
 The generative **in-session companion** + **athlete memory** — the real differentiator.

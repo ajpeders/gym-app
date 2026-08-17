@@ -186,8 +186,8 @@ run in CI.
 ## Build the app for a phone (EAS)
 
 Expo Go is fine for development, but a real build is needed for distribution —
-and later for Siri / App Intents and on-device AI, neither of which exist in
-Expo Go.
+and later for a native App Intent, which doesn't exist in Expo Go. (Hands-free
+logging already works today through the deep link above, no build needed.)
 
 `frontend/eas.json` defines three profiles and `app.json` carries the bundle id
 (`com.forgo.gymapp`) for both platforms. **One step still needs you**, because
