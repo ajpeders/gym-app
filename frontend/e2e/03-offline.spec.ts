@@ -137,8 +137,14 @@ test('a set logged offline is not lost when the queue is flushed twice', async (
 
   await page.goto('/');
   await appReady(page);
+  // Wait for the button before pulling the network, the way the first test in
+  // this file waits for "Push Day". appReady only means the shell is up; going
+  // offline while the home screen is still fetching leaves the button
+  // unrendered and unrenderable, and the click then burns its full timeout.
+  const start = page.getByRole('button', { name: 'Start now' });
+  await expect(start).toBeVisible({ timeout: 30_000 });
   await context.setOffline(true);
-  await page.getByRole('button', { name: 'Start now' }).click();
+  await start.click();
   await expect(page.getByLabel('Log set')).toBeVisible({ timeout: 20_000 });
   await logSet(page, '80', '5');
   await expect(page.getByText('80 kg').first()).toBeVisible();
