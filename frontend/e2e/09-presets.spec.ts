@@ -106,19 +106,18 @@ test('an adopted program is a copy, editable without touching the library', asyn
   expect(stronglifts.name).toBe('StrongLifts 5x5');
 });
 
-test('asking for a generated program says plainly when AI is not set up', async ({
+test('the importer sends people without a program to the presets shelf', async ({
   page,
   request,
 }) => {
-  // The generator lives beside the importer, and with no provider configured
-  // it must explain that rather than spinning — the same rule as every other
-  // AI surface.
+  // The importer used to offer to have the AI write a split here. It doesn't:
+  // "Don't have one?" is a route to the seven known-good programs, and that
+  // path must not depend on an AI provider being configured at all.
   await signIn(page, request);
   await page.goto('/workout-import');
   await expect(shown(page, /Don't have one\?/)).toBeVisible({ timeout: 30_000 });
 
-  await page.getByLabel('Goal').fill('get stronger');
-  await page.getByRole('button', { name: 'Write me a program' }).click();
-
-  await expect(shown(page, /set up|configure|settings/i)).toBeVisible({ timeout: 30_000 });
+  await page.getByRole('button', { name: 'Browse programs' }).click();
+  await page.waitForURL(/\/presets/, { timeout: 30_000 });
+  await expect(shown(page, 'Push / Pull / Legs')).toBeVisible({ timeout: 20_000 });
 });

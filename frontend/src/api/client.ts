@@ -829,6 +829,9 @@ export const api = {
       { method: 'POST', body: { csv } },
     ),
   exportCsvUrl: () => `${API_BASE}/sessions/export.csv`,
+  // Not wired to any screen: the import screen sends people to the presets
+  // shelf instead. Kept so re-enabling AI program generation is a UI change,
+  // not a rewrite — see ROADMAP, "AI writes a program".
   generateProgram: (input: {
     goal?: string;
     days_per_week?: number;

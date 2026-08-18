@@ -112,10 +112,6 @@ export default function WorkoutImportScreen() {
   const router = useRouter();
 
   const [text, setText] = useState('');
-  // "Write me one instead" — the same review flow, a different source.
-  const [goal, setGoal] = useState('');
-  const [daysPerWeek, setDaysPerWeek] = useState('3');
-  const [equipment, setEquipment] = useState('');
   // A logged history from another app — separate from the plan paste above,
   // because it creates sessions rather than workouts.
   const [csvText, setCsvText] = useState('');
@@ -233,24 +229,6 @@ export default function WorkoutImportScreen() {
       setError(e instanceof Error ? e.message : 'That file could not be read');
     } finally {
       setCsvBusy(false);
-    }
-  }
-
-  async function onGenerate() {
-    setError(null);
-    setReceived(0);
-    setPhase('parsing');
-    try {
-      review(
-        await api.generateProgram({
-          goal: goal.trim(),
-          days_per_week: parseInt(daysPerWeek, 10) || 3,
-          equipment: equipment.trim(),
-        }),
-      );
-    } catch (e) {
-      setPhase('input');
-      setError(aiParseErrorMessage(e));
     }
   }
 
@@ -712,50 +690,22 @@ export default function WorkoutImportScreen() {
             />
           </View>
 
-          {/* Or have one written. Same review afterwards — including the
-            * unmatched-exercise handling, which a generated program needs at
-            * least as much as a pasted one. */}
+          {/* No program to paste? Point at the shelf of known-good ones.
+            * Having the AI write a split is deliberately not offered here: a
+            * generated program is a claim about someone's training, and the
+            * presets are seven plans that already work. The endpoint still
+            * exists for when we want it back. */}
           <View className="mt-6 rounded-lg border border-iron-800 bg-iron-900/60 p-4">
             <Text variant="heading">Don&apos;t have one?</Text>
             <Text variant="muted" className="mb-3 mt-0.5">
-              Describe what you want and the AI will write a program, grounded in the
-              standard splits. You review it before anything is saved.
+              Start from a proven program — PPL, Upper/Lower, 5x5 and more. Adopt one in
+              a tap, then change whatever you like.
             </Text>
-            <TextInput
-              value={goal}
-              onChangeText={setGoal}
-              accessibilityLabel="Goal"
-              placeholder="e.g. get stronger, keep my shoulder happy"
-              placeholderTextColor="#64748b"
-              className="rounded-lg border border-iron-700 bg-iron-950 px-3 py-2.5 text-base text-iron-100"
-            />
-            <View className="mt-2 flex-row gap-2">
-              <View className="w-24">
-                <TextInput
-                  value={daysPerWeek}
-                  onChangeText={setDaysPerWeek}
-                  keyboardType="number-pad"
-                  accessibilityLabel="Days per week"
-                  placeholder="3"
-                  placeholderTextColor="#64748b"
-                  className="rounded-lg border border-iron-700 bg-iron-950 px-3 py-2.5 text-base text-iron-100"
-                />
-              </View>
-              <TextInput
-                value={equipment}
-                onChangeText={setEquipment}
-                accessibilityLabel="Equipment"
-                placeholder="Equipment — barbell, dumbbells..."
-                placeholderTextColor="#64748b"
-                className="flex-1 rounded-lg border border-iron-700 bg-iron-950 px-3 py-2.5 text-base text-iron-100"
-              />
-            </View>
             <Button
-              title="Write me a program"
+              title="Browse programs"
               variant="secondary"
-              icon="sparkles"
-              className="mt-3"
-              onPress={onGenerate}
+              icon="albums-outline"
+              onPress={() => router.push('/presets')}
             />
           </View>
         </ScrollView>
