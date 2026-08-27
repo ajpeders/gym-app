@@ -58,9 +58,17 @@ jobs:
       # Apple/Google account or an SDK: dependency compatibility, and whether
       # the native projects generate at all. `expo prebuild` is the first thing
       # an EAS build does, so a config that fails here fails there.
-      - name: expo doctor
+      #
+      # expo-doctor is ADVISORY, not gating: its version check compares the
+      # lockfile against the *latest published* Expo patches, so any upstream
+      # release turns CI red with zero repo changes (bit us 2026-08-27 on a
+      # docs-only commit). `continue-on-error` is no use on Forgejo — the
+      # commit status still goes red and REQUIRE_CI blocks the deploy — so
+      # swallow the exit code and surface the report in the log. Real native
+      # breakage is still gated by prebuild:check below.
+      - name: expo doctor (advisory)
         working-directory: frontend
-        run: npx expo-doctor
+        run: npx expo-doctor || echo "expo-doctor reported issues (advisory — see above; usually an upstream patch release, fix with 'npx expo install --check' on the dev machine)"
       - name: native config generates
         working-directory: frontend
         run: npm run prebuild:check
