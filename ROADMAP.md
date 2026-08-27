@@ -762,3 +762,10 @@ Built and tested, but not offered in the app.
 3. **Getting it on your phone** — Expo Go for dev, then EAS dev build / sideload, or eventual app-store push?
 4. **Default local model** — which Ollama model for parsing/coaching? Measured 2026-08-14: qwen2.5:7b and qwen3:8b both work, gemma can't tool-call at all. The in-app model check scores an installed model against what the app actually needs.
 5. **First milestone to build** — recommend Phase 0 + Phase 1 (a working tracker you can use), then layer AI.
+## Make this usable by others (added 2026-08-27)
+
+- [ ] Universalize the README / docs / code for outside users: document setup
+  from scratch on generic infrastructure, replace homelab-specific assumptions
+  (private hostnames, LAN addresses, personal paths and defaults) with
+  env-driven configuration plus examples, and keep the public GitHub mirror
+  directly runnable.
