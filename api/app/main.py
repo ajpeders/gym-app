@@ -4,12 +4,13 @@ from __future__ import annotations
 import logging
 from contextlib import asynccontextmanager
 
-from fastapi import APIRouter, FastAPI
+from fastapi import APIRouter, Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from .ai import telemetry as ai_telemetry
 from .config import get_settings
 from .db import SessionLocal, init_db
+from .image_overrides import use_image_overrides
 from .routes import (
     admin,
     ai,
@@ -78,8 +79,17 @@ app.add_middleware(
 )
 
 api = APIRouter(prefix="/api")
+# Routers that serialize an exercise anywhere in their responses. The dependency
+# publishes the caller's own catalog-image overrides for the request; without it
+# they'd see the shared picture. Listed rather than applied globally because the
+# auth router is partly unauthenticated (register/login) — `/auth/me/export`
+# carries the dependency on its own route instead.
+_SERIALIZES_EXERCISES = {exercises, workouts, splits, sessions, ai}
 for module in (health, errors, auth, admin, exercises, exercise_media, workouts, splits, sessions, metrics, nutrition, settings, stats, profile, progress_photos, readiness, tools, ai):
-    api.include_router(module.router)
+    api.include_router(
+        module.router,
+        dependencies=[Depends(use_image_overrides)] if module in _SERIALIZES_EXERCISES else [],
+    )
 app.include_router(api)
 
 # Tool-calling coach (companion extension). Mounted after the API routes so it

@@ -14,11 +14,13 @@ from .. import oauth
 from ..config import get_settings
 from ..db import get_db
 from ..accounts import purge_user
+from ..image_overrides import use_image_overrides
 from ..models import (
     AthleteProfile,
     BodyMetric,
     CoachMessage,
     Exercise,
+    ExerciseImageOverride,
     NutritionEntry,
     ProgressPhoto,
     Session as TrainingSession,
@@ -243,7 +245,7 @@ def delete_me(
 _EXPORT_FORMAT_VERSION = 1
 
 
-@router.get("/me/export")
+@router.get("/me/export", dependencies=[Depends(use_image_overrides)])
 def export_me(
     current: User = Depends(get_current_user), db: Session = Depends(get_db)
 ) -> dict:
@@ -299,6 +301,12 @@ def export_me(
         ],
         "custom_exercises": [
             ExerciseOut.model_validate(r).model_dump() for r in owned(Exercise, Exercise.owner_id)
+        ],
+        # Your pictures for catalog exercises you don't own. Not the exercises
+        # themselves — those are the shared catalog, which nobody exports.
+        "exercise_images": [
+            {"exercise_id": r.exercise_id, "images": r.images, "created_at": r.created_at}
+            for r in owned(ExerciseImageOverride, ExerciseImageOverride.owner_id)
         ],
         "progress_photos": [
             ProgressPhotoOut.model_validate(r).model_dump()

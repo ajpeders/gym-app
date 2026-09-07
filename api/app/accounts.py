@@ -17,6 +17,7 @@ from .models import (
     AthleteProfile,
     CoachMessage,
     Exercise,
+    ExerciseImageOverride,
     NutritionEntry,
     ProgressPhoto,
     ReadinessCheck,
@@ -40,6 +41,7 @@ _OWNED = [
     (ReadinessCheck, "owner_id"),
     # Custom exercises go; the shared catalog (owner_id NULL) is untouched.
     (Exercise, "owner_id"),
+    (ExerciseImageOverride, "owner_id"),
 ]
 
 

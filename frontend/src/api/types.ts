@@ -84,6 +84,13 @@ export interface Exercise {
   /** How a set is measured: load x reps, reps only, or a timed hold. */
   tracking_type?: 'weight_reps' | 'bodyweight' | 'time';
   owner_id: string | null;
+  /**
+   * The picture shown is one you supplied — either on your own exercise, or as
+   * your override of a catalog one. An override is indistinguishable from a
+   * catalog image by its url, and removing yours restores the catalog's rather
+   * than blanking the exercise, so the difference has to come from the server.
+   */
+  image_is_yours?: boolean;
 }
 
 export interface Paginated<T> {

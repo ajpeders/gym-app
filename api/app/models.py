@@ -137,6 +137,33 @@ class Exercise(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
 
 
+class ExerciseImageOverride(Base):
+    """Your picture for a catalog exercise you don't own.
+
+    40% of the shared catalog has no image, and some of what it does have is
+    wrong for the movement as you do it. Uploading against a global row would
+    repaint it for everyone — the one thing the import path already promises
+    never to do — so the picture is stored beside the exercise, owned by you,
+    and swapped in when *your* requests are serialized. Custom exercises you
+    own keep writing straight to `Exercise.images`; there's nobody to protect
+    them from.
+    """
+
+    __tablename__ = "exercise_image_override"
+    __table_args__ = (UniqueConstraint("owner_id", "exercise_id", name="uq_override_owner_exercise"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    owner_id: Mapped[int] = mapped_column(
+        ForeignKey("user.id", ondelete="CASCADE"), index=True, nullable=False
+    )
+    exercise_id: Mapped[int] = mapped_column(
+        ForeignKey("exercise.id", ondelete="CASCADE"), index=True, nullable=False
+    )
+    images: Mapped[list[str]] = mapped_column(JSON, default=list)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, onupdate=utcnow)
+
+
 class Split(Base):
     """A weekly training plan that owns several workouts, plus plan-level
     progression rules."""

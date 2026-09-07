@@ -11,7 +11,8 @@ from sqlalchemy.orm import Session
 
 from ..config import get_settings
 from ..db import get_db
-from ..models import Exercise, User
+from .. import image_overrides
+from ..models import Exercise, ExerciseImageOverride, User
 from ..schemas import ExerciseCreate, ExerciseListOut, ExerciseOut, ExerciseUpdate
 from ..security import get_current_user
 
@@ -135,13 +136,19 @@ def delete_exercise(
     db.commit()
 
 
-# --- images on your own exercises ------------------------------------------
+# --- images ----------------------------------------------------------------
 #
-# 40% of the catalog has no picture, and the importer turns anything it can't
-# match into a custom exercise — so the movements most likely to be blank are
-# the ones a user just brought in. Only your own exercises can be given an
-# image: the shared catalog stays as imported, exactly as the import path
-# already promises.
+# 40% of the catalog has no picture, and some of what it has is the wrong
+# variant of the movement. You can give a picture to any exercise you can see —
+# but *where it's stored* depends on who owns the exercise:
+#
+#   - your own custom exercise -> written straight onto its `images`
+#   - a shared catalog row     -> an `exercise_image_override` row owned by you
+#
+# because writing to a catalog row would repaint it for every account, which is
+# the same rule the import path follows when it refuses to edit the catalog.
+# The swap back happens on serialization (see app/image_overrides.py), so every
+# screen showing that exercise shows your picture, not just this one.
 #
 # Files land in the same `exercise-media` tree the wger mirror uses, so the
 # existing public media route serves them and every <Image> in the app renders
@@ -162,15 +169,15 @@ def _media_root() -> str:
     return os.path.join(get_settings().data_dir.rstrip("/"), "exercise-media")
 
 
-def _drop_uploaded_images(ex: Exercise) -> None:
-    """Remove media directories this exercise's own uploads created.
+def _drop_uploaded_images(images: list[str] | None) -> None:
+    """Remove media directories these urls' uploads created.
 
-    Only ever touches `exercise-media/<uuid>/` directories we minted for this
-    exercise, so a custom exercise pointed at a catalog image (or an external
-    URL) never deletes shared files.
+    Only ever touches `exercise-media/<uuid>/` directories we minted for an
+    upload, so an exercise pointed at a catalog image (or an external URL)
+    never deletes shared files.
     """
     root = os.path.realpath(_media_root())
-    for url in ex.images or []:
+    for url in images or []:
         parts = url.strip("/").split("/")
         # /api/exercise-media/<uuid>/<file>
         if len(parts) != 4 or parts[:2] != ["api", "exercise-media"]:
@@ -178,6 +185,35 @@ def _drop_uploaded_images(ex: Exercise) -> None:
         target = os.path.realpath(os.path.join(root, parts[2]))
         if target.startswith(root + os.sep) and os.path.isdir(target):
             shutil.rmtree(target, ignore_errors=True)
+
+
+def _visible_exercise(db: Session, exercise_id: int, user: User) -> Exercise:
+    ex = db.scalar(select(Exercise).where(Exercise.id == exercise_id, _visible(user)))
+    if ex is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Exercise not found"
+        )
+    return ex
+
+
+def _override_row(db: Session, exercise_id: int, user: User) -> ExerciseImageOverride | None:
+    return db.scalar(
+        select(ExerciseImageOverride).where(
+            ExerciseImageOverride.owner_id == user.id,
+            ExerciseImageOverride.exercise_id == exercise_id,
+        )
+    )
+
+
+def _serialized(db: Session, ex: Exercise) -> ExerciseOut:
+    """Re-read the overrides before serializing, so the response shows the
+    picture that was just uploaded rather than the one cached at auth time."""
+    db.commit()
+    db.refresh(ex)
+    lookup = image_overrides.current()
+    if lookup is not None:
+        lookup.forget()
+    return ExerciseOut.model_validate(ex)
 
 
 @router.post("/{exercise_id}/image", response_model=ExerciseOut)
@@ -189,7 +225,7 @@ async def upload_exercise_image(
 ) -> ExerciseOut:
     """Replace this exercise's image. One picture per exercise — a gym demo
     shot, not a gallery — so a second upload supersedes the first."""
-    ex = _owned_custom(db, exercise_id, user)
+    ex = _visible_exercise(db, exercise_id, user)
 
     ext = _IMAGE_TYPES.get((file.content_type or "").lower())
     if ext is None:
@@ -200,17 +236,26 @@ async def upload_exercise_image(
     if len(data) > _MAX_IMAGE_BYTES:
         raise HTTPException(status_code=413, detail="Image too large (max 12 MB)")
 
-    _drop_uploaded_images(ex)
+    mine = ex.owner_id == user.id
+    override = None if mine else _override_row(db, exercise_id, user)
+    _drop_uploaded_images(ex.images if mine else (override.images if override else None))
+
     folder = uuid_lib.uuid4().hex
     directory = os.path.join(_media_root(), folder)
     os.makedirs(directory, exist_ok=True)
     with open(os.path.join(directory, f"image{ext}"), "wb") as fh:
         fh.write(data)
+    url = f"/api/exercise-media/{folder}/image{ext}"
 
-    ex.images = [f"/api/exercise-media/{folder}/image{ext}"]
-    db.commit()
-    db.refresh(ex)
-    return ExerciseOut.model_validate(ex)
+    if mine:
+        ex.images = [url]
+    elif override is not None:
+        override.images = [url]
+    else:
+        # Someone else's (or nobody's) exercise: the picture is yours, stored
+        # beside it. The catalog row is never touched.
+        db.add(ExerciseImageOverride(owner_id=user.id, exercise_id=ex.id, images=[url]))
+    return _serialized(db, ex)
 
 
 @router.delete("/{exercise_id}/image", response_model=ExerciseOut)
@@ -219,9 +264,16 @@ def delete_exercise_image(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ) -> ExerciseOut:
-    ex = _owned_custom(db, exercise_id, user)
-    _drop_uploaded_images(ex)
-    ex.images = []
-    db.commit()
-    db.refresh(ex)
-    return ExerciseOut.model_validate(ex)
+    """Remove your picture. For a catalog exercise that restores the shared
+    image rather than blanking it — your override was only ever on top."""
+    ex = _visible_exercise(db, exercise_id, user)
+    if ex.owner_id == user.id:
+        _drop_uploaded_images(ex.images)
+        ex.images = []
+    else:
+        override = _override_row(db, exercise_id, user)
+        if override is None:
+            raise HTTPException(status_code=404, detail="No image of your own to remove")
+        _drop_uploaded_images(override.images)
+        db.delete(override)
+    return _serialized(db, ex)

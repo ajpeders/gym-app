@@ -174,20 +174,32 @@ export default function ExerciseDetailScreen() {
             </View>
           ) : null}
 
-          {/* Only your own exercises — the shared catalog stays as imported.
-              Most likely to be blank: movements the importer created for you. */}
-          {exercise.is_custom ? (
-            <View className="mb-3 flex-row gap-2">
+          {/* Any exercise you can see can be given a picture. Your own is
+              written to directly; a catalog one gets an override stored beside
+              it, so the shared catalog is never repainted for other accounts.
+              40% of the catalog has no image and some of the rest is the wrong
+              variant, which is why this isn't limited to custom exercises. */}
+          <View className="mb-3 flex-row gap-2">
+            <Button
+              title={exercise.image_is_yours ? 'Replace photo' : 'Add your photo'}
+              variant="secondary"
+              onPress={onPickImage}
+              loading={uploading}
+            />
+            {exercise.image_is_yours ? (
               <Button
-                title={exercise.images?.length ? 'Replace photo' : 'Add a photo'}
-                variant="secondary"
-                onPress={onPickImage}
-                loading={uploading}
+                // Removing an override reveals the catalog image again; removing
+                // the photo on your own exercise leaves it blank. Say which.
+                title={exercise.is_custom ? 'Remove' : 'Use catalog photo'}
+                variant="ghost"
+                onPress={onRemoveImage}
               />
-              {exercise.images?.length ? (
-                <Button title="Remove" variant="ghost" onPress={onRemoveImage} />
-              ) : null}
-            </View>
+            ) : null}
+          </View>
+          {!exercise.is_custom ? (
+            <Text variant="caption" className="mb-3 text-iron-400">
+              Your photo replaces the catalog one for you only.
+            </Text>
           ) : null}
 
           {imageError ? (

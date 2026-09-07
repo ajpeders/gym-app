@@ -10,6 +10,7 @@ from pydantic import (
     EmailStr,
     Field,
     computed_field,
+    field_serializer,
     field_validator,
 )
 
@@ -83,6 +84,38 @@ class ExerciseOut(BaseModel):
     is_custom: bool = False
     tracking_type: str = "weight_reps"
     owner_id: Optional[int] = None
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def image_is_yours(self) -> bool:
+        """Whether the picture being shown is one this user supplied.
+
+        The client can't tell from `images` alone — an override looks exactly
+        like a catalog image — and it needs to know, because removing yours
+        restores the catalog's rather than leaving the exercise blank.
+        """
+        from .image_overrides import current
+
+        if self.owner_id is not None:
+            return bool(self.images)
+        lookup = current()
+        return lookup is not None and lookup.images_for(self.id) is not None
+
+    @field_serializer("images")
+    def _own_picture_wins(self, images: list[str], _info) -> list[str]:
+        """Swap in this user's own picture for a catalog exercise.
+
+        Done here rather than at each route because an exercise is serialized
+        from a dozen places (workouts, splits, sessions, the export) and one of
+        them would eventually be missed. See app/image_overrides.py.
+        """
+        from .image_overrides import current
+
+        lookup = current()
+        if lookup is None:
+            return images
+        override = lookup.images_for(self.id)
+        return override if override is not None else images
 
 
 class ExerciseListOut(BaseModel):
