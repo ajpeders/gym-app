@@ -379,21 +379,32 @@ export interface SetInput {
   rest_seconds?: number | null;
 }
 
+/**
+ * A weigh-in (and whatever else was measured that day).
+ *
+ * Mirrors `BodyMetricOut`. This used to describe a `{type, value, unit}` shape
+ * the API has never returned — nothing in the app read it, so the drift went
+ * unnoticed until something did.
+ */
 export interface Metric {
-  id: string;
-  type: string;
-  value: number;
-  unit: string | null;
+  id: number;
+  owner_id: number;
+  /** Naive UTC, like every timestamp here — parse with parseServerDate. */
   recorded_at: string;
-  notes?: string | null;
+  weight: number | null;
+  body_fat: number | null;
+  measurements: Record<string, unknown>;
+  notes: string | null;
 }
 
 export interface MetricInput {
-  type: string;
-  value: number;
-  unit?: string | null;
-  recorded_at?: string;
+  weight?: number | null;
+  body_fat?: number | null;
+  measurements?: Record<string, unknown>;
   notes?: string | null;
+  /** When it was measured. Omitted -> now; supplied, so a day you forgot to
+   *  weigh in can still be filled in afterwards. */
+  recorded_at?: string;
 }
 
 export interface FeatureFlags {

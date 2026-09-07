@@ -11,6 +11,7 @@ import { Screen } from '@/components/ui/Screen';
 import { Text } from '@/components/ui/Text';
 import { Button } from '@/components/ui/Button';
 import { Loading, EmptyState } from '@/components/ui/Feedback';
+import { WeighIns } from '@/components/WeighIns';
 import { formatDate } from '@/lib/format';
 
 const GAP = 8;
@@ -197,9 +198,12 @@ export default function ProgressScreen() {
 
   return (
     <Screen scroll={false} padded={false}>
-      <Stack.Screen options={{ headerShown: true, title: 'Progress photos' }} />
+      <Stack.Screen options={{ headerShown: true, title: 'Progress' }} />
       <ScrollView
         keyboardShouldPersistTaps="handled" className="flex-1" contentContainerClassName="px-4 pt-3 pb-28">
+        {/* Weight sits above the photos: both are how you're changing over
+            time, and the scale is the one you check more often. */}
+        <WeighIns />
         {selectedDateLabel ? (
           <View className="mb-4 rounded-2xl border border-brand/25 bg-brand/10 p-4">
             <Text variant="caption" className="font-bold uppercase tracking-wider text-brand">

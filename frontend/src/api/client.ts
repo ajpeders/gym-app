@@ -747,7 +747,7 @@ export const api = {
   metrics: () => request<Metric[]>('/metrics'),
   createMetric: (input: MetricInput) =>
     request<Metric>('/metrics', { method: 'POST', body: input }),
-  deleteMetric: (id: string) => request<void>(`/metrics/${id}`, { method: 'DELETE' }),
+  deleteMetric: (id: number) => request<void>(`/metrics/${id}`, { method: 'DELETE' }),
 
   // ---- account ----
   /** Everything this account owns, as one JSON document. */

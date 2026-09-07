@@ -111,6 +111,10 @@ Relationships that carry design intent:
 - **AthleteProfile** is per-user memory the AI reads *and* writes every session
   (experience, goals, injuries, equipment, preferences, durable notes, a
   transient `session_note`). It's injected into every coach/parse prompt.
+- **ExerciseImageOverride** is your picture for a catalog exercise nobody owns.
+  Uploading onto the shared row would repaint it for every account, so the file
+  is stored beside it and swapped in when *your* requests are serialized — see
+  "A user's data never edits the shared catalog" below.
 
 Two things from the original sketch are deliberately **not** tables: live-session
 state lives client-side (`frontend/src/state/active-workout.tsx`), and personal

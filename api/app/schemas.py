@@ -631,6 +631,11 @@ class BodyMetricCreate(BaseModel):
     body_fat: Optional[float] = None
     measurements: dict[str, Any] = {}
     notes: Optional[str] = None
+    # When it was measured. Omitted -> now, so weighing in this morning is one
+    # step; supplied, so the Tuesday you forgot can still be filled in. Without
+    # it a weigh-in could only ever be recorded on the day, which made the
+    # weight history a record of when you remembered rather than what you weigh.
+    recorded_at: Optional[datetime] = None
 
 
 # ---------------------------------------------------------------------------
