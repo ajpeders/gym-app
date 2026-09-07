@@ -19,9 +19,13 @@ import type {
   ParsedMatch,
   ParsedWorkout,
   ParseWorkoutResult,
-  WorkoutExerciseInput,
+  Split,
+  SplitImportInput,
+  SplitImportWorkout,
 } from '@/api/types';
 import { formatRepRange } from '@/lib/format';
+import { importKey, newImportNonce } from '@/lib/import-key';
+import { parseStructuredPlan, type StructuredPlan } from '@/lib/plan-parse';
 import { Screen } from '@/components/ui/Screen';
 import { Text } from '@/components/ui/Text';
 import { Card } from '@/components/ui/Card';
@@ -56,7 +60,8 @@ interface PickerState {
   exIdx: number;
 }
 
-const PLACEHOLDER = 'Paste your workout split here.';
+const PLACEHOLDER =
+  'Paste your workout split here — plain notes, a CSV, or a JSON export.';
 
 const MATCH_META: Record<ParsedMatch, { icon: string; label: string; className: string }> = {
   exact: { icon: '✓', label: 'matched', className: 'border-green-500/40 bg-green-500/10 text-green-300' },
@@ -130,9 +135,14 @@ export default function WorkoutImportScreen() {
   const [customPicker, setCustomPicker] = useState<PickerState | null>(null);
   const [customName, setCustomName] = useState('');
 
-  const [saveCurrent, setSaveCurrent] = useState(0);
   const [saveTotal, setSaveTotal] = useState(0);
   const [savedCount, setSavedCount] = useState(0);
+  const [savedSummary, setSavedSummary] = useState<string | null>(null);
+  /** Minted per parse; half of the idempotency key. See lib/import-key.ts. */
+  const [nonce, setNonce] = useState(() => newImportNonce());
+  /** Plans already on the account, to offer updating one instead of adding another. */
+  const [existingSplits, setExistingSplits] = useState<Split[]>([]);
+  const [replaceSplitId, setReplaceSplitId] = useState<number | null>(null);
 
   // Characters of model output received so far — drives the parse progress bar.
   const [received, setReceived] = useState(0);
@@ -148,12 +158,64 @@ export default function WorkoutImportScreen() {
   }, [result, includeDay, includeExercise]);
   const saveableCount = saveableWorkouts.length;
 
-  /** Load a parsed *or generated* program into the review state.
-   *
-   * Both arrive in the same shape on purpose, so a generated program gets the
-   * same review — including the unmatched-exercise handling, which a model
-   * writing a program needs at least as much as a paste does. */
-  function review(res: ParseWorkoutResult) {
+  /**
+   * A structured plan, matched to the catalog and shaped like an AI parse, so
+   * the whole review screen below works on it unchanged. No model is called:
+   * a CSV or a JSON export already says what the AI would have had to infer.
+   */
+  async function readStructured(plan: StructuredPlan): Promise<ParseWorkoutResult> {
+    const names = [...new Set(plan.days.flatMap((d) => d.exercises.map((e) => e.name)))];
+    const matches = await api.matchExercises(names);
+    const byName = new Map(matches.map((m) => [m.name, m]));
+    return {
+      provider: plan.source,
+      model: plan.source === 'csv' ? 'CSV' : 'JSON',
+      units: 'kg',
+      latency_ms: 0,
+      name: plan.name,
+      notes: plan.notes,
+      rules: plan.rules,
+      workouts: plan.days.map((d) => ({
+        name: d.name,
+        notes: d.notes,
+        rest_day: false,
+        weekdays: d.weekdays,
+        floating: d.floating,
+        optional: false,
+        exercises: d.exercises.map((e) => {
+          const m = byName.get(e.name);
+          return {
+            exercise_name: e.name,
+            exercise_id: m?.exercise_id ?? null,
+            matched_name: m?.matched_name ?? null,
+            match: m?.match ?? 'none',
+            target_sets: e.sets,
+            target_reps: e.reps,
+            target_reps_max: e.repsMax,
+            target_weight: e.weight,
+            target_weight_max: null,
+            target_duration_seconds: null,
+            target_duration_seconds_max: null,
+            notes: e.notes,
+          };
+        }),
+      })),
+    };
+  }
+
+  async function onParse() {
+    const trimmed = text.trim();
+    if (!trimmed) return;
+    setError(null);
+    setReceived(0);
+    setPhase('parsing');
+    try {
+      // Already structured? Read it directly — faster, exact, and it doesn't
+      // need an AI provider to be configured at all.
+      const structured = parseStructuredPlan(trimmed);
+      const res = structured
+        ? await readStructured(structured)
+        : await api.parseWorkoutStream(trimmed, (p) => setReceived(p.received));
       const days: Record<number, boolean> = {};
       const exs: Record<string, boolean> = {};
       const exp: Record<number, boolean> = {};
@@ -191,17 +253,17 @@ export default function WorkoutImportScreen() {
       setExpanded(exp);
       setResolutions(resolved);
       setExerciseDrafts(drafts);
+      // A fresh parse is a fresh import, even of text imported before.
+      setNonce(newImportNonce());
+      setReplaceSplitId(null);
+      // Offered as "update this plan" rather than adding a near-duplicate
+      // beside it — a failure here only costs that option.
+      const splits = await api.splits().catch(() => [] as Split[]);
+      setExistingSplits(splits);
+      const planName = (res.name ?? '').trim().toLowerCase();
+      const sameName = splits.find((sp) => sp.name.trim().toLowerCase() === planName);
+      if (sameName) setReplaceSplitId(sameName.id);
       setPhase('review');
-  }
-
-  async function onParse() {
-    const trimmed = text.trim();
-    if (!trimmed) return;
-    setError(null);
-    setReceived(0);
-    setPhase('parsing');
-    try {
-      review(await api.parseWorkoutStream(trimmed, (p) => setReceived(p.received)));
     } catch (e) {
       setPhase('input');
       setError(aiParseErrorMessage(e));
@@ -232,39 +294,20 @@ export default function WorkoutImportScreen() {
     }
   }
 
-  async function onSave() {
-    if (!result) return;
-    const toSave = result.workouts
-      .map((r, di) => ({ r, di }))
-      .filter(({ r, di }) => {
-        if (!includeDay[di] || r.rest_day) return false;
-        return r.exercises.some((_, ei) => includeExercise[exKey(di, ei)] !== false);
-      });
-
-    setSaveTotal(toSave.length);
-    setSaveCurrent(0);
-    setError(null);
-    setPhase('saving');
-
-    try {
-      let done = 0;
-      const splitName = result.name?.trim() || 'Imported split';
-      const split = await api.createSplit({
-        name: splitName,
-        notes: result.notes ?? null,
-        rules: result.rules ?? [],
-      });
-      await api.updateSplit(String(split.id), { is_active: true });
-      // Cache custom exercises created during this save, keyed by
-      // case-insensitive name, so the same unmatched exercise (repeated within a
-      // day or across days) creates ONE custom exercise and reuses its id.
-      const createdCustom = new Map<string, string>();
-      for (const { r, di } of toSave) {
-        const exercises: WorkoutExerciseInput[] = [];
-        let order = 0;
-        for (let ei = 0; ei < r.exercises.length; ei++) {
-          if (includeExercise[exKey(di, ei)] === false) continue;
-          const ex = r.exercises[ei];
+  /**
+   * The reviewed plan, exactly as it will be sent. Built separately from the
+   * save so the idempotency key can be a hash of it: the same content is a
+   * retry, different content is a new import.
+   */
+  function buildPayload(): SplitImportInput | null {
+    if (!result) return null;
+    const workouts: SplitImportWorkout[] = [];
+    result.workouts.forEach((r, di) => {
+      if (!includeDay[di] || r.rest_day) return;
+      const exercises = r.exercises
+        .map((ex, ei) => ({ ex, ei }))
+        .filter(({ ei }) => includeExercise[exKey(di, ei)] !== false)
+        .map(({ ex, ei }, order) => {
           const draft = exerciseDrafts[exKey(di, ei)] ?? {
             sets: ex.target_sets == null ? '' : String(ex.target_sets),
             reps: formatRepRange(ex.target_reps, ex.target_reps_max) ?? '',
@@ -281,25 +324,14 @@ export default function WorkoutImportScreen() {
             match: ex.match,
             mode: ex.exercise_id == null ? 'custom' : 'matched',
           };
-          // No selected catalog match → create a custom exercise so nothing is lost.
-          let exerciseId: string;
-          if (resolution.exercise_id === null) {
-            const key = resolution.exercise_name.trim().toLowerCase();
-            let cachedId = createdCustom.get(key);
-            if (!cachedId) {
-              const created = await api.createExercise({ name: resolution.exercise_name });
-              cachedId = created.id;
-              createdCustom.set(key, cachedId);
-            }
-            exerciseId = cachedId;
-          } else {
-            exerciseId = resolution.exercise_id;
-          }
           const [reps, repsMax] = parseNumberRange(draft.reps, true);
           const [weight, weightMax] = parseNumberRange(draft.weight);
           const [duration, durationMax] = parseNumberRange(draft.duration, true);
-          exercises.push({
-            exercise_id: exerciseId,
+          return {
+            // No catalog match: the server creates (or reuses) an exercise you
+            // own, so nothing is dropped and the shared catalog is untouched.
+            exercise_id: resolution.exercise_id == null ? null : Number(resolution.exercise_id),
+            custom_name: resolution.exercise_id == null ? resolution.exercise_name : null,
             order,
             target_sets: draft.sets ? parseInt(draft.sets, 10) : null,
             target_reps: reps,
@@ -309,28 +341,63 @@ export default function WorkoutImportScreen() {
             target_duration_seconds: duration,
             target_duration_seconds_max: durationMax,
             notes: draft.notes.trim() || null,
-          });
-          order += 1;
-        }
-        // A day with everything unchecked yields no exercises — never create an
-        // empty workout.
-        if (exercises.length === 0) continue;
-        await api.createWorkout({
-          name: r.name.trim() || `Workout ${done + 1}`,
-          notes: r.notes ?? undefined,
-          split_id: split.id,
-          weekdays: r.floating ? [] : r.weekdays,
-          floating: r.floating,
-          order: done,
-          exercises,
+          };
         });
-        done += 1;
-        setSaveCurrent(done);
+      // A day with everything unchecked yields no exercises — never create an
+      // empty workout.
+      if (exercises.length === 0) return;
+      workouts.push({
+        name: r.name.trim() || `Workout ${workouts.length + 1}`,
+        notes: r.notes ?? null,
+        weekdays: r.floating ? [] : r.weekdays,
+        floating: r.floating,
+        order: workouts.length,
+        exercises,
+      });
+    });
+
+    return {
+      name: result.name?.trim() || 'Imported split',
+      notes: result.notes ?? null,
+      rules: result.rules ?? [],
+      make_active: true,
+      replace_split_id: replaceSplitId,
+      workouts,
+    };
+  }
+
+  async function onSave() {
+    const payload = buildPayload();
+    if (!payload) return;
+
+    setSaveTotal(payload.workouts.length);
+    setError(null);
+    setPhase('saving');
+
+    try {
+      // One call, one transaction. The key means tapping Save again after a
+      // timeout finishes the import rather than starting a second one.
+      const res = await api.importSplit(payload, importKey(nonce, payload));
+      setSavedCount(res.created_workouts + res.updated_workouts);
+      const parts: string[] = [];
+      if (res.created_workouts) parts.push(`${res.created_workouts} added`);
+      if (res.updated_workouts) parts.push(`${res.updated_workouts} updated`);
+      if (res.removed_workouts) parts.push(`${res.removed_workouts} removed`);
+      if (res.created_exercises) {
+        parts.push(
+          `${res.created_exercises} new ${res.created_exercises === 1 ? 'exercise' : 'exercises'}`,
+        );
       }
-      setSavedCount(done);
+      setSavedSummary(parts.join(' · ') || null);
       setPhase('done');
-    } catch {
-      setError('Saving failed — some workouts may not have saved. Try again.');
+    } catch (e) {
+      // Nothing was written — the import is all-or-nothing — so "try again"
+      // really does just try again.
+      setError(
+        e instanceof Error && e.message && !e.message.startsWith('Request failed')
+          ? `${e.message} Nothing was saved — you can try again.`
+          : 'Saving failed. Nothing was saved — try again.',
+      );
       setPhase('review');
     }
   }
@@ -452,6 +519,8 @@ export default function WorkoutImportScreen() {
     setPicker(null);
     setCustomPicker(null);
     setCustomName('');
+    setReplaceSplitId(null);
+    setSavedSummary(null);
     if (clearText) setText('');
   }
 
@@ -478,7 +547,7 @@ export default function WorkoutImportScreen() {
             Saved {savedCount} {savedCount === 1 ? 'workout' : 'workouts'}
           </Text>
           <Text variant="muted" className="mt-1.5 text-center">
-            Your workouts are ready. Start a session from any of them.
+            {savedSummary ?? 'Your workouts are ready. Start a session from any of them.'}
           </Text>
           <View className="mt-6 w-full gap-2">
             <Button title="View workouts" size="lg" onPress={() => router.replace('/workouts')} />
@@ -497,8 +566,12 @@ export default function WorkoutImportScreen() {
         <Stack.Screen options={{ headerShown: true, title: 'Review import' }} />
         <ScrollView className="flex-1" contentContainerClassName="px-4 pt-3 pb-40">
           <Text variant="muted" className="mb-3">
-            Found {result?.workouts.length ?? 0} days. Fix names and scheduling, then swap,
-            remove, or create exercises before saving.
+            Found {result?.workouts.length ?? 0} days
+            {result?.provider === 'csv' || result?.provider === 'json'
+              ? ` (read straight from your ${result.provider.toUpperCase()} — no AI involved)`
+              : ''}
+            . Fix names and scheduling, then swap, remove, or create exercises
+            before saving.
           </Text>
 
           <Card className="mb-3 rounded-lg p-4">
@@ -517,6 +590,46 @@ export default function WorkoutImportScreen() {
             <Text variant="caption" className="mt-2 text-iron-400">
               This becomes the name of the split that holds all imported workouts.
             </Text>
+
+            {existingSplits.length > 0 ? (
+              <View className="mt-4 border-t border-iron-800 pt-3">
+                <Text variant="label" className="mb-2 text-brand">
+                  Where it goes
+                </Text>
+                <Pressable
+                  disabled={saving}
+                  onPress={() => setReplaceSplitId(null)}
+                  className="mb-2 flex-row items-center gap-2.5"
+                >
+                  <Ionicons
+                    name={replaceSplitId == null ? 'radio-button-on' : 'radio-button-off'}
+                    size={20}
+                    color={replaceSplitId == null ? '#5eead4' : '#64748b'}
+                  />
+                  <Text className="flex-1">Create a new plan</Text>
+                </Pressable>
+                {existingSplits.map((sp) => (
+                  <Pressable
+                    key={sp.id}
+                    disabled={saving}
+                    onPress={() => setReplaceSplitId(sp.id)}
+                    className="mb-2 flex-row items-center gap-2.5"
+                  >
+                    <Ionicons
+                      name={replaceSplitId === sp.id ? 'radio-button-on' : 'radio-button-off'}
+                      size={20}
+                      color={replaceSplitId === sp.id ? '#5eead4' : '#64748b'}
+                    />
+                    <Text className="flex-1">Update &ldquo;{sp.name}&rdquo;</Text>
+                  </Pressable>
+                ))}
+                <Text variant="caption" className="mt-1 text-iron-400">
+                  {replaceSplitId == null
+                    ? 'Re-importing a plan you already have will leave you with two of it.'
+                    : 'Days are matched by name: matching ones are updated in place and keep their history, new ones are added, and days no longer in this import are removed.'}
+                </Text>
+              </View>
+            ) : null}
           </Card>
 
           {result?.rules?.length ? (
@@ -589,7 +702,7 @@ export default function WorkoutImportScreen() {
         <BottomAction>
           {saving ? (
             <Text variant="caption" className="mb-2 text-center">
-              Saving workout {saveCurrent} of {saveTotal}…
+              Saving {saveTotal} {saveTotal === 1 ? 'workout' : 'workouts'}…
             </Text>
           ) : null}
           <View className="flex-row gap-2">
@@ -637,7 +750,9 @@ export default function WorkoutImportScreen() {
             Paste your split here
           </Text>
           <Text variant="muted" className="mb-3">
-            Drop in your workout split and the AI will turn it into workouts.
+            Drop in your workout split and it becomes editable workouts. A CSV
+            (with an exercise column) or a JSON export is read directly; anything
+            else goes to the AI.
           </Text>
 
           <TextInput
@@ -656,6 +771,7 @@ export default function WorkoutImportScreen() {
               <FormError message={error} />
             </View>
           ) : null}
+
 
           {/* A history from another app. Deterministic — no model reads a CSV. */}
           <View className="mt-6 rounded-lg border border-iron-800 bg-iron-900/60 p-4">

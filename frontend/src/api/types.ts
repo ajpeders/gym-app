@@ -149,6 +149,51 @@ export interface Workout {
  * missed, and done means since the cycle last came round. */
 export type SplitMode = 'rigid' | 'rolling';
 
+/** One reviewed row from an import: a catalog match, or a name to create. */
+export interface SplitImportExercise {
+  exercise_id?: number | null;
+  custom_name?: string | null;
+  order?: number;
+  target_sets?: number | null;
+  target_reps?: number | null;
+  target_reps_max?: number | null;
+  target_weight?: number | null;
+  target_weight_max?: number | null;
+  target_duration_seconds?: number | null;
+  target_duration_seconds_max?: number | null;
+  rest_seconds?: number | null;
+  notes?: string | null;
+}
+
+export interface SplitImportWorkout {
+  name: string;
+  notes?: string | null;
+  weekdays: number[];
+  floating: boolean;
+  order: number;
+  exercises: SplitImportExercise[];
+}
+
+export interface SplitImportInput {
+  name: string;
+  mode?: SplitMode;
+  rules?: string[];
+  notes?: string | null;
+  make_active?: boolean;
+  workouts: SplitImportWorkout[];
+  /** Reconcile into this plan instead of adding another one beside it. */
+  replace_split_id?: number | null;
+}
+
+export interface SplitImportResult {
+  split: Split;
+  created_workouts: number;
+  updated_workouts: number;
+  removed_workouts: number;
+  created_exercises: number;
+  reused_exercises: number;
+}
+
 export interface Split {
   id: number;
   owner_id: number;
@@ -515,6 +560,14 @@ export interface ParsedWorkout {
   floating: boolean;
   optional: boolean;
   exercises: ParsedWorkoutExercise[];
+}
+
+/** One name resolved against the catalog by the deterministic matcher. */
+export interface ExerciseMatch {
+  name: string;
+  exercise_id: number | null;
+  matched_name: string | null;
+  match: ParsedMatch;
 }
 
 export interface ParseWorkoutResult {

@@ -13,6 +13,7 @@ import type {
   CoachMessage,
   CoachReply,
   Exercise,
+  ExerciseMatch,
   ExerciseQuery,
   Metric,
   MetricInput,
@@ -26,6 +27,8 @@ import type {
   SessionLogInput,
   SessionSet,
   Split,
+  SplitImportInput,
+  SplitImportResult,
   SplitInput,
   Settings,
   SettingsUpdate,
@@ -627,6 +630,14 @@ export const api = {
   deleteExerciseImage: (id: string) =>
     request<Exercise>(`/exercises/${id}/image`, { method: 'DELETE' }),
 
+  /**
+   * Resolve movement names against the catalog with no model involved — the
+   * same matcher the AI import uses, on its own. Lets a CSV or JSON plan
+   * import on an account that has no AI provider set up.
+   */
+  matchExercises: (names: string[]) =>
+    request<ExerciseMatch[]>('/exercises/match', { method: 'POST', body: { names } }),
+
   // ---- splits (weekly plans) ----
   splits: () => request<Split[]>('/splits'),
   split: (id: string) => request<Split>(`/splits/${id}`),
@@ -642,6 +653,20 @@ export const api = {
   updateSplit: (id: string, input: SplitInput) =>
     request<Split>(`/splits/${id}`, { method: 'PATCH', body: input }),
   deleteSplit: (id: string) => request<void>(`/splits/${id}`, { method: 'DELETE' }),
+  /**
+   * Apply a whole reviewed plan in one transaction.
+   *
+   * The alternative — create the split, then each workout, then each custom
+   * exercise, from here — could fail halfway and leave a half-built plan that
+   * "try again" then built a second copy of. `idempotencyKey` is what makes the
+   * retry safe: same reviewed content replays the first answer.
+   */
+  importSplit: (input: SplitImportInput, idempotencyKey?: string) =>
+    request<SplitImportResult>('/splits/import', {
+      method: 'POST',
+      body: input,
+      idempotencyKey,
+    }),
 
   // ---- workouts (plan days) ----
   workouts: () => request<Workout[]>('/workouts'),

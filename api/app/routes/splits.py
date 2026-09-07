@@ -4,11 +4,12 @@ from __future__ import annotations
 from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import select
+from sqlalchemy import or_, select, update
 from sqlalchemy.orm import Session as SASession
 
 from ..db import get_db
-from ..models import Session, Split, User, Workout, WorkoutExercise
+from ..idempotency import idempotency_key, replay_or_run
+from ..models import Exercise, Session, Split, User, Workout, WorkoutExercise
 from ..rotation import done_this_cycle, up_next
 from .. import presets as preset_library
 from ..ai.service import match_exercise
@@ -19,6 +20,9 @@ from ..schemas import (
     CatchupWorkout,
     SplitCreate,
     PresetSplit,
+    SplitImportIn,
+    SplitImportOut,
+    SplitImportWorkout,
     SplitOut,
     SplitUpdate,
     TodayWorkout,
@@ -64,6 +68,203 @@ def create_split(
     db.commit()
     db.refresh(split)
     return SplitOut.model_validate(split)
+
+
+# --- import ----------------------------------------------------------------
+
+
+def _norm(name: str) -> str:
+    return " ".join(name.split()).strip().lower()
+
+
+def _resolve_exercise_ids(
+    db: SASession, payload: SplitImportIn, user: User
+) -> tuple[dict[str, int], int, int]:
+    """Map every unmatched movement name to an exercise id, creating what's missing.
+
+    Reuses one of the user's own custom exercises when the name already exists
+    rather than minting a near-duplicate on every re-import — the thing that
+    made importing the same plan twice leave two "Cable Face Pull"s behind.
+    The shared catalog is never written to; an unmatched movement always
+    becomes something *you* own.
+    """
+    wanted = {
+        _norm(ex.custom_name or ""): (ex.custom_name or "").strip()
+        for w in payload.workouts
+        for ex in w.exercises
+        if ex.exercise_id is None
+    }
+    if not wanted:
+        return {}, 0, 0
+
+    existing = {
+        _norm(row.name): row.id
+        for row in db.scalars(
+            select(Exercise).where(Exercise.owner_id == user.id)
+        ).all()
+    }
+    resolved: dict[str, int] = {}
+    created = reused = 0
+    for key, display in wanted.items():
+        found = existing.get(key)
+        if found is not None:
+            resolved[key] = found
+            reused += 1
+            continue
+        row = Exercise(name=display, is_custom=True, owner_id=user.id)
+        db.add(row)
+        db.flush()  # need the id inside this transaction
+        resolved[key] = row.id
+        existing[key] = row.id
+        created += 1
+    return resolved, created, reused
+
+
+def _validate_catalog_ids(db: SASession, payload: SplitImportIn, user: User) -> None:
+    ids = {ex.exercise_id for w in payload.workouts for ex in w.exercises if ex.exercise_id}
+    if not ids:
+        return
+    visible = {
+        row.id
+        for row in db.scalars(
+            select(Exercise).where(
+                Exercise.id.in_(ids),
+                or_(Exercise.owner_id.is_(None), Exercise.owner_id == user.id),
+            )
+        ).all()
+    }
+    missing = sorted(ids - visible)
+    if missing:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Unknown exercise_id {missing[0]}",
+        )
+
+
+def _build_rows(
+    src: SplitImportWorkout, custom_ids: dict[str, int]
+) -> list[WorkoutExercise]:
+    rows = []
+    for order, ex in enumerate(src.exercises):
+        exercise_id = ex.exercise_id or custom_ids[_norm(ex.custom_name or "")]
+        rows.append(
+            WorkoutExercise(
+                exercise_id=exercise_id,
+                order=order,
+                target_sets=ex.target_sets,
+                target_reps=ex.target_reps,
+                target_reps_max=ex.target_reps_max,
+                target_weight=ex.target_weight,
+                target_weight_max=ex.target_weight_max,
+                target_duration_seconds=ex.target_duration_seconds,
+                target_duration_seconds_max=ex.target_duration_seconds_max,
+                rest_seconds=ex.rest_seconds,
+                notes=ex.notes,
+            )
+        )
+    return rows
+
+
+def _do_import(payload: SplitImportIn, db: SASession, user: User) -> SplitImportOut:
+    _validate_catalog_ids(db, payload, user)
+    custom_ids, created_exercises, reused_exercises = _resolve_exercise_ids(db, payload, user)
+
+    if payload.replace_split_id is not None:
+        split = _get_owned(db, payload.replace_split_id, user)
+        split.name = payload.name
+        split.mode = payload.mode
+        split.rules = payload.rules
+        split.notes = payload.notes
+    else:
+        split = Split(
+            owner_id=user.id,
+            name=payload.name,
+            mode=payload.mode,
+            rules=payload.rules,
+            notes=payload.notes,
+        )
+        db.add(split)
+        db.flush()
+
+    # Match days by name so a re-import updates the workout in place. Its id is
+    # what logged sessions point at (`source_workout_id`) and what the rotation
+    # counts, so replacing the row would quietly detach a plan from its history.
+    by_name: dict[str, Workout] = {}
+    for existing in list(split.workouts):
+        by_name.setdefault(_norm(existing.name), existing)
+
+    created = updated = 0
+    kept: set[int] = set()
+    for order, src in enumerate(payload.workouts):
+        row = by_name.get(_norm(src.name))
+        if row is None:
+            row = Workout(owner_id=user.id, split_id=split.id, name=src.name)
+            db.add(row)
+            created += 1
+        else:
+            updated += 1
+        row.name = src.name
+        row.notes = src.notes
+        row.weekdays = [] if src.floating else src.weekdays
+        row.floating = src.floating
+        row.order = order
+        row.exercises = _build_rows(src, custom_ids)
+        db.flush()
+        kept.add(row.id)
+
+    removed = 0
+    for existing in list(split.workouts):
+        if existing.id in kept:
+            continue
+        # The plan no longer has this day. Detach any logged session first:
+        # SQLite doesn't enforce the ON DELETE SET NULL unless foreign keys are
+        # switched on, and a dangling source_workout_id would let the rotation
+        # count a day that no longer exists.
+        db.execute(
+            update(Session)
+            .where(Session.owner_id == user.id, Session.source_workout_id == existing.id)
+            .values(source_workout_id=None)
+        )
+        db.delete(existing)
+        removed += 1
+
+    if payload.make_active:
+        db.execute(
+            update(Split)
+            .where(Split.owner_id == user.id, Split.id != split.id)
+            .values(is_active=False)
+        )
+        split.is_active = True
+
+    db.commit()
+    db.refresh(split)
+    return SplitImportOut(
+        split=SplitOut.model_validate(split),
+        created_workouts=created,
+        updated_workouts=updated,
+        removed_workouts=removed,
+        created_exercises=created_exercises,
+        reused_exercises=reused_exercises,
+    )
+
+
+@router.post("/import", response_model=SplitImportOut, status_code=status.HTTP_201_CREATED)
+def import_split(
+    payload: SplitImportIn,
+    db: SASession = Depends(get_db),
+    user: User = Depends(get_current_user),
+    key: str | None = Depends(idempotency_key),
+) -> SplitImportOut:
+    """Apply a reviewed plan in one transaction.
+
+    All of it or none of it, so "saving failed, try again" can't leave a
+    half-built split behind — and with an `Idempotency-Key`, the retry after a
+    response that never arrived returns the first answer instead of importing
+    the same plan a second time.
+    """
+    return replay_or_run(
+        db, user, key, lambda: _do_import(payload, db, user), lambda o: o.model_dump()
+    )
 
 
 def _week_start(now: datetime) -> datetime:

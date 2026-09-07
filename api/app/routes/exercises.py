@@ -13,7 +13,14 @@ from ..config import get_settings
 from ..db import get_db
 from .. import image_overrides
 from ..models import Exercise, ExerciseImageOverride, User
-from ..schemas import ExerciseCreate, ExerciseListOut, ExerciseOut, ExerciseUpdate
+from ..schemas import (
+    ExerciseCreate,
+    ExerciseListOut,
+    ExerciseMatchIn,
+    ExerciseMatchOut,
+    ExerciseOut,
+    ExerciseUpdate,
+)
 from ..security import get_current_user
 
 router = APIRouter(prefix="/exercises", tags=["exercises"])
@@ -58,6 +65,35 @@ def list_exercises(
     return ExerciseListOut(
         items=[ExerciseOut.model_validate(r) for r in rows], total=total
     )
+
+
+@router.post("/match", response_model=list[ExerciseMatchOut])
+def match_exercises(
+    payload: ExerciseMatchIn,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> list[ExerciseMatchOut]:
+    """Resolve free-text movement names against the catalog.
+
+    The same token-overlap matcher the AI import path uses, on its own. A plan
+    pasted as CSV or JSON needs no model to read it — only this — so importing
+    a structured plan works on an account with no AI provider set up at all.
+
+    Declared before `/{exercise_id}` so the literal path wins over the int
+    converter; FastAPI matches routes in registration order.
+    """
+    from ..ai.service import _load_catalog, _match  # local: avoids an import cycle
+
+    catalog = _load_catalog(db, user.id)
+    out = []
+    for name in payload.names:
+        ex_id, match, matched_name = _match(name, catalog)
+        out.append(
+            ExerciseMatchOut(
+                name=name, exercise_id=ex_id, matched_name=matched_name, match=match
+            )
+        )
+    return out
 
 
 @router.get("/{exercise_id}", response_model=ExerciseOut)

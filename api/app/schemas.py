@@ -12,6 +12,7 @@ from pydantic import (
     computed_field,
     field_serializer,
     field_validator,
+    model_validator,
 )
 
 from .progression import cleared_rep_range
@@ -361,6 +362,89 @@ class AdoptedPreset(BaseModel):
 
     split: SplitOut
     unmatched: list[str] = []
+
+
+class ExerciseMatchIn(BaseModel):
+    """Names to resolve against the catalog. Deterministic — no model involved."""
+
+    names: list[str] = Field(default_factory=list, max_length=500)
+
+
+class ExerciseMatchOut(BaseModel):
+    name: str
+    exercise_id: Optional[int] = None
+    matched_name: Optional[str] = None
+    match: str = "none"
+
+
+# --- import ----------------------------------------------------------------
+#
+# One reviewed plan, applied in a single transaction. The client used to walk
+# this itself — create split, create each workout, create a custom exercise per
+# unmatched movement — which meant a failure halfway left a half-built split
+# behind, and the obvious "try again" built a second one next to it.
+
+
+class SplitImportExercise(BaseModel):
+    """A reviewed row. Either it resolved to the catalog (`exercise_id`) or it
+    didn't, and `custom_name` says what to create so nothing is dropped."""
+
+    exercise_id: Optional[int] = None
+    custom_name: Optional[str] = None
+    order: int = 0
+    target_sets: Optional[int] = None
+    target_reps: Optional[int] = None
+    target_reps_max: Optional[int] = None
+    target_weight: Optional[float] = None
+    target_weight_max: Optional[float] = None
+    target_duration_seconds: Optional[int] = None
+    target_duration_seconds_max: Optional[int] = None
+    rest_seconds: Optional[int] = None
+    notes: Optional[str] = None
+
+    @model_validator(mode="after")
+    def _named_or_matched(self) -> "SplitImportExercise":
+        if self.exercise_id is None and not (self.custom_name or "").strip():
+            raise ValueError("each exercise needs an exercise_id or a custom_name")
+        return self
+
+
+class SplitImportWorkout(BaseModel):
+    name: str
+    notes: Optional[str] = None
+    weekdays: list[int] = []
+    floating: bool = False
+    order: int = 0
+    exercises: list[SplitImportExercise] = []
+
+    @field_validator("weekdays")
+    @classmethod
+    def _valid_weekdays(cls, v: list[int]) -> list[int]:
+        return _validate_weekdays(v)
+
+
+class SplitImportIn(BaseModel):
+    name: str
+    mode: SplitMode = "rigid"
+    rules: list[str] = []
+    notes: Optional[str] = None
+    make_active: bool = True
+    workouts: list[SplitImportWorkout] = []
+    # Reconcile into an existing plan instead of adding another one next to it.
+    # Days are matched by name, so a re-import keeps each workout's id — and
+    # with it, the history that points at it.
+    replace_split_id: Optional[int] = None
+
+
+class SplitImportOut(BaseModel):
+    """What the import did, so the review screen can say it plainly."""
+
+    split: SplitOut
+    created_workouts: int = 0
+    updated_workouts: int = 0
+    removed_workouts: int = 0
+    created_exercises: int = 0
+    reused_exercises: int = 0
 
 
 # ---------------------------------------------------------------------------
