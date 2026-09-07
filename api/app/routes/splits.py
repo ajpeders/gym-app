@@ -8,6 +8,7 @@ from sqlalchemy import or_, select, update
 from sqlalchemy.orm import Session as SASession
 
 from ..db import get_db
+from ..exercise_resolve import norm as _norm, resolve_custom_names, validate_visible
 from ..idempotency import idempotency_key, replay_or_run
 from ..models import Exercise, Session, Split, User, Workout, WorkoutExercise
 from ..rotation import done_this_cycle, up_next
@@ -73,74 +74,6 @@ def create_split(
 # --- import ----------------------------------------------------------------
 
 
-def _norm(name: str) -> str:
-    return " ".join(name.split()).strip().lower()
-
-
-def _resolve_exercise_ids(
-    db: SASession, payload: SplitImportIn, user: User
-) -> tuple[dict[str, int], int, int]:
-    """Map every unmatched movement name to an exercise id, creating what's missing.
-
-    Reuses one of the user's own custom exercises when the name already exists
-    rather than minting a near-duplicate on every re-import — the thing that
-    made importing the same plan twice leave two "Cable Face Pull"s behind.
-    The shared catalog is never written to; an unmatched movement always
-    becomes something *you* own.
-    """
-    wanted = {
-        _norm(ex.custom_name or ""): (ex.custom_name or "").strip()
-        for w in payload.workouts
-        for ex in w.exercises
-        if ex.exercise_id is None
-    }
-    if not wanted:
-        return {}, 0, 0
-
-    existing = {
-        _norm(row.name): row.id
-        for row in db.scalars(
-            select(Exercise).where(Exercise.owner_id == user.id)
-        ).all()
-    }
-    resolved: dict[str, int] = {}
-    created = reused = 0
-    for key, display in wanted.items():
-        found = existing.get(key)
-        if found is not None:
-            resolved[key] = found
-            reused += 1
-            continue
-        row = Exercise(name=display, is_custom=True, owner_id=user.id)
-        db.add(row)
-        db.flush()  # need the id inside this transaction
-        resolved[key] = row.id
-        existing[key] = row.id
-        created += 1
-    return resolved, created, reused
-
-
-def _validate_catalog_ids(db: SASession, payload: SplitImportIn, user: User) -> None:
-    ids = {ex.exercise_id for w in payload.workouts for ex in w.exercises if ex.exercise_id}
-    if not ids:
-        return
-    visible = {
-        row.id
-        for row in db.scalars(
-            select(Exercise).where(
-                Exercise.id.in_(ids),
-                or_(Exercise.owner_id.is_(None), Exercise.owner_id == user.id),
-            )
-        ).all()
-    }
-    missing = sorted(ids - visible)
-    if missing:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Unknown exercise_id {missing[0]}",
-        )
-
-
 def _build_rows(
     src: SplitImportWorkout, custom_ids: dict[str, int]
 ) -> list[WorkoutExercise]:
@@ -166,8 +99,14 @@ def _build_rows(
 
 
 def _do_import(payload: SplitImportIn, db: SASession, user: User) -> SplitImportOut:
-    _validate_catalog_ids(db, payload, user)
-    custom_ids, created_exercises, reused_exercises = _resolve_exercise_ids(db, payload, user)
+    validate_visible(
+        db, user, {ex.exercise_id for w in payload.workouts for ex in w.exercises if ex.exercise_id}
+    )
+    custom_ids, created_exercises, reused_exercises = resolve_custom_names(
+        db,
+        user,
+        [ex.custom_name or "" for w in payload.workouts for ex in w.exercises if ex.exercise_id is None],
+    )
 
     if payload.replace_split_id is not None:
         split = _get_owned(db, payload.replace_split_id, user)
