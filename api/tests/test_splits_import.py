@@ -13,6 +13,14 @@ def _catalog_id(client, headers, name: str) -> int:
     return rows[0]["id"]
 
 
+def _owned_face_pulls(client, headers) -> int:
+    """Custom rows this account owns matching the unmatched movement. Other
+    suites seed catalog rows into the shared test DB, so a bare search count
+    can't be trusted; the user's own rows can."""
+    rows = client.get("/api/exercises", headers=headers, params={"q": "Cable Face Pull"}).json()["items"]
+    return sum(1 for r in rows if r["is_custom"])
+
+
 def _plan(client, headers, **over):
     payload = {
         "name": "PPL",
@@ -62,10 +70,10 @@ def test_import_creates_the_whole_plan_in_one_call(client, auth):
 def test_unmatched_movement_becomes_an_exercise_you_own(client, auth):
     headers, _, _ = auth
     client.post("/api/splits/import", headers=headers, json=_plan(client, headers))
-    rows = client.get("/api/exercises", headers=headers, params={"q": "Face Pull"}).json()["items"]
-    assert len(rows) == 1
-    assert rows[0]["is_custom"] is True
-    assert rows[0]["owner_id"] is not None
+    rows = client.get("/api/exercises", headers=headers, params={"q": "Cable Face Pull"}).json()["items"]
+    owned = [r for r in rows if r["is_custom"]]
+    assert len(owned) == 1
+    assert owned[0]["owner_id"] is not None
 
 
 def test_a_retry_under_the_same_key_does_not_import_twice(client, auth):
@@ -128,8 +136,7 @@ def test_replacing_reuses_a_custom_exercise_rather_than_duplicating_it(client, a
     body = client.post("/api/splits/import", headers=headers, json=revised).json()
     assert body["created_exercises"] == 0
     assert body["reused_exercises"] == 1
-    rows = client.get("/api/exercises", headers=headers, params={"q": "Face Pull"}).json()
-    assert rows["total"] == 1
+    assert _owned_face_pulls(client, headers) == 1
 
 
 def test_a_day_dropped_from_the_plan_is_removed_and_its_history_detached(client, auth):
@@ -165,7 +172,7 @@ def test_a_bad_exercise_id_imports_nothing_at_all(client, auth):
     # Atomic: no split, no half-built plan, and no orphan custom exercise from
     # the day that would have succeeded.
     assert client.get("/api/splits", headers=headers).json() == []
-    assert client.get("/api/exercises", headers=headers, params={"q": "Face Pull"}).json()["total"] == 0
+    assert _owned_face_pulls(client, headers) == 0
 
 
 def test_a_row_with_neither_a_match_nor_a_name_is_rejected(client, auth):
