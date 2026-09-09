@@ -520,8 +520,10 @@ Found while actually training with the app. Ordered by how much they hurt.
       launch. In progress: the shared dark palette was refreshed 2026-08-16
       from purple-navy to a deeper midnight/aqua system, with softer surfaces,
       a clearer Home "Up next" hero, and more explicit ChatGPT/OpenAI setup
-      copy. Remaining work is screen-by-screen interaction polish rather than
-      another global palette swing.
+      copy. **2026-09-07: full 31-page walkthrough with Alex's verdicts in
+      `docs/ux-review-2026-09-07.md`**, grouped into eight themes with a build
+      order: bugs → shell/header/names → logging loop → AI gating → one
+      source of truth → declutter → account → catalog data.
 - [~] **Launch checklist** — accounts/onboarding for a non-homelab user, EAS
       build + distribution, error reporting, and a data-export/delete story.
   - [x] **Data export / delete** *(2026-08-13)* — `DELETE /auth/me` already
