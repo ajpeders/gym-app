@@ -45,8 +45,7 @@ export default function OnboardingScreen() {
     <Screen>
       <Stack.Screen options={{ headerShown: false }} />
       <ScreenHeader
-        eyebrow="Welcome"
-        title={user?.display_name ? `Hi, ${user.display_name}` : 'Welcome'}
+        title={user?.display_name ? `Welcome, ${user.display_name}` : 'Welcome'}
         subtitle="Three quick things. You can change any of them later in Settings."
       />
 
@@ -71,13 +70,13 @@ export default function OnboardingScreen() {
       </Card>
 
       <Text variant="label" className="mb-2">
-        2 · AI coach (optional)
+        2 · Spotter (optional)
       </Text>
       <Card className="mb-4">
         <Text variant="body">
-          The app reads pasted workout notes, logs in plain English, and coaches
-          you. Connect a local Ollama server or use a Claude or OpenAI API key.
-          Everything else works without AI.
+          The Spotter reads pasted workout notes, logs in plain English and
+          reads your log back to you. Connect a local Ollama server or use a
+          Claude or OpenAI API key. Everything else works without AI.
         </Text>
         <Button
           title="Set up AI"

@@ -88,11 +88,11 @@ test('the estimated max comes with the percentages people train off', async ({ p
   await expect(shown(page, /80%/)).toBeVisible();
 });
 
-test('the calculators are reachable from history', async ({ page, request }) => {
+test('the calculators are reachable from More', async ({ page, request }) => {
   await signIn(page, request);
   await page.goto('/');
   await appReady(page);
-  await page.getByRole('tab', { name: /History/ }).click();
-  await page.getByRole('button', { name: 'Calculators' }).click();
+  await page.getByRole('tab', { name: /More/ }).click();
+  await page.getByRole('button', { name: /Calculators/ }).click();
   await expect(shown(page, 'Estimated max')).toBeVisible({ timeout: 30_000 });
 });

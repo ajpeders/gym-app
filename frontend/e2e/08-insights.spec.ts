@@ -143,12 +143,12 @@ test('falling short of the range asks for the same weight again', async ({ page,
   await expect(shown(page, /Same again/)).toBeVisible();
 });
 
-test('insights are reachable from history', async ({ page, request }) => {
+test('insights are reachable from More', async ({ page, request }) => {
   await signIn(page, request);
   await page.goto('/');
   await appReady(page);
-  await page.getByRole('tab', { name: /History/ }).click();
-  await page.getByRole('button', { name: 'Insights' }).click();
+  await page.getByRole('tab', { name: /More/ }).click();
+  await page.getByRole('button', { name: /Insights/ }).click();
   await expect(shown(page, 'Volume by muscle')).toBeVisible({ timeout: 30_000 });
 });
 

@@ -90,7 +90,8 @@ test('the AI screens say they are not set up rather than hanging', async ({ page
 
   await page.goto('/');
   await appReady(page);
-  await page.getByRole('tab', { name: /Spotter/ }).click();
+  await page.getByRole('tab', { name: /More/ }).click();
+  await page.getByRole('button', { name: /Spotter/ }).click();
 
   // With no provider it must say so plainly and point at the fix, rather than
   // spinning or failing silently.

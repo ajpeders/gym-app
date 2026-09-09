@@ -155,7 +155,6 @@ export default function WorkoutsScreen() {
           />
         }>
         <ScreenHeader
-          eyebrow="Plan builder"
           title="Splits"
           subtitle="Pick a program, start a day, or edit your weekly calendar."
         />

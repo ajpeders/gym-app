@@ -69,7 +69,7 @@ export default function RegisterScreen() {
               label="Display name"
               value={displayName}
               onChangeText={setDisplayName}
-              placeholder="Alex"
+              placeholder="Your name"
               autoCapitalize="words"
             />
             <Input

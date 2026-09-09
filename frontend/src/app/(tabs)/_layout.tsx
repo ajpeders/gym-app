@@ -10,7 +10,7 @@ const ICONS: Record<string, [IoniconName, IoniconName]> = {
   workouts: ['calendar', 'calendar-outline'],
   exercises: ['search', 'search-outline'],
   history: ['time', 'time-outline'],
-  coach: ['chatbubbles', 'chatbubbles-outline'],
+  more: ['grid', 'grid-outline'],
 };
 
 function tabIcon(name: keyof typeof ICONS) {
@@ -64,14 +64,17 @@ export default function TabsLayout() {
       />
       <Tabs.Screen
         name="exercises"
-        options={{ title: 'Library', tabBarIcon: tabIcon('exercises') }}
+        options={{ title: 'Exercises', tabBarIcon: tabIcon('exercises') }}
       />
       <Tabs.Screen
         name="history"
         options={{ title: 'History', tabBarIcon: tabIcon('history') }}
       />
-      <Tabs.Screen name="coach" options={{ title: 'Spotter', tabBarIcon: tabIcon('coach') }} />
+      <Tabs.Screen name="more" options={{ title: 'More', tabBarIcon: tabIcon('more') }} />
 
+      {/* Reachable from More rather than the bar: the Spotter is a dead end
+        * until an AI provider is configured, and most accounts never do. */}
+      <Tabs.Screen name="coach" options={{ href: null }} />
       <Tabs.Screen name="settings" options={{ href: null }} />
     </Tabs>
   );

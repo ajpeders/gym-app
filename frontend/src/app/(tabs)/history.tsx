@@ -6,7 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { api } from '@/api/client';
 import type { Session, StatsSummary } from '@/api/types';
 import { useActiveWorkout } from '@/state/active-workout';
-import { Screen, ScreenHeader, SectionHeader } from '@/components/ui/Screen';
+import { Screen, ScreenHeader } from '@/components/ui/Screen';
 import { Text } from '@/components/ui/Text';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -118,7 +118,6 @@ export default function HistoryScreen() {
           />
         }>
         <ScreenHeader
-          eyebrow="Training log"
           title="History"
           subtitle="Review completed sessions and fill in anything you missed."
         />
@@ -210,28 +209,10 @@ export default function HistoryScreen() {
             onPress={() => router.push('/catch-up')}
           />
         </View>
-        <View className="mt-2 flex-row gap-2">
-          <Button
-            title="Insights"
-            variant="secondary"
-            icon="stats-chart-outline"
-            className="flex-1"
-            onPress={() => router.push('/insights')}
-          />
-          <Button
-            title="Calculators"
-            variant="secondary"
-            icon="calculator-outline"
-            className="flex-1"
-            onPress={() => router.push('/calculators')}
-          />
-        </View>
 
-        <SectionHeader
-          title="History"
-          subtitle={completed.length > 0 ? `${completed.length} completed sessions` : 'No completed sessions yet'}
-          className="mt-5"
-        />
+        <Text variant="caption" className="mb-3 mt-6 text-iron-400">
+          {completed.length > 0 ? `${completed.length} completed sessions` : 'No completed sessions yet'}
+        </Text>
 
         {loading ? (
           <Loading />

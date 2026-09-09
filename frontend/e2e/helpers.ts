@@ -129,6 +129,7 @@ export async function registerOnly(
 
 export async function loginViaUi(page: Page, user: Account) {
   await page.goto('/');
+  await page.getByRole('button', { name: 'Log in' }).first().click();
   await page.getByPlaceholder('you@example.com').locator('visible=true').fill(user.email);
   await page.getByPlaceholder('\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022').locator('visible=true').fill(user.password);
   await page.getByRole('button', { name: 'Log in' }).click();

@@ -56,7 +56,7 @@ function RootNavigator() {
   useEffect(() => {
     if (!redirecting) return;
     if (!user) {
-      router.replace('/(auth)/login');
+      router.replace('/(auth)');
     } else if (needsOnboarding) {
       router.replace('/onboarding');
     } else {

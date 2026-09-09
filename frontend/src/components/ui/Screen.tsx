@@ -31,7 +31,6 @@ export function Screen({
 
   return (
     <SafeAreaView edges={edges} className={`flex-1 bg-iron-950 ${className ?? ''}`}>
-      <View pointerEvents="none" className="absolute inset-x-0 top-0 h-40 bg-iron-900/55" />
       {scroll ? (
         <ScrollView
           className="flex-1"
@@ -62,14 +61,18 @@ export function ScreenHeader({
   action?: React.ReactNode;
   className?: string;
 }) {
+  // The header is a block with its own background, bleeding to the screen
+  // edge. It used to be text over a fixed 160px band painted by Screen, which
+  // ended wherever the band did — halfway through a subtitle, or across an
+  // empty Spotter gate with nothing under it.
   return (
-    <View className={`mb-5 ${className ?? ''}`}>
+    <View className={`-mx-4 mb-5 rounded-b-3xl bg-iron-900/55 px-4 pb-5 pt-2 ${className ?? ''}`}>
       {eyebrow ? <Text variant="eyebrow">{eyebrow}</Text> : null}
-      <View className="mt-1 flex-row items-start justify-between gap-3">
+      <View className={`${eyebrow ? 'mt-1' : ''} flex-row items-start justify-between gap-3`}>
         <View className="flex-1">
           <Text variant="title">{title}</Text>
           {subtitle ? (
-            <Text variant="muted" className="mt-0.5">
+            <Text variant="muted" className="mt-1">
               {subtitle}
             </Text>
           ) : null}

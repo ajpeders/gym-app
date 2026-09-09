@@ -38,7 +38,6 @@ export default function ExercisesScreen() {
     <Screen scroll={false} padded={false}>
       <View className="px-4 pt-4 pb-3">
         <ScreenHeader
-          eyebrow="Library"
           title="Exercises"
           subtitle="Find a movement or create your own."
           className="mb-0"

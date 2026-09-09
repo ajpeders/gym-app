@@ -20,8 +20,8 @@ test('a new account can register and is walked through onboarding', async ({ pag
   const user = newUser();
   await page.goto('/');
 
-  await page.getByText('Sign up').first().click();
-  await visible(page, 'Alex').fill(user.name);
+  await page.getByRole('button', { name: 'Register' }).click();
+  await visible(page, 'Your name').fill(user.name);
   await visible(page, 'you@example.com').fill(user.email);
   await visible(page, 'At least 6 characters').fill(user.password);
   await visible(page, 'Re-enter your password').fill(user.password);
@@ -45,6 +45,7 @@ test('a wrong password is refused, and says so', async ({ page, request }) => {
   });
 
   await page.goto('/');
+  await page.getByRole('button', { name: 'Log in' }).first().click();
   await visible(page, 'you@example.com').fill(user.email);
   await visible(page, '••••••••').fill('wrong-password');
   await page.getByRole('button', { name: 'Log in' }).click();
@@ -66,18 +67,21 @@ test('logging out returns to the sign-in screen and stays there after a reload',
   await page.getByLabel('Open settings').click();
   await page.getByText('Log out').first().click();
 
-  await expect(visible(page, 'you@example.com')).toBeVisible({ timeout: 20_000 });
+  // Signed out lands on the front door: Register or Log in.
+  const door = () => page.getByRole('button', { name: 'Register' });
+  await expect(door()).toBeVisible({ timeout: 20_000 });
   // A reload must not resurrect the session — the token has to be gone from
   // storage, not merely forgotten by the running app.
   await page.reload();
-  await expect(visible(page, 'you@example.com')).toBeVisible({ timeout: 20_000 });
+  await expect(door()).toBeVisible({ timeout: 20_000 });
 });
 
 test('no social buttons appear on a server with none configured', async ({ page, request }) => {
   // The default, and the common case for a self-hosted install: a button that
   // fails on tap is worse than one way in that works.
   await page.goto('/');
-  await expect(page.getByRole('button', { name: 'Log in' })).toBeVisible({ timeout: 30_000 });
+  await page.getByRole('button', { name: 'Log in' }).first().click();
+  await expect(visible(page, 'you@example.com')).toBeVisible({ timeout: 30_000 });
   await expect(page.getByText(/Continue with/)).toHaveCount(0);
 
   const res = await request.get(`${API}/auth/providers`);

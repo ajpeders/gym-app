@@ -120,7 +120,6 @@ export default function SettingsScreen() {
   return (
     <Screen>
       <ScreenHeader
-        eyebrow="Preferences"
         title="Settings"
         subtitle="Tune units, workout behavior, and your AI provider from one place."
       />
