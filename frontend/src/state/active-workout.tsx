@@ -443,6 +443,11 @@ export function ActiveWorkoutProvider({ children }: { children: React.ReactNode 
     // signal again — so the time is stamped here and travels with the queued
     // op. The server keeps the first finish it sees and won't restamp.
     const finishedAt = new Date().toISOString();
+    // Clear the screen first. The caller navigates the moment this resolves,
+    // and History used to render a "Session in progress" banner for the
+    // session that was still on its way out.
+    const closing = workout;
+    await setActive(null);
     try {
       const serverId = await resolveId(activeId);
       // Still unsynced: there is nothing to finish yet, so the finish rides the
@@ -450,14 +455,18 @@ export function ActiveWorkoutProvider({ children }: { children: React.ReactNode 
       if (isLocalSessionId(serverId)) throw { status: 0 };
       await api.finishSession(serverId, finishedAt);
     } catch (err) {
-      if ((err as { status?: number })?.status !== 0) throw err;
+      if ((err as { status?: number })?.status !== 0) {
+        // A real refusal: the session is still open on the server, so put it
+        // back rather than stranding it.
+        if (closing) await setActive(closing);
+        throw err;
+      }
       // Offline: you're done regardless. Queue it and clear the screen rather
       // than trapping someone in a session they've finished.
       await enqueueOp({ kind: 'finish', sessionId: activeId, finishedAt });
       setPendingCount(await queuedCount());
     }
-    await setActive(null);
-  }, [activeId, setActive, sync]);
+  }, [activeId, workout, setActive, sync]);
 
   const discard = useCallback(async () => {
     if (!activeId) return;

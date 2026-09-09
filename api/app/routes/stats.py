@@ -239,7 +239,7 @@ def muscle_report(
             se_id, {"primary": primary or [], "secondary": secondary or [], "sets": []}
         )
         entry["sets"].append({"set_type": set_type})
-        for muscle in list(primary or []) + list(secondary or []):
+        for muscle in analysis.canonical_muscles(list(primary or []) + list(secondary or [])):
             if muscle not in last_trained or started_at > last_trained[muscle]:
                 last_trained[muscle] = started_at
 
@@ -250,9 +250,14 @@ def muscle_report(
     }
 
     volume = analysis.hard_sets_by_muscle(list(entries.values()))
+    # Sets, not muscle credits: one bench set is one hard set, even though it
+    # is credited to chest in full and to triceps and shoulders by half.
+    total = sum(
+        1 for e in entries.values() for s in e["sets"] if analysis.is_work_set(s)
+    )
     return MuscleReport(
         weeks=weeks,
-        total_hard_sets=round(sum(volume.values()), 2),
+        total_hard_sets=float(total),
         coverage=[MuscleCoverage(**row) for row in analysis.coverage(volume, weeks)],
         ratios=[BalanceRatio(**row) for row in analysis.balance_ratios(volume)],
         readiness=[

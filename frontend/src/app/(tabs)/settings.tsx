@@ -350,8 +350,17 @@ function AiProviderControl({
   }
 
   useEffect(() => {
-    if (isOllama) void loadModels();
-  }, [isOllama, loadModels]);
+    if (!isOllama) return;
+    // Nothing to probe until a server URL is saved — asking anyway logged a
+    // 502 every time Settings opened on a fresh account.
+    if (!settings.ollama_url) {
+      setModels(null);
+      setModelsError(null);
+      setModelsNeedsUrl(true);
+      return;
+    }
+    void loadModels();
+  }, [isOllama, settings.ollama_url, loadModels]);
 
   async function runModelCheck() {
     setCheckingModel(true);

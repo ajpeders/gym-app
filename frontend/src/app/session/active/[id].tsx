@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
@@ -44,16 +44,18 @@ export default function ActiveWorkoutScreen() {
     return () => clearInterval(t);
   }, []);
 
-  const ensureLoaded = useCallback(async () => {
-    if (id && activeId !== id) {
-      await load(id);
-    }
-    setReady(true);
-  }, [id, activeId, load]);
-
+  // Load once per session id. This must not re-run when `activeId` changes:
+  // finishing clears it, and reloading then re-marked the closed session as
+  // active for a moment — long enough for History to offer to resume it.
+  const loadedFor = useRef<string | null>(null);
   useEffect(() => {
-    void ensureLoaded();
-  }, [ensureLoaded]);
+    if (!id || loadedFor.current === id) return;
+    loadedFor.current = id;
+    void (async () => {
+      if (activeId !== id) await load(id);
+      setReady(true);
+    })();
+  }, [id, activeId, load]);
 
   const onLogSet = useCallback(
     async (weId: string, input: SetInput) => {

@@ -116,5 +116,8 @@ test('catch-up shows what was scheduled against what was logged', async ({ page,
   const days = await api.get('/splits/catchup?days=7&tz_offset=0');
   expect(days).toHaveLength(7);
   expect(days.filter((d: { logged: boolean }) => d.logged)).toHaveLength(1);
-  expect(days.every((d: { scheduled: unknown[] }) => d.scheduled.length === 1)).toBeTruthy();
+  // The plan was created just now, so only today was ever on it: the days
+  // before are not "missed", whatever the weekday says.
+  expect(days[0].scheduled).toHaveLength(1);
+  expect(days.slice(1).every((d: { scheduled: unknown[] }) => d.scheduled.length === 0)).toBeTruthy();
 });

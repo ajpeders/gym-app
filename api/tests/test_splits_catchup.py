@@ -31,6 +31,21 @@ def _activate(client, headers, split_id):
     client.patch(f"/api/splits/{split_id}", headers=headers, json={"is_active": True})
 
 
+def _backdate(split_id, days):
+    """Pretend the split has existed for `days`. Catch-up only looks back as
+    far as the plan does, so a test about earlier days needs an older plan."""
+    from app.db import SessionLocal
+    from app.models import Split
+
+    db = SessionLocal()
+    try:
+        split = db.get(Split, split_id)
+        split.created_at = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(days=days)
+        db.commit()
+    finally:
+        db.close()
+
+
 def _weekday_of(d: datetime) -> int:
     """0=Sun..6=Sat, matching Workout.weekdays."""
     return (d.weekday() + 1) % 7
@@ -60,12 +75,28 @@ def test_scheduled_days_are_attached_to_their_weekday(client, auth):
     yesterday = datetime.now(timezone.utc) - timedelta(days=1)
     wid = _add_day(client, headers, sid, "Pull", [_weekday_of(yesterday)])
     _activate(client, headers, sid)
+    _backdate(sid, 30)
 
     rows = _catchup(client, headers, days=7)
     by_date = {r["date"]: r for r in rows}
     row = by_date[yesterday.date().isoformat()]
     assert [w["id"] for w in row["scheduled"]] == [wid]
     assert row["logged"] is False
+
+
+def test_nothing_was_scheduled_before_the_plan_existed(client, auth):
+    """Adopting a program must not invent a fortnight of missed days. A plan
+    created this afternoon scheduled nothing yesterday, whatever its weekdays
+    say — and a rotation that has never been trained had nothing due either."""
+    headers, _, _ = auth
+    sid = _make_split(client, headers)
+    _add_day(client, headers, sid, "Pull", list(range(7)))  # every day
+    _activate(client, headers, sid)
+
+    rows = _catchup(client, headers, days=7)
+    today = rows[0]
+    assert today["scheduled"], "today is on the plan"
+    assert all(r["scheduled"] == [] for r in rows[1:]), "the past is not"
 
 
 def test_a_day_with_nothing_scheduled_is_a_rest_day(client, auth):

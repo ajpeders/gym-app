@@ -54,14 +54,20 @@ def _log(client, headers, workout_id, days_ago):
     assert r.status_code == 201, r.text
 
 
-def _ppl(client, headers):
-    """An active rolling Push/Pull/Legs with no weekdays anywhere."""
+def _ppl(client, headers, age_days=30):
+    """An active rolling Push/Pull/Legs with no weekdays anywhere.
+
+    Old by default: catch-up looks back only as far as the plan existed, and
+    the rotation tests below reason about days before today."""
     sid = _make_split(client, headers, mode="rolling")["id"]
     ids = [
         _add_day(client, headers, sid, name, order)
         for order, name in enumerate(("Push", "Pull", "Legs"))
     ]
     _activate(client, headers, sid)
+    from tests.test_splits_catchup import _backdate
+
+    _backdate(sid, age_days)
     return sid, ids
 
 
@@ -200,6 +206,14 @@ def test_catchup_shows_what_was_up_next_on_each_day(client, auth):
     # ...and once Push is in the log, Pull is what the following days were for.
     assert [w["id"] for w in rows[_date(2)]["scheduled"]] == [pull]
     assert rows[_date(2)]["logged"] is False
+
+
+def test_a_rotation_adopted_today_owes_nothing_for_yesterday(client, auth):
+    headers, _, _ = auth
+    _ppl(client, headers, age_days=0)
+    rows = _catchup(client, headers)
+    assert rows[_date(1)]["scheduled"] == []
+    assert rows[_date(5)]["scheduled"] == []
 
 
 def test_catchup_credits_the_day_the_session_landed_on(client, auth):

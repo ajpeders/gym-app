@@ -7,6 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { api } from '@/api/client';
 import type { SplitMode, Workout, WorkoutInput } from '@/api/types';
 import { useSettings } from '@/state/settings';
+import { useStartSession } from '@/hooks/use-start-session';
 import { WorkoutEditor, type DraftExercise } from '@/components/WorkoutEditor';
 import { Loading, ErrorState } from '@/components/ui/Feedback';
 import { promptExport, workoutToJson, workoutToText } from '@/lib/export';
@@ -49,6 +50,7 @@ export default function EditWorkoutScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const { settings } = useSettings();
+  const { startSession } = useStartSession();
   const [workout, setWorkout] = useState<Workout | null>(null);
   // The owning split's mode decides whether this day has a weekday at all.
   const [splitMode, setSplitMode] = useState<SplitMode>('rigid');
@@ -134,6 +136,7 @@ export default function EditWorkoutScreen() {
       saving={saving}
       onSave={onSave}
       onDelete={onDelete}
+      onStart={() => void startSession({ workout_id: workout.id, name: workout.name })}
       onExport={() =>
         promptExport(
           workout.name,

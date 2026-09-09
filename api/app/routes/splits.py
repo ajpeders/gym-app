@@ -389,17 +389,25 @@ def catchup(
         rotation = [w.id for w in active.workouts]
         by_workout = {w.id: CatchupWorkout(id=w.id, name=w.name) for w in active.workouts}
 
+    # A plan schedules nothing for days before it existed. Without this, adopting
+    # a program this afternoon reads as a fortnight of missed days — and a
+    # rotation "replayed" over that stretch puts its first day on every one.
+    plan_since = (active.created_at - shift).date() if active is not None else None
+
     out: list[CatchupDay] = []
     for i in range(days):
         d = today_local - timedelta(days=i)
         key = d.isoformat()
         weekday = (d.weekday() + 1) % 7  # 0=Sun..6=Sat
         sessions = by_date.get(key, [])
-        if rolling:
+        on_plan = plan_since is not None and d >= plan_since
+        if rolling and on_plan:
             day_starts[key] = datetime.combine(d, datetime.min.time()) + shift
             scheduled = []
-        else:
+        elif on_plan:
             scheduled = scheduled_by_weekday.get(weekday, [])
+        else:
+            scheduled = []
         out.append(
             CatchupDay(
                 date=key,
@@ -412,6 +420,8 @@ def catchup(
 
     if rolling:
         for row in out:
+            if row.date not in day_starts:
+                continue  # before the plan existed
             # Where the rotation stood at the start of that day — for a logged
             # day that is the day it was credited to, for an unlogged one it is
             # what was outstanding.

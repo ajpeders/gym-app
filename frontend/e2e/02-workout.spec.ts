@@ -35,6 +35,10 @@ test('a planned day can be started, logged and finished', async ({ page, request
   await page.getByRole('button', { name: 'Finish session' }).click();
   // Finishing lands on History, where the bout is now a completed session.
   await expect(page.getByText(/completed session/i).first()).toBeVisible({ timeout: 20_000 });
+  // ...and not, even briefly, one still in progress. The finish flow used to
+  // clear the active session after the server call, so History rendered a
+  // "Resume" banner for a session that had just been closed.
+  await expect(page.getByText('Session in progress')).toHaveCount(0);
 
   // The server's copy is the one that survives the app being closed.
   const { items: sessions } = await api.get('/sessions');

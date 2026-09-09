@@ -59,6 +59,29 @@ def test_muscle_volume_counts_this_athletes_sets_only(client, auth, auth2):
     assert by_muscle["triceps"]["weekly_sets"] == 1.5
 
 
+def test_catalog_spellings_reach_the_landmarks(client, auth):
+    """The seeded catalog tags "Chest", "Quads" and "Abs"; the landmark table
+    speaks "chest", "quadriceps", "abdominals". One bench set used to count in
+    the headline total and show as "nothing logged" on every bar."""
+    headers, _, _ = auth
+    bench = _exercise(client, headers, "E2E Cat Bench", ["Chest"], ["Triceps"])
+    squat = _exercise(client, headers, "E2E Cat Squat", ["Quads", "Glutes"])
+    crunch = _exercise(client, headers, "E2E Cat Crunch", ["Obliquus externus abdominis", "Abs"])
+    _log(client, headers, bench["id"], [_set()] * 2)
+    _log(client, headers, squat["id"], [_set()] * 3)
+    _log(client, headers, crunch["id"], [_set()] * 1)
+
+    body = client.get("/api/stats/muscles?weeks=1", headers=headers).json()
+    by_muscle = {r["muscle"]: r["weekly_sets"] for r in body["coverage"]}
+    assert by_muscle["chest"] == 2.0
+    assert by_muscle["triceps"] == 1.0
+    assert by_muscle["quadriceps"] == 3.0
+    assert by_muscle["glutes"] == 3.0
+    assert by_muscle["abdominals"] == 1.0  # both tags are the same landmark, credited once
+    assert body["total_hard_sets"] == 6.0
+    assert {r["muscle"] for r in body["readiness"]} >= {"chest", "quadriceps", "abdominals"}
+
+
 def test_only_the_requested_window_is_counted(client, auth):
     headers, _, _ = auth
     ex = _exercise(client, headers, "E2E Row", ["back"])

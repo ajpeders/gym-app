@@ -10,7 +10,7 @@ import { Screen } from '@/components/ui/Screen';
 import { Text } from '@/components/ui/Text';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
-import { Loading, ErrorState } from '@/components/ui/Feedback';
+import { Loading, ErrorState, EmptyState } from '@/components/ui/Feedback';
 import { confirm } from '@/lib/confirm';
 import { relativeTime } from '@/lib/format';
 
@@ -69,10 +69,11 @@ export default function AdminScreen() {
     }
   }, []);
 
+  const admin = user?.is_admin === true;
   useFocusEffect(
     useCallback(() => {
-      void fetchAll();
-    }, [fetchAll]),
+      if (admin) void fetchAll();
+    }, [admin, fetchAll]),
   );
 
   async function resetPassword(target: AdminUser) {
@@ -111,7 +112,7 @@ export default function AdminScreen() {
     return (
       <Screen scroll={false} padded={false}>
         <Stack.Screen options={{ headerShown: true, title: 'Admin' }} />
-        <ErrorState message="This area is for the person who runs this server." />
+        <EmptyState title="Admin only" subtitle="This area is for the person who runs this server." />
       </Screen>
     );
   }

@@ -52,6 +52,8 @@ interface WorkoutEditorProps {
   onDelete?: () => void;
   /** When set, a share button appears in the header (export the saved workout). */
   onExport?: () => void;
+  /** Start a session from this day. Present on saved workouts only. */
+  onStart?: () => void;
 }
 
 function formatNumberRange(low: number | null | undefined, high: number | null | undefined) {
@@ -92,6 +94,7 @@ export function WorkoutEditor({
   onSave,
   onDelete,
   onExport,
+  onStart,
 }: WorkoutEditorProps) {
   const { settings } = useSettings();
   const { configured: aiConfigured } = useAiStatus();
@@ -256,18 +259,33 @@ export function WorkoutEditor({
         options={{
           headerShown: true,
           title,
-          headerRight: onExport
-            ? () => (
-                <Pressable
-                  onPress={onExport}
-                  hitSlop={12}
-                  accessibilityRole="button"
-                  accessibilityLabel="Export workout"
-                  className="pl-3 active:opacity-60">
-                  <Ionicons name="share-outline" size={22} color="#5eead4" />
-                </Pressable>
-              )
-            : undefined,
+          headerRight:
+            onExport || onStart
+              ? () => (
+                  <View className="flex-row items-center">
+                    {onExport ? (
+                      <Pressable
+                        onPress={onExport}
+                        hitSlop={12}
+                        accessibilityRole="button"
+                        accessibilityLabel="Export workout"
+                        className="pl-3 active:opacity-60">
+                        <Ionicons name="share-outline" size={22} color="#5eead4" />
+                      </Pressable>
+                    ) : null}
+                    {onStart ? (
+                      <Pressable
+                        onPress={onStart}
+                        hitSlop={12}
+                        accessibilityRole="button"
+                        accessibilityLabel="Start this workout"
+                        className="pl-4 active:opacity-60">
+                        <Ionicons name="play-circle" size={24} color="#5eead4" />
+                      </Pressable>
+                    ) : null}
+                  </View>
+                )
+              : undefined,
         }}
       />
       <ScrollView className="flex-1" contentContainerClassName="px-4 pt-3 pb-40" keyboardShouldPersistTaps="handled">

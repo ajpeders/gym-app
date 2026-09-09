@@ -206,6 +206,11 @@ export default function SplitDetailScreen() {
   // Workouts scheduled on a given weekday (0=Sun..6=Sat).
   const workoutsForDay = (day: number): Workout[] =>
     ordered.filter((w) => !w.floating && w.weekdays.includes(day));
+  // What today is for: the rotation's next day, or the first of today's
+  // scheduled days that isn't done yet. Nothing on a rest day.
+  const due: Workout | undefined = rolling
+    ? ordered.find((w) => String(w.id) === String(upNextId))
+    : workoutsForDay(todayDow).find((w) => !doneToday.has(w.id));
 
   return (
     <Screen scroll={false} padded={false} edges={['left', 'right']}>
@@ -395,7 +400,18 @@ export default function SplitDetailScreen() {
           </>
         ) : null}
 
-        {/* Workout cards */}
+        {/* One Start, for the day that is due. A Start on every row sat where
+          * a thumb lands when opening a workout, and started one instead. */}
+        {due ? (
+          <Button
+            title={`Start ${due.name}`}
+            icon="play"
+            className="mt-6"
+            onPress={() => void startSession({ workout_id: due.id, name: due.name })}
+          />
+        ) : null}
+
+        {/* Workout cards: tap to open. Starting any other day lives on its page. */}
         <Text variant="heading" className="mb-2 mt-6">
           Workouts
         </Text>
@@ -410,14 +426,6 @@ export default function SplitDetailScreen() {
                   {w.exercises.length} exercises
                 </Text>
               </View>
-              <Pressable
-                onPress={() => void startSession({ workout_id: w.id, name: w.name })}
-                className="mr-2 flex-row items-center rounded-lg bg-brand px-3 py-2 active:bg-brand-600">
-                <Ionicons name="play" size={13} color="#030712" />
-                <Text variant="caption" className="ml-1 font-bold text-iron-950">
-                  Start
-                </Text>
-              </Pressable>
               <Ionicons name="chevron-forward" size={18} color="#475569" />
             </View>
           </Card>

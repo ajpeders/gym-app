@@ -46,7 +46,52 @@ _RATIOS: list[tuple[str, tuple[str, ...], tuple[str, ...], float]] = [
 ]
 
 
-def _is_work_set(s: dict) -> bool:
+# The catalog spells muscles the way its sources did — "Chest", "Quads",
+# "Obliquus externus abdominis" — and the landmarks speak one lower-case
+# vocabulary. Everything crossing from a catalog tag into a number goes
+# through here, so a spelling the table doesn't know is dropped deliberately
+# rather than counted under a name no screen will ever look up.
+_MUSCLE_ALIASES: dict[str, str] = {
+    "quads": "quadriceps",
+    "abs": "abdominals",
+    "obliques": "abdominals",
+    "obliquus externus abdominis": "abdominals",
+    "lower back": "back",
+    "erector spinae": "back",
+    "trapezius": "back",
+    "traps": "back",
+    "middle back": "back",
+    "brachialis": "biceps",
+    "forearms": "biceps",
+    "soleus": "calves",
+    "gastrocnemius": "calves",
+    "delts": "shoulders",
+    "deltoids": "shoulders",
+    "pecs": "chest",
+    "pectorals": "chest",
+}
+
+
+def canonical_muscle(name: str | None) -> str | None:
+    """The landmark-table name for a catalog tag, or None if there isn't one."""
+    if not name:
+        return None
+    key = name.strip().lower()
+    key = _MUSCLE_ALIASES.get(key, key)
+    return key if key in LANDMARKS else None
+
+
+def canonical_muscles(names: list[str] | None) -> list[str]:
+    """Distinct landmark names for a tag list — "Abs" + its Latin twin is one."""
+    seen: list[str] = []
+    for n in names or []:
+        c = canonical_muscle(n)
+        if c is not None and c not in seen:
+            seen.append(c)
+    return seen
+
+
+def is_work_set(s: dict) -> bool:
     return (s.get("set_type") or "working") in _WORK_SET_TYPES
 
 
@@ -60,12 +105,15 @@ def hard_sets_by_muscle(entries: list[dict]) -> dict[str, float]:
     """
     volume: dict[str, float] = {}
     for entry in entries:
-        count = sum(1 for s in entry.get("sets", []) if _is_work_set(s))
+        count = sum(1 for s in entry.get("sets", []) if is_work_set(s))
         if not count:
             continue
-        for muscle in entry.get("primary") or []:
+        primary = canonical_muscles(entry.get("primary"))
+        for muscle in primary:
             volume[muscle] = volume.get(muscle, 0.0) + count
-        for muscle in entry.get("secondary") or []:
+        for muscle in canonical_muscles(entry.get("secondary")):
+            if muscle in primary:
+                continue  # already credited in full
             volume[muscle] = volume.get(muscle, 0.0) + count * _SECONDARY_CREDIT
     return volume
 
@@ -147,7 +195,7 @@ def tonnage(sets: list[dict]) -> float:
     """Total load moved in the working sets: sum of weight x reps."""
     total = 0.0
     for s in sets:
-        if not _is_work_set(s):
+        if not is_work_set(s):
             continue
         weight, reps = s.get("weight"), s.get("reps")
         if weight is None or reps is None:
