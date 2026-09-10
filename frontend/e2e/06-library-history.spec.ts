@@ -23,7 +23,7 @@ test('the catalog can be searched and an exercise inspected', async ({ page, req
   const target = await findExercise(request, account.token, 'deadlift');
 
   await page.goto('/exercises');
-  await expect(shown(page, /of \d+ exercises/)).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByPlaceholder(/Search/)).toBeVisible({ timeout: 30_000 });
 
   await searchCatalog(page, target.name);
   await expect(shown(page, target.name)).toBeVisible({ timeout: 20_000 });

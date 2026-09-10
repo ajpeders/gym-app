@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 from ..config import get_settings
 from ..db import get_db
 from .. import image_overrides
-from ..models import Exercise, ExerciseImageOverride, User
+from ..models import Exercise, ExerciseImageOverride, Session as TrainingSession, SessionExercise, User
 from ..schemas import (
     ExerciseCreate,
     ExerciseListOut,
@@ -66,7 +66,21 @@ def list_exercises(
 
     total = db.scalar(select(func.count()).select_from(stmt.subquery())) or 0
     # What was typed at the start of a name outranks it buried in the middle.
-    order = [Exercise.name]
+    # With nothing typed, what you have trained comes first, most recent at
+    # the top; an alphabetical catalog opened on "1 Leg Box Squat" and
+    # "3008 Abdominal Crunch" every time.
+    last_used = (
+        select(
+            SessionExercise.exercise_id.label("exercise_id"),
+            func.max(TrainingSession.started_at).label("last_used"),
+        )
+        .join(TrainingSession, TrainingSession.id == SessionExercise.session_id)
+        .where(TrainingSession.owner_id == user.id)
+        .group_by(SessionExercise.exercise_id)
+        .subquery()
+    )
+    stmt = stmt.outerjoin(last_used, last_used.c.exercise_id == Exercise.id)
+    order = [last_used.c.last_used.desc().nulls_last(), Exercise.name]
     if q and q.strip():
         order.insert(0, case((Exercise.name.ilike(f"{q.strip()}%"), 0), else_=1))
     rows = db.scalars(stmt.order_by(*order).offset(offset).limit(limit)).all()

@@ -23,8 +23,9 @@ test('a Strong export becomes real sessions', async ({ page, request }) => {
   const account = await signIn(page, request);
   const api = authed(request, account.token);
 
-  await page.goto('/workout-import');
-  await expect(shown(page, /Coming from Hevy or Strong/)).toBeVisible({ timeout: 30_000 });
+  await page.goto('/history');
+  await page.getByRole('button', { name: /Coming from Hevy or Strong/ }).click();
+  await expect(shown(page, 'Import a logged history')).toBeVisible({ timeout: 30_000 });
 
   await page.getByLabel('CSV export').fill(STRONG_EXPORT);
   await page.getByRole('button', { name: 'Import history' }).click();
@@ -40,7 +41,8 @@ test('a Strong export becomes real sessions', async ({ page, request }) => {
 
 test('a file that is not an export is refused with an explanation', async ({ page, request }) => {
   await signIn(page, request);
-  await page.goto('/workout-import');
+  await page.goto('/history');
+  await page.getByRole('button', { name: /Coming from Hevy or Strong/ }).click();
   await page.getByLabel('CSV export').fill('name,email\nalex,a@b.c');
   await page.getByRole('button', { name: 'Import history' }).click();
 

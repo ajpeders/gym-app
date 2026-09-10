@@ -9,6 +9,12 @@ import { expect, test, type Page } from '@playwright/test';
 
 import { appReady, authed, signIn } from './helpers';
 
+/** Programs are collapsed until tapped; Use appears on the open one. */
+async function useProgram(page: Page, name: string) {
+  await page.getByRole('button', { name, exact: true }).click();
+  await page.getByRole('button', { name: `Use ${name}` }).click();
+}
+
 const shown = (page: Page, text: string | RegExp) =>
   page.getByText(text).locator('visible=true').first();
 
@@ -27,7 +33,7 @@ test('a program can be browsed and adopted in one tap', async ({ page, request }
   await expect(shown(page, /3x \/ week/)).toBeVisible();
   await expect(shown(page, /rotation/)).toBeVisible();
 
-  await page.getByRole('button', { name: 'Use Push / Pull / Legs' }).click();
+  await useProgram(page, 'Push / Pull / Legs');
 
   // Wait for the navigation, not for text: "rotation" also appears on the list
   // behind it, and Playwright's text match is case-insensitive — asserting on
@@ -53,7 +59,7 @@ test('the first program adopted becomes the plan Home trains from', async ({ pag
   const api = authed(request, account.token);
 
   await page.goto('/presets');
-  await page.getByRole('button', { name: 'Use Full Body 3x' }).click();
+  await useProgram(page, 'Full Body 3x');
   await page.waitForURL(/\/split\//, { timeout: 30_000 });
   await expect(shown(page, 'Weekly schedule')).toBeVisible({ timeout: 20_000 });
 
@@ -71,11 +77,11 @@ test('adopting a second program leaves the first one alone', async ({ page, requ
   const api = authed(request, account.token);
 
   await page.goto('/presets');
-  await page.getByRole('button', { name: 'Use Push / Pull / Legs' }).click();
+  await useProgram(page, 'Push / Pull / Legs');
   await page.waitForURL(/\/split\//, { timeout: 30_000 });
 
   await page.goto('/presets');
-  await page.getByRole('button', { name: 'Use Upper / Lower' }).click();
+  await useProgram(page, 'Upper / Lower');
   await page.waitForURL(/\/split\//, { timeout: 30_000 });
   await expect(shown(page, 'Weekly schedule')).toBeVisible({ timeout: 20_000 });
 
@@ -95,7 +101,7 @@ test('an adopted program is a copy, editable without touching the library', asyn
   const api = authed(request, account.token);
 
   await page.goto('/presets');
-  await page.getByRole('button', { name: 'Use StrongLifts 5x5' }).click();
+  await useProgram(page, 'StrongLifts 5x5');
   await page.waitForURL(/\/split\//, { timeout: 30_000 });
 
   const [split] = await api.get('/splits');
@@ -106,17 +112,12 @@ test('an adopted program is a copy, editable without touching the library', asyn
   expect(stronglifts.name).toBe('StrongLifts 5x5');
 });
 
-test('the importer sends people without a program to the presets shelf', async ({
-  page,
-  request,
-}) => {
-  // The importer used to offer to have the AI write a split here. It doesn't:
-  // "Don't have one?" is a route to the seven known-good programs, and that
-  // path must not depend on an AI provider being configured at all.
+test('people without a program are led to the presets shelf', async ({ page, request }) => {
+  // The importer used to offer to have the AI write a split, then a box on
+  // the import page pointed at the shelf. Now Splits leads with it: the route
+  // to the seven known-good programs must not depend on an AI provider.
   await signIn(page, request);
-  await page.goto('/workout-import');
-  await expect(shown(page, /Don't have one\?/)).toBeVisible({ timeout: 30_000 });
-
+  await page.goto('/workouts');
   await page.getByRole('button', { name: 'Browse programs' }).click();
   await page.waitForURL(/\/presets/, { timeout: 30_000 });
   await expect(shown(page, 'Push / Pull / Legs')).toBeVisible({ timeout: 20_000 });

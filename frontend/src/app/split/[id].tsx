@@ -219,7 +219,11 @@ export default function SplitDetailScreen() {
           headerShown: true,
           title: 'Split',
           headerRight: () => (
-            <Pressable onPress={() => setEditing(true)} hitSlop={8} className="active:opacity-70">
+            <Pressable
+              onPress={() => setEditing(true)}
+              hitSlop={8}
+              accessibilityRole="button"
+              className="mr-2 px-2 py-1 active:opacity-70">
               <Text className="font-bold text-brand">Edit</Text>
             </Pressable>
           ),
@@ -376,13 +380,14 @@ export default function SplitDetailScreen() {
           </>
         )}
 
-        {/* Progression rules */}
+        {/* Progression rules ride under the calendar, as part of the plan
+          * rather than a section of their own. */}
         {split.rules.length > 0 ? (
           <>
-            <Text variant="heading" className="mb-2 mt-6">
-              Progression rules
-            </Text>
-            <Card className="mb-1 rounded-lg p-4">
+            <Card className="mb-1 mt-3 rounded-lg p-4">
+              <Text variant="caption" className="mb-2 font-bold uppercase tracking-wider text-iron-400">
+                Progression rules
+              </Text>
               {split.rules.map((rule, i) => (
                 <View key={i} className="mb-2.5 flex-row last:mb-0">
                   <Ionicons
@@ -431,10 +436,8 @@ export default function SplitDetailScreen() {
           </Card>
         ))}
 
-        {/* Split-level management */}
-        <Text variant="heading" className="mb-2 mt-6">
-          Manage
-        </Text>
+        {/* Split-level actions, under a rule rather than a fourth heading. */}
+        <View className="my-6 h-px bg-iron-800" />
         {!split.is_active ? (
           <Button
             title="Make this my active split"

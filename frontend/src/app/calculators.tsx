@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ScrollView, TextInput, View } from 'react-native';
 import { Stack } from 'expo-router';
 
@@ -8,7 +8,7 @@ import { useSettings } from '@/state/settings';
 import { Screen } from '@/components/ui/Screen';
 import { Text } from '@/components/ui/Text';
 import { Card } from '@/components/ui/Card';
-import { Button } from '@/components/ui/Button';
+import { Chip } from '@/components/ui/Chip';
 
 /**
  * The three sums you'd otherwise do standing at the bar.
@@ -63,6 +63,9 @@ export default function CalculatorsScreen() {
   const [maxReps, setMaxReps] = useState('5');
   const [max, setMax] = useState<OneRepMax | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // Gyms vary: the one option worth having is the bar.
+  const bars = units === 'lb' ? [45, 35, 25] : [20, 15, 10];
+  const [bar, setBar] = useState<number>(bars[0]);
 
   async function run<T>(fn: () => Promise<T>, set: (v: T) => void) {
     setError(null);
@@ -78,11 +81,45 @@ export default function CalculatorsScreen() {
     return Number.isFinite(n) && n > 0 ? n : null;
   };
 
+  // Results follow the fields as you type. Each card has one number in it, so
+  // a button to press afterwards was a step with nothing in it.
+  useEffect(() => {
+    const target = num(plateTarget);
+    if (!target) return setPlates(null);
+    const t = setTimeout(() => void run(() => api.plateBreakdown(target, units, bar), setPlates), 250);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [plateTarget, units, bar]);
+  useEffect(() => {
+    const weight = num(warmupWeight);
+    if (!weight) return setWarmup(null);
+    const t = setTimeout(() => void run(() => api.warmupSets(weight, units, bar), setWarmup), 250);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [warmupWeight, units, bar]);
+  useEffect(() => {
+    const weight = num(maxWeight);
+    const reps = num(maxReps);
+    if (!weight || !reps) return setMax(null);
+    const t = setTimeout(() => void run(() => api.oneRepMax(weight, reps), setMax), 250);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [maxWeight, maxReps]);
+
   return (
     <Screen scroll={false} padded={false}>
       <Stack.Screen options={{ headerShown: true, title: 'Calculators' }} />
       <ScrollView className="flex-1" contentContainerClassName="px-4 pt-3 pb-28">
         {error ? <Text className="mb-3 text-sm text-red-400">{error}</Text> : null}
+
+        <View className="mb-3 flex-row items-center">
+          <Text variant="caption" className="mr-2 text-iron-400">
+            Bar
+          </Text>
+          {bars.map((b) => (
+            <Chip key={b} label={`${b}${units}`} active={bar === b} onPress={() => setBar(b)} />
+          ))}
+        </View>
 
         <Card className="mb-4">
           <Text variant="heading">Plates</Text>
@@ -95,14 +132,6 @@ export default function CalculatorsScreen() {
               value={plateTarget}
               onChangeText={setPlateTarget}
               placeholder="100"
-            />
-            <Button
-              title="Work it out"
-              className="flex-1"
-              onPress={() => {
-                const target = num(plateTarget);
-                if (target) void run(() => api.plateBreakdown(target, units), setPlates);
-              }}
             />
           </View>
           {plates ? (
@@ -146,14 +175,6 @@ export default function CalculatorsScreen() {
               onChangeText={setWarmupWeight}
               placeholder="100"
             />
-            <Button
-              title="Build ramp"
-              className="flex-1"
-              onPress={() => {
-                const weight = num(warmupWeight);
-                if (weight) void run(() => api.warmupSets(weight, units), setWarmup);
-              }}
-            />
           </View>
           {warmup ? (
             <View className="mt-3 rounded-lg border border-iron-800 bg-iron-950/60 p-3">
@@ -186,15 +207,6 @@ export default function CalculatorsScreen() {
             />
             <Field label="Reps" value={maxReps} onChangeText={setMaxReps} placeholder="5" />
           </View>
-          <Button
-            title="Estimate"
-            className="mt-3"
-            onPress={() => {
-              const weight = num(maxWeight);
-              const reps = num(maxReps);
-              if (weight && reps) void run(() => api.oneRepMax(weight, reps), setMax);
-            }}
-          />
           {max ? (
             <View className="mt-3 rounded-lg border border-iron-800 bg-iron-950/60 p-3">
               <Text variant="heading">

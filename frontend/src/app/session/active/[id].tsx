@@ -17,6 +17,8 @@ import { formatDuration } from '@/lib/format';
 import { confirm } from '@/lib/confirm';
 import { isLocalSessionId, resolveId } from '@/lib/offline';
 import { isAvailable, listen, type Listener } from '@/lib/speech';
+import { api } from '@/api/client';
+import type { ReadinessCheck } from '@/api/types';
 
 export default function ActiveWorkoutScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -41,6 +43,11 @@ export default function ActiveWorkoutScreen() {
 
   // Say a set. The words go to the same parser as typed text; the review
   // screen shows what was heard before anything is written.
+  // How today feels, asked where it is useful: at the start of a session,
+  // before the first set. It used to be an input sitting in the middle of
+  // the stats page.
+  const [readiness, setReadiness] = useState<ReadinessCheck | null>(null);
+  const [readinessSaving, setReadinessSaving] = useState(false);
   const [listening, setListening] = useState(false);
   const [speechAvailable] = useState(() => isAvailable());
   const [speechError, setSpeechError] = useState<string | null>(null);
@@ -175,6 +182,38 @@ export default function ActiveWorkoutScreen() {
             ) : null}
           </View>
         </Card>
+
+        {totalSets === 0 || readiness ? (
+          <Card className="mb-3 p-4">
+            <Text variant="subheading">How today feels</Text>
+            <Text variant="caption" className="mt-0.5 text-iron-400">
+              {readiness?.advice ?? 'Advice, never a gate — the app doesn’t get to tell you not to train.'}
+            </Text>
+            <View className="mt-3 flex-row gap-2">
+              {([
+                ['Slept well', { sleep_hours: 8, energy: 4 }],
+                ['Rough night', { sleep_hours: 5, energy: 2 }],
+                ['Still sore', { soreness: 4 }],
+              ] as const).map(([label, patch]) => (
+                <Pressable
+                  key={label}
+                  accessibilityRole="button"
+                  disabled={readinessSaving}
+                  onPress={() => {
+                    setReadinessSaving(true);
+                    void api
+                      .recordReadiness(patch)
+                      .then(setReadiness)
+                      .catch(() => undefined)
+                      .finally(() => setReadinessSaving(false));
+                  }}
+                  className="min-h-[44px] flex-1 items-center justify-center rounded-lg border border-iron-700 bg-iron-900 px-2 active:opacity-70">
+                  <Text variant="caption">{label}</Text>
+                </Pressable>
+              ))}
+            </View>
+          </Card>
+        ) : null}
 
         {pendingCount > 0 ? (
           <Pressable

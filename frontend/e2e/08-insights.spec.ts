@@ -7,7 +7,7 @@
  */
 import { expect, test, type Page } from '@playwright/test';
 
-import { appReady, authed, signIn } from './helpers';
+import { appReady, authed, seedPlan, signIn } from './helpers';
 
 const shown = (page: Page, text: string | RegExp) =>
   page.getByText(text).locator('visible=true').first();
@@ -193,7 +193,11 @@ test('a check-in is advice, and it sticks', async ({ page, request }) => {
   const account = await signIn(page, request);
   const api = authed(request, account.token);
 
-  await page.goto('/insights');
+  // Asked at the start of a session, before the first set, where it matters.
+  await seedPlan(request, account.token, { name: 'Check-in day' });
+  await page.goto('/');
+  await appReady(page);
+  await page.getByRole('button', { name: 'Start now' }).click();
   await expect(shown(page, 'How today feels')).toBeVisible({ timeout: 30_000 });
 
   await page.getByRole('button', { name: 'Rough night' }).click();

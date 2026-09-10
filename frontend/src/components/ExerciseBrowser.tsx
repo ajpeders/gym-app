@@ -232,9 +232,7 @@ export function ExerciseBrowser({ onSelect, renderTrailing }: ExerciseBrowserPro
             if (nearBottom && canLoadMore) void load(false);
           }}
           scrollEventThrottle={400}>
-          <Text variant="caption" className="py-2 text-iron-400">
-            {items.length} of {total} exercises
-          </Text>
+          <View className="h-2" />
           {items.map((ex) => (
             <ExerciseRow
               key={ex.id}

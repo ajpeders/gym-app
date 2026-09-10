@@ -21,7 +21,7 @@ export function ExerciseRow({ exercise, onPress, subtitle, trailing }: ExerciseR
     <Pressable
       onPress={onPress}
       className="mb-2 flex-row items-center gap-3 rounded-lg border border-iron-800 bg-iron-900/80 p-3 active:opacity-70">
-      <ExerciseThumb images={exercise.images} size={56} radius={8} />
+      <ExerciseThumb images={exercise.images} size={56} radius={8} placeholder={false} />
       <View className="flex-1">
         <Text variant="subheading" numberOfLines={1}>
           {exercise.name}

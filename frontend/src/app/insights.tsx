@@ -216,46 +216,12 @@ export default function InsightsScreen() {
               </Text>
             </View>
             <Text variant="muted" className="mt-1">
-              {gaps.map((g) => titleCase(g.muscle)).join(', ')} — below the range that reliably
-              drives progress. Adding a set or two is usually enough.
+              {report.total_hard_sets === 0
+                ? 'Nothing logged in this window yet. Log a week first and this will say where the sets went.'
+                : `${gaps.map((g) => titleCase(g.muscle)).join(', ')} — below the range that reliably drives progress. Adding a set or two is usually enough.`}
             </Text>
           </Card>
         ) : null}
-
-        <Card className="mb-4">
-          <Text variant="heading">How today feels</Text>
-          <Text variant="muted" className="mb-3 mt-0.5">
-            Advice, never a gate — the app doesn&apos;t get to tell you not to train.
-          </Text>
-          {today?.advice ? (
-            <Text variant="label" className="mb-3">
-              {today.advice}
-            </Text>
-          ) : null}
-          <View className="flex-row gap-2">
-            {([
-              ['Slept well', { sleep_hours: 8, energy: 4 }],
-              ['Rough night', { sleep_hours: 5, energy: 2 }],
-              ['Still sore', { soreness: 4 }],
-            ] as const).map(([label, patch]) => (
-              <Pressable
-                key={label}
-                accessibilityRole="button"
-                disabled={saving}
-                onPress={() => {
-                  setSaving(true);
-                  void api
-                    .recordReadiness(patch)
-                    .then(setToday)
-                    .catch(() => undefined)
-                    .finally(() => setSaving(false));
-                }}
-                className="flex-1 items-center rounded-lg border border-iron-700 bg-iron-900 py-2 active:opacity-70">
-                <Text variant="caption">{label}</Text>
-              </Pressable>
-            ))}
-          </View>
-        </Card>
 
         <Card className="mb-4">
           <Text variant="heading">Recovery</Text>
@@ -300,7 +266,7 @@ export default function InsightsScreen() {
           ))}
         </Card>
 
-        {summary && summary.volume_by_week.length > 0 ? (
+        {summary && summary.volume_by_week.length > 1 ? (
           <Card className="mb-4">
             <Text variant="heading">Weekly tonnage</Text>
             <Text variant="muted" className="mb-3 mt-0.5">
@@ -316,7 +282,9 @@ export default function InsightsScreen() {
             <Text variant="muted" className="mb-3 mt-0.5">
               Nothing here is awarded — each one is just something your log already says.
             </Text>
-            {awards.map((award) => (
+            {/* Earned ones, then the next two: ten bars of "0 of 100000" is
+              * noise in a first week. */}
+            {[...awards.filter((a) => a.earned), ...awards.filter((a) => !a.earned).slice(0, 2)].map((award) => (
               <View key={award.slug} className="mb-2.5 last:mb-0">
                 <View className="flex-row items-center justify-between">
                   <Text variant="label" className={award.earned ? 'text-brand' : ''}>

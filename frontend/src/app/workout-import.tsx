@@ -65,7 +65,7 @@ const PLACEHOLDER =
 
 const MATCH_META: Record<ParsedMatch, { icon: string; label: string; className: string }> = {
   exact: { icon: '✓', label: 'matched', className: 'border-green-500/40 bg-green-500/10 text-green-300' },
-  fuzzy: { icon: '~', label: 'close match', className: 'border-brand/40 bg-brand/10 text-brand' },
+  fuzzy: { icon: '~', label: 'check match', className: 'border-amber-500/40 bg-amber-500/10 text-amber-300' },
   none: { icon: '⚠', label: 'will be created', className: 'border-amber-500/40 bg-amber-500/10 text-amber-300' },
 };
 
@@ -117,11 +117,6 @@ export default function WorkoutImportScreen() {
   const router = useRouter();
 
   const [text, setText] = useState('');
-  // A logged history from another app — separate from the plan paste above,
-  // because it creates sessions rather than workouts.
-  const [csvText, setCsvText] = useState('');
-  const [csvBusy, setCsvBusy] = useState(false);
-  const [csvResult, setCsvResult] = useState<string | null>(null);
   const [phase, setPhase] = useState<Phase>('input');
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<ParseWorkoutResult | null>(null);
@@ -247,6 +242,12 @@ export default function WorkoutImportScreen() {
           };
         });
       });
+      // A name from the first line of the paste beats an empty box saying
+      // "My split": the plan is called something, and it was probably typed.
+      if (!res.name?.trim()) {
+        const first = trimmed.split('\n').map((l) => l.trim()).find(Boolean) ?? '';
+        if (first && first.length <= 40 && !/\d/.test(first)) res.name = first;
+      }
       setResult(res);
       setIncludeDay(days);
       setIncludeExercise(exs);
@@ -267,30 +268,6 @@ export default function WorkoutImportScreen() {
     } catch (e) {
       setPhase('input');
       setError(aiParseErrorMessage(e));
-    }
-  }
-
-  async function onImportCsv() {
-    const csv = csvText.trim();
-    if (!csv) return;
-    setCsvBusy(true);
-    setCsvResult(null);
-    setError(null);
-    try {
-      const result = await api.importCsv(csv);
-      const missed = result.unmatched.length
-        ? ` ${result.unmatched.length} movement(s) weren't in the library: ${result.unmatched
-            .slice(0, 3)
-            .join(', ')}.`
-        : '';
-      setCsvResult(
-        `Imported ${result.sessions_created} sessions and ${result.sets_imported} sets from your ${result.format} export.${missed}`,
-      );
-      setCsvText('');
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'That file could not be read');
-    } finally {
-      setCsvBusy(false);
     }
   }
 
@@ -752,7 +729,8 @@ export default function WorkoutImportScreen() {
           <Text variant="muted" className="mb-3">
             Drop in your workout split and it becomes editable workouts. A CSV
             (with an exercise column) or a JSON export is read directly; anything
-            else goes to the AI.
+            else goes to the AI. A logged history from Hevy or Strong goes in from
+            History instead.
           </Text>
 
           <TextInput
@@ -773,57 +751,6 @@ export default function WorkoutImportScreen() {
           ) : null}
 
 
-          {/* A history from another app. Deterministic — no model reads a CSV. */}
-          <View className="mt-6 rounded-lg border border-iron-800 bg-iron-900/60 p-4">
-            <Text variant="heading">Coming from Hevy or Strong?</Text>
-            <Text variant="muted" className="mb-3 mt-0.5">
-              Paste your CSV export and your whole logged history comes with you — dates,
-              sets and all.
-            </Text>
-            <TextInput
-              value={csvText}
-              onChangeText={setCsvText}
-              accessibilityLabel="CSV export"
-              placeholder="Date,Workout Name,Exercise Name,..."
-              placeholderTextColor="#64748b"
-              multiline
-              className="h-24 rounded-lg border border-iron-700 bg-iron-950 px-3 py-2.5 text-sm text-iron-100"
-              style={{ textAlignVertical: 'top' }}
-            />
-            {csvResult ? (
-              <Text variant="caption" className="mt-2 text-brand">
-                {csvResult}
-              </Text>
-            ) : null}
-            <Button
-              title="Import history"
-              variant="secondary"
-              icon="download-outline"
-              className="mt-3"
-              loading={csvBusy}
-              disabled={!csvText.trim()}
-              onPress={() => void onImportCsv()}
-            />
-          </View>
-
-          {/* No program to paste? Point at the shelf of known-good ones.
-            * Having the AI write a split is deliberately not offered here: a
-            * generated program is a claim about someone's training, and the
-            * presets are seven plans that already work. The endpoint still
-            * exists for when we want it back. */}
-          <View className="mt-6 rounded-lg border border-iron-800 bg-iron-900/60 p-4">
-            <Text variant="heading">Don&apos;t have one?</Text>
-            <Text variant="muted" className="mb-3 mt-0.5">
-              Start from a proven program — PPL, Upper/Lower, 5x5 and more. Adopt one in
-              a tap, then change whatever you like.
-            </Text>
-            <Button
-              title="Browse programs"
-              variant="secondary"
-              icon="albums-outline"
-              onPress={() => router.push('/presets')}
-            />
-          </View>
         </ScrollView>
         <BottomAction>
           <Button title="Parse" size="lg" disabled={!text.trim()} onPress={onParse} />
@@ -1243,40 +1170,16 @@ function DayCard({
                         />
                       </View>
                     </View>
-                  ) : (
+                  ) : !exIncluded ? (
                     <View className="ml-8 mt-3 flex-row flex-wrap gap-2">
-                      {exIncluded ? (
-                        <>
-                          <ActionPill
-                            icon="create-outline"
-                            label="Edit"
-                            disabled={disabled}
-                            onPress={() => setEditingExercise(ei)}
-                          />
-                          <ActionPill
-                            icon="swap-horizontal"
-                            label="Swap"
-                            disabled={disabled}
-                            onPress={() => onSwapExercise(ei)}
-                          />
-                          <ActionPill
-                            icon="trash-outline"
-                            label="Remove"
-                            danger
-                            disabled={disabled}
-                            onPress={() => onRemoveExercise(ei)}
-                          />
-                        </>
-                      ) : (
-                        <ActionPill
-                          icon="add-circle-outline"
-                          label="Restore"
-                          disabled={disabled}
-                          onPress={() => onToggleExercise(ei)}
-                        />
-                      )}
+                      <ActionPill
+                        icon="add-circle-outline"
+                        label="Restore"
+                        disabled={disabled}
+                        onPress={() => onToggleExercise(ei)}
+                      />
                     </View>
-                  )}
+                  ) : null}
                 </View>
               );
             })

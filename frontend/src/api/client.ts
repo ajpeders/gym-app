@@ -779,10 +779,10 @@ export const api = {
   adminErrors: () => request<ClientErrorReport[]>('/admin/errors'),
   adminAiHealth: () => request<AiHealth>('/admin/ai'),
   foods: (q = '') => request<Food[]>('/nutrition/foods', { query: { q } }),
-  plateBreakdown: (target: number, units: Units) =>
-    request<PlateBreakdown>('/tools/plates', { query: { target, units } }),
-  warmupSets: (weight: number, units: Units) =>
-    request<WarmupSet[]>('/tools/warmup', { query: { weight, units } }),
+  plateBreakdown: (target: number, units: Units, bar?: number) =>
+    request<PlateBreakdown>('/tools/plates', { query: { target, units, ...(bar != null ? { bar } : {}) } }),
+  warmupSets: (weight: number, units: Units, bar?: number) =>
+    request<WarmupSet[]>('/tools/warmup', { query: { weight, units, ...(bar != null ? { bar } : {}) } }),
   oneRepMax: (weight: number, reps: number) =>
     request<OneRepMax>('/tools/one-rep-max', { query: { weight, reps } }),
   presetSplits: () => request<PresetSplit[]>('/splits/presets'),

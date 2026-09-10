@@ -21,6 +21,7 @@ import { Button } from '@/components/ui/Button';
 import { Loading, ErrorState } from '@/components/ui/Feedback';
 import { parseServerDate } from '@/lib/format';
 import { useAiStatus } from '@/hooks/use-ai-status';
+import { useRouter } from 'expo-router';
 
 const INPUT =
   'rounded-lg border border-iron-700 bg-iron-900 px-3 py-2.5 text-base text-iron-50';
@@ -118,6 +119,7 @@ function TargetRow({
 
 export default function NutritionScreen() {
   const { configured: aiConfigured } = useAiStatus();
+  const router = useRouter();
   const [entries, setEntries] = useState<NutritionEntry[]>([]);
   const [calorieTarget, setCalorieTarget] = useState<number | null>(null);
   const [proteinTarget, setProteinTarget] = useState<number | null>(null);
@@ -179,6 +181,25 @@ export default function NutritionScreen() {
     }
     return [...grouped.entries()].sort((a, b) => (a[0] < b[0] ? 1 : -1));
   }, [entries]);
+
+  // "oats 300 cal 12g" -> label, calories, protein — read here, no model.
+  const typed = useMemo(() => {
+    const text = foodQuery.trim();
+    const cal = text.match(/(\d+(?:\.\d+)?)\s*k?cal\b/i);
+    const pro = text.match(/(\d+(?:\.\d+)?)\s*(?:g|grams?)\b(?:\s*protein)?/i);
+    if (!cal && !pro) return null;
+    const label = text
+      .replace(/(\d+(?:\.\d+)?)\s*k?cal\b/gi, '')
+      .replace(/(\d+(?:\.\d+)?)\s*(?:g|grams?)\b(?:\s*protein)?/gi, '')
+      .replace(/[,·]+/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+    return {
+      label,
+      calories: cal ? Math.round(parseFloat(cal[1])) : null,
+      protein: pro ? parseFloat(pro[1]) : null,
+    };
+  }, [foodQuery]);
 
   const todayKey = dayKey(new Date().toISOString());
   const todayEntries = useMemo(
@@ -330,31 +351,71 @@ export default function NutritionScreen() {
               unit="g"
             />
             {calorieTarget == null && proteinTarget == null ? (
-              <Text variant="caption" className="mt-1 text-iron-500">
-                Set daily targets in your profile to track progress.
-              </Text>
+              <Pressable
+                onPress={() => router.push('/profile')}
+                accessibilityRole="button"
+                className="mt-1 self-start active:opacity-70">
+                <Text variant="caption" className="font-bold text-brand">
+                  Set targets
+                </Text>
+              </Pressable>
             ) : null}
           </Card>
 
-          {/* common foods */}
-          <Text variant="heading" className="mb-2">
-            Common foods
-          </Text>
-          <Card className="mb-3 rounded-[20px] p-4">
+          {/* One box for all three ways in: a food name finds the shelf, a
+            * line with numbers ("chicken 300 cal 40g") is read on the spot,
+            * and anything else can go to the model when there is one. */}
+          <Card className="mb-4 rounded-[20px] p-4">
             <TextInput
               value={foodQuery}
               onChangeText={(text) => {
                 setFoodQuery(text);
+                setPicked(null);
+                const words = text.replace(/\d+(\.\d+)?\s*(k?cal|g|grams?)\b/gi, '').trim();
+                if (!words) {
+                  setFoods([]);
+                  return;
+                }
                 void api
-                  .foods(text)
-                  .then((rows) => setFoods(text.trim() ? rows.slice(0, 6) : []))
+                  .foods(words)
+                  .then((rows) => setFoods(rows.slice(0, 6)))
                   .catch(() => setFoods([]));
               }}
-              placeholder="Search foods — chicken, rice, oats..."
+              accessibilityLabel="What did you eat"
+              placeholder="What did you eat? e.g. chicken, or oats 300 cal 12g"
               placeholderTextColor="#64748b"
               selectionColor="#5eead4"
               className={INPUT}
             />
+
+            {typed ? (
+              <Pressable
+                accessibilityRole="button"
+                disabled={busy}
+                onPress={() =>
+                  void addEntry({
+                    label: typed.label || null,
+                    calories: typed.calories,
+                    protein: typed.protein,
+                  }).then(() => {
+                    setFoodQuery('');
+                    setFoods([]);
+                  })
+                }
+                className="mt-2 flex-row items-center justify-between rounded-lg border border-brand/40 bg-brand/10 px-3 py-2.5 active:opacity-70">
+                <Text variant="label" numberOfLines={1} className="flex-1 pr-2 text-brand">
+                  Add {typed.label || 'entry'}
+                </Text>
+                <Text variant="caption" className="text-iron-300">
+                  {[
+                    typed.calories != null ? `${typed.calories} cal` : null,
+                    typed.protein != null ? `${typed.protein}g` : null,
+                  ]
+                    .filter(Boolean)
+                    .join(' · ')}
+                </Text>
+              </Pressable>
+            ) : null}
 
             {picked ? (
               <View className="mt-3">
@@ -399,103 +460,39 @@ export default function NutritionScreen() {
               </View>
             ) : null}
 
-            {foods.map((food) => (
-              <Pressable
-                key={food.slug}
-                accessibilityRole="button"
+            {!picked
+              ? foods.map((food) => (
+                  <Pressable
+                    key={food.slug}
+                    accessibilityRole="button"
+                    onPress={() => {
+                      setPicked(food);
+                      setAmount(food.unit === 'item' ? '1' : '100');
+                      setFoods([]);
+                    }}
+                    className="mt-2 flex-row items-center justify-between rounded-lg border border-iron-800 bg-iron-950/60 px-3 py-2 active:opacity-70">
+                    <Text variant="label" numberOfLines={1}>
+                      {food.name}
+                    </Text>
+                    <Text variant="caption" className="text-iron-400">
+                      {food.calories} cal · {food.protein}g
+                    </Text>
+                  </Pressable>
+                ))
+              : null}
+
+            {aiConfigured && foodQuery.trim() && !typed && !picked ? (
+              <Button
+                title="Read it with AI"
+                variant="secondary"
+                className="mt-2"
+                loading={busy}
                 onPress={() => {
-                  setPicked(food);
-                  setAmount(food.unit === 'item' ? '1' : '100');
-                  setFoods([]);
+                  setSentence(foodQuery);
+                  void onParse();
                 }}
-                className="mt-2 flex-row items-center justify-between rounded-lg border border-iron-800 bg-iron-950/60 px-3 py-2 active:opacity-70">
-                <Text variant="label" numberOfLines={1}>
-                  {food.name}
-                </Text>
-                <Text variant="caption" className="text-iron-400">
-                  {food.calories} cal · {food.protein}g
-                </Text>
-              </Pressable>
-            ))}
-          </Card>
-
-          {/* quick add */}
-          <Text variant="heading" className="mb-2">
-            Add
-          </Text>
-          <Card className="mb-3 rounded-[20px] p-4">
-            <TextInput
-              value={label}
-              onChangeText={setLabel}
-              placeholder="What did you eat?"
-              placeholderTextColor="#64748b"
-              selectionColor="#5eead4"
-              className={INPUT}
-            />
-            <View className="mt-2 flex-row gap-2">
-              <View className="flex-1">
-                <Text variant="caption" className="mb-1 text-iron-400">
-                  Calories
-                </Text>
-                <TextInput
-                  value={calories}
-                  onChangeText={setCalories}
-                  keyboardType="number-pad"
-                  placeholder="0"
-                  placeholderTextColor="#64748b"
-                  selectionColor="#5eead4"
-                  className={INPUT}
-                />
-              </View>
-              <View className="flex-1">
-                <Text variant="caption" className="mb-1 text-iron-400">
-                  Protein (g)
-                </Text>
-                <TextInput
-                  value={protein}
-                  onChangeText={setProtein}
-                  keyboardType="decimal-pad"
-                  placeholder="0"
-                  placeholderTextColor="#64748b"
-                  selectionColor="#5eead4"
-                  className={INPUT}
-                />
-              </View>
-            </View>
-            <Button
-              title="Add entry"
-              className="mt-3"
-              loading={busy}
-              disabled={!calories.trim() && !protein.trim() && !label.trim()}
-              onPress={() =>
-                void addEntry({
-                  label: label.trim() || null,
-                  calories: calories.trim() ? parseInt(calories, 10) : null,
-                  protein: protein.trim() ? parseFloat(protein) : null,
-                })
-              }
-            />
-          </Card>
-
-          {/* sentence entry — only offered when there is a model to read it */}
-          {aiConfigured ? (
-          <Card className="mb-4 rounded-[20px] p-4">
-            <View className="mb-2 flex-row items-center">
-              <Ionicons name="sparkles" size={15} color="#5eead4" />
-              <Text variant="label" className="ml-1.5 text-brand">
-                Or describe it
-              </Text>
-            </View>
-            <TextInput
-              value={sentence}
-              onChangeText={setSentence}
-              placeholder='e.g. "chicken and rice, about 800 cal 60g protein"'
-              placeholderTextColor="#64748b"
-              selectionColor="#5eead4"
-              multiline
-              className={`${INPUT} min-h-[60px]`}
-              style={{ textAlignVertical: 'top' }}
-            />
+              />
+            ) : null}
             {proposal ? (
               <View className="mt-3 rounded-2xl border border-brand/40 bg-brand/5 p-3">
                 {proposal.map((item, i) => (
@@ -528,18 +525,8 @@ export default function NutritionScreen() {
                   />
                 </View>
               </View>
-            ) : (
-              <Button
-                title="Read it"
-                variant="secondary"
-                className="mt-2"
-                loading={busy}
-                disabled={!sentence.trim()}
-                onPress={() => void onParse()}
-              />
-            )}
+            ) : null}
           </Card>
-          ) : null}
 
           {actionError ? (
             <Text className="mb-3 text-sm text-red-400">{actionError}</Text>

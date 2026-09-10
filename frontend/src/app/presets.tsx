@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { ScrollView, View } from 'react-native';
+import { Pressable, ScrollView, View } from 'react-native';
 import { Stack, useFocusEffect, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -25,6 +25,9 @@ export default function PresetsScreen() {
   const [error, setError] = useState<string | null>(null);
   const [adopting, setAdopting] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  // One program open at a time: seven identical primary buttons competed
+  // for the tap. Tap a card to read it; Use appears on the open one.
+  const [openSlug, setOpenSlug] = useState<string | null>(null);
 
   const fetch = useCallback(async () => {
     setLoading(true);
@@ -101,49 +104,57 @@ export default function PresetsScreen() {
         ) : null}
         {error ? <Text className="mb-3 text-sm text-red-400">{error}</Text> : null}
 
-        {presets.map((preset) => (
-          <Card key={preset.slug} className="mb-3">
-            <View className="flex-row items-start">
-              <View className="min-w-0 flex-1">
-                <Text variant="heading" numberOfLines={1}>
-                  {preset.name}
+        {presets.map((preset) => {
+          const open = openSlug === preset.slug;
+          return (
+            <Card key={preset.slug} className={`mb-3 ${open ? 'border-brand/40' : ''}`}>
+              <Pressable
+                onPress={() => setOpenSlug(open ? null : preset.slug)}
+                accessibilityRole="button"
+                accessibilityState={{ expanded: open }}
+                accessibilityLabel={preset.name}
+                className="active:opacity-70">
+                <View className="flex-row items-start">
+                  <View className="min-w-0 flex-1">
+                    <Text variant="heading" numberOfLines={1}>
+                      {preset.name}
+                    </Text>
+                    <Text variant="caption" className="mt-0.5 text-iron-400">
+                      {preset.days_per_week}x / week · {preset.level} ·{' '}
+                      {preset.mode === 'rolling' ? 'rotation' : 'fixed weekdays'}
+                    </Text>
+                  </View>
+                  <Ionicons name={open ? 'chevron-up' : 'chevron-down'} size={18} color="#94a3b8" />
+                </View>
+                <Text variant="muted" className="mt-2" numberOfLines={open ? undefined : 2}>
+                  {preset.description}
                 </Text>
-                <Text variant="caption" className="mt-0.5 text-iron-400">
-                  {preset.days_per_week}x / week · {preset.level} ·{' '}
-                  {preset.mode === 'rolling' ? 'rotation' : 'fixed weekdays'}
-                </Text>
-              </View>
-              <Ionicons
-                name={preset.mode === 'rolling' ? 'repeat-outline' : 'calendar-outline'}
-                size={18}
-                color="#94a3b8"
-              />
-            </View>
+              </Pressable>
 
-            <Text variant="muted" className="mt-2">
-              {preset.description}
-            </Text>
-
-            <View className="mt-3 rounded-lg border border-iron-800 bg-iron-950/60 p-3">
-              {preset.days.map((day) => (
-                <Text key={day.name} variant="caption" className="text-iron-300" numberOfLines={1}>
-                  <Text variant="caption" className="font-bold text-iron-200">
-                    {day.name}:{' '}
-                  </Text>
-                  {day.exercises.map((e) => e.exercise).join(', ')}
-                </Text>
-              ))}
-            </View>
-
-            <Button
-              title={`Use ${preset.name}`}
-              icon="add"
-              className="mt-3"
-              loading={adopting === preset.slug}
-              onPress={() => void adopt(preset)}
-            />
-          </Card>
-        ))}
+              {open ? (
+                <>
+                  <View className="mt-3 rounded-lg border border-iron-800 bg-iron-950/60 p-3">
+                    {preset.days.map((day) => (
+                      <Text key={day.name} variant="caption" className="mb-1 text-iron-300 last:mb-0">
+                        <Text variant="caption" className="font-bold text-iron-200">
+                          {day.name}:{' '}
+                        </Text>
+                        {day.exercises.map((e) => e.exercise).join(', ')}
+                      </Text>
+                    ))}
+                  </View>
+                  <Button
+                    title={`Use ${preset.name}`}
+                    icon="add"
+                    className="mt-3"
+                    loading={adopting === preset.slug}
+                    onPress={() => void adopt(preset)}
+                  />
+                </>
+              ) : null}
+            </Card>
+          );
+        })}
       </ScrollView>
     </Screen>
   );

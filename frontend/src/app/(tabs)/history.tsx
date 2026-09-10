@@ -8,6 +8,7 @@ import type { Session, StatsSummary } from '@/api/types';
 import { useActiveWorkout } from '@/state/active-workout';
 import { Screen, ScreenHeader } from '@/components/ui/Screen';
 import { StatsStrip } from '@/components/StatsStrip';
+import { HistoryCsvImport } from '@/components/HistoryCsvImport';
 import { Text } from '@/components/ui/Text';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -162,6 +163,7 @@ export default function HistoryScreen() {
             onPress={() => router.push('/catch-up')}
           />
         </View>
+        <HistoryCsvImport onImported={() => void fetchData()} />
 
         <Text variant="caption" className="mb-3 mt-6 text-iron-400">
           {completed.length > 0 ? `${completed.length} completed sessions` : 'No completed sessions yet'}

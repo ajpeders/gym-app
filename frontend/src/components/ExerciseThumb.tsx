@@ -21,6 +21,9 @@ interface Props {
    * nothing gets cut off. Defaults to 'contain' when animating, else 'cover'.
    */
   fit?: 'cover' | 'contain';
+  /** Render a stand-in tile when there is no picture. Lists pass false so the
+   *  text sits left rather than beside a fake thumbnail. */
+  placeholder?: boolean;
 }
 
 /**
@@ -38,6 +41,7 @@ export function ExerciseThumb({
   radius = 8,
   intervalMs = 850,
   fit,
+  placeholder = true,
 }: Props) {
   const contentFit = fit ?? (animate ? 'contain' : 'cover');
   const frames = (images ?? []).map(resolveMediaUrl).filter((u): u is string => !!u);
@@ -52,6 +56,7 @@ export function ExerciseThumb({
   }, [animate, frames.length, intervalMs]);
 
   if (frames.length === 0) {
+    if (!placeholder) return null;
     return (
       <View
         style={{ width: w, height: h, borderRadius: radius }}

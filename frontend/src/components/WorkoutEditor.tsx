@@ -359,16 +359,16 @@ export function WorkoutEditor({
                       disabled={idx === 0}
                       accessibilityLabel={`Move ${e.name} earlier`}
                       hitSlop={6}
-                      className="h-9 w-9 items-center justify-center rounded-lg border border-iron-700 bg-iron-900 disabled:opacity-25">
-                      <Ionicons name="arrow-up" size={17} color="#94a3b8" />
+                      className="h-11 w-11 items-center justify-center rounded-lg border border-iron-700 bg-iron-900 disabled:opacity-25">
+                      <Ionicons name="arrow-up" size={19} color="#94a3b8" />
                     </Pressable>
                     <Pressable
                       onPress={() => move(idx, 1)}
                       disabled={idx === exercises.length - 1}
                       accessibilityLabel={`Move ${e.name} later`}
                       hitSlop={6}
-                      className="h-9 w-9 items-center justify-center rounded-lg border border-iron-700 bg-iron-900 disabled:opacity-25">
-                      <Ionicons name="arrow-down" size={17} color="#94a3b8" />
+                      className="h-11 w-11 items-center justify-center rounded-lg border border-iron-700 bg-iron-900 disabled:opacity-25">
+                      <Ionicons name="arrow-down" size={19} color="#94a3b8" />
                     </Pressable>
                     <Pressable
                       onPress={() => remove(idx)}
@@ -387,6 +387,7 @@ export function WorkoutEditor({
                         label="Sets"
                         value={e.target_sets}
                         onChangeText={(v) => update(idx, { target_sets: v })}
+                        placeholder="3"
                       />
                       <Field
                         label="Reps"
@@ -399,17 +400,20 @@ export function WorkoutEditor({
                         value={e.target_weight}
                         onChangeText={(v) => update(idx, { target_weight: v })}
                         range
+                        placeholder={settings.units === 'lb' ? '135' : '60'}
                       />
                       <Field
                         label="Time (sec)"
                         value={e.target_duration}
                         onChangeText={(v) => update(idx, { target_duration: v })}
                         range
+                        placeholder="30-60"
                       />
                       <Field
                         label="Rest (sec)"
                         value={e.rest_seconds}
                         onChangeText={(v) => update(idx, { rest_seconds: v })}
+                        placeholder="90"
                       />
                     </View>
 
@@ -550,6 +554,7 @@ function Field({
   onChangeText,
   decimal,
   range,
+  placeholder,
 }: {
   label: string;
   value: string;
@@ -557,6 +562,8 @@ function Field({
   decimal?: boolean;
   // range fields accept "8-12"; use a keyboard that exposes the hyphen.
   range?: boolean;
+  /** A hint shaped like the field: a weight looks like a weight, not "8-12". */
+  placeholder?: string;
 }) {
   const keyboardType = range ? 'default' : decimal ? 'decimal-pad' : 'number-pad';
   return (
@@ -565,7 +572,7 @@ function Field({
       value={value}
       onChangeText={onChangeText}
       keyboardType={keyboardType}
-      placeholder={range ? '8-12' : '-'}
+      placeholder={placeholder ?? (range ? '8-12' : '-')}
       containerClassName="min-w-[46%] flex-1"
       inputClassName="bg-iron-950 px-2 py-2 text-center"
     />

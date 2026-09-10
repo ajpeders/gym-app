@@ -103,7 +103,9 @@ export function ActiveExerciseCard({
   // Tell them when the planned rest is up — the phone is in a pocket by then,
   // which is the entire reason a timer on screen isn't enough. Fires once per
   // rest, and only if the plan actually specified one.
-  const plannedRest = sessionExercise.rest_seconds ?? null;
+  // A plan that says nothing about rest gets the usual 90 s rather than no
+  // alert at all.
+  const plannedRest = sessionExercise.rest_seconds ?? 90;
   const notifiedFor = useRef<number | null>(null);
   useEffect(() => {
     if (restStartedAt == null || plannedRest == null) return;

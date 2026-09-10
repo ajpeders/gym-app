@@ -104,3 +104,23 @@ def test_search_matches_every_word_across_name_and_equipment(client, auth):
     # Word order doesn't matter, and a word that matches nothing excludes.
     assert client.get("/api/exercises?q=bench%20barbell", headers=headers).json()["total"] == 2
     assert client.get("/api/exercises?q=bench%20cable", headers=headers).json()["total"] == 0
+
+
+def test_recently_trained_movements_come_first(client, auth):
+    """With nothing typed, the catalog opens on what you actually do."""
+    headers, _, _ = auth
+    names = [e["name"] for e in client.get("/api/exercises", headers=headers).json()["items"]]
+    squat = next(e for e in client.get("/api/exercises?q=Barbell%20Squat", headers=headers).json()["items"])
+    assert names[0] != squat["name"]
+
+    r = client.post(
+        "/api/sessions/log",
+        headers=headers,
+        json={"name": "Legs", "exercises": [{"exercise_id": squat["id"], "sets": [{"reps": 5, "weight": 100}]}]},
+    )
+    assert r.status_code == 201, r.text
+    names = [e["name"] for e in client.get("/api/exercises", headers=headers).json()["items"]]
+    assert names[0] == squat["name"]
+    # Search still ranks by the query, not by history.
+    names = [e["name"] for e in client.get("/api/exercises?q=bench", headers=headers).json()["items"]]
+    assert all("bench" in n.lower() for n in names)
