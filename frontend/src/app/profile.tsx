@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Pressable, TextInput, View } from 'react-native';
-import { Stack } from 'expo-router';
+import { Stack, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
 import { api } from '@/api/client';
-import type { AthleteProfile, StatsSummary } from '@/api/types';
+import type { AthleteProfile, Metric, StatsSummary } from '@/api/types';
+import { StatsStrip } from '@/components/StatsStrip';
+import { formatDate } from '@/lib/format';
 import { Screen } from '@/components/ui/Screen';
 import { Text } from '@/components/ui/Text';
 import { Card } from '@/components/ui/Card';
@@ -16,27 +18,6 @@ type SaveState = 'idle' | 'saving' | 'saved' | 'error';
 
 const LEVELS = ['beginner', 'intermediate', 'advanced'] as const;
 
-function StatTile({
-  icon,
-  label,
-  value,
-}: {
-  icon: React.ComponentProps<typeof Ionicons>['name'];
-  label: string;
-  value: string;
-}) {
-  return (
-    <View className="flex-1 rounded-lg border border-iron-800 bg-iron-900 px-3 py-3">
-      <Ionicons name={icon} size={17} color="#5eead4" />
-      <Text variant="heading" className="mt-2" numberOfLines={1}>
-        {value}
-      </Text>
-      <Text variant="caption" className="mt-0.5 text-iron-400" numberOfLines={1}>
-        {label}
-      </Text>
-    </View>
-  );
-}
 
 /** Multiline text field that commits to the server on blur / end-editing. */
 function ProfileField({
@@ -143,6 +124,8 @@ function NumericProfileField({
 }
 
 export default function ProfileScreen() {
+  const router = useRouter();
+  const [latestWeighIn, setLatestWeighIn] = useState<Metric | null>(null);
   const { configured: aiConfigured } = useAiStatus();
   const [contextOpen, setContextOpen] = useState(false);
   const { settings } = useSettings();
@@ -159,12 +142,14 @@ export default function ProfileScreen() {
     setLoading(true);
     setError(null);
     try {
-      const [nextProfile, nextStats] = await Promise.all([
+      const [nextProfile, nextStats, metricRows] = await Promise.all([
         api.getProfile(),
         api.statsSummary().catch(() => null),
+        api.metrics().catch(() => [] as Metric[]),
       ]);
       setProfile(nextProfile);
       setStats(nextStats);
+      setLatestWeighIn(metricRows.find((m) => m.weight != null) ?? null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load profile');
     } finally {
@@ -268,13 +253,23 @@ export default function ProfileScreen() {
       </Text>
       <Card className="mb-5">
         <View className="flex-row gap-2">
-          <NumericProfileField
-            label="Weight"
-            value={profile.current_weight}
-            unit={weightUnit}
-            placeholder="—"
-            onCommit={(current_weight) => void save({ current_weight })}
-          />
+          {/* Weight is read from weigh-ins, not typed here: one source, with a
+            * history, that Nutrition and Progress read too. */}
+          <Pressable
+            onPress={() => router.push('/progress')}
+            accessibilityRole="button"
+            accessibilityLabel="Log a weigh-in"
+            className="flex-1 rounded-lg border border-iron-700 bg-iron-900 px-3 py-2 active:opacity-70">
+            <Text variant="caption" className="text-iron-400">
+              Weight
+            </Text>
+            <Text variant="subheading" className="mt-1" numberOfLines={1}>
+              {latestWeighIn?.weight != null ? `${latestWeighIn.weight} ${weightUnit}` : '—'}
+            </Text>
+            <Text variant="caption" className="mt-0.5 text-brand" numberOfLines={1}>
+              {latestWeighIn ? formatDate(latestWeighIn.recorded_at) : 'Log weigh-in'}
+            </Text>
+          </Pressable>
           <NumericProfileField
             label="Goal"
             value={profile.goal_weight}
@@ -355,23 +350,7 @@ export default function ProfileScreen() {
             TRAINING STATS
           </Text>
           <Card className="mb-5">
-            <View className="flex-row gap-2">
-              <StatTile
-                icon="barbell-outline"
-                label="Sessions"
-                value={String(stats.total_workouts)}
-              />
-              <StatTile
-                icon="flame-outline"
-                label="Streak"
-                value={`${stats.streak ?? 0}d`}
-              />
-              <StatTile
-                icon="calendar-outline"
-                label="7 days"
-                value={String(stats.this_week)}
-              />
-            </View>
+            <StatsStrip stats={stats} />
             {stats.volume_by_week.length > 0 ? (
               <View className="mt-3 rounded-lg border border-iron-800 bg-iron-950 px-3 py-3">
                 <Text variant="caption" className="font-bold uppercase tracking-wider text-iron-400">

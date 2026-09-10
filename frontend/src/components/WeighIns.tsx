@@ -50,6 +50,29 @@ function isoForDate(date: string): string {
   return new Date(y, m - 1, d, 12, 0, 0, 0).toISOString();
 }
 
+function Trend({ rows }: { rows: Metric[] }) {
+  const points = rows
+    .slice()
+    .reverse()
+    .map((m) => m.weight as number);
+  const min = Math.min(...points);
+  const max = Math.max(...points);
+  const span = Math.max(max - min, 1);
+  return (
+    <View
+      accessibilityLabel={`Weight trend over ${points.length} weigh-ins`}
+      className="mt-3 h-14 flex-row items-end gap-1">
+      {points.map((w, i) => (
+        <View
+          key={i}
+          className={`flex-1 rounded-sm ${i === points.length - 1 ? 'bg-brand' : 'bg-brand/35'}`}
+          style={{ height: 8 + Math.round(((w - min) / span) * 44) }}
+        />
+      ))}
+    </View>
+  );
+}
+
 export function WeighIns() {
   const { settings } = useSettings();
   const unit = settings?.units ?? 'kg';
@@ -173,6 +196,10 @@ export function WeighIns() {
               {formatDate(latest.recorded_at)}
             </Text>
 
+            {/* The trend, once there is one: the last dozen weigh-ins, oldest
+              * on the left, scaled to their own range so a 1 kg drift is
+              * visible rather than a flat line under a 100 kg axis. */}
+            {weighed.length > 1 ? <Trend rows={weighed.slice(0, 12)} /> : null}
             {weighed.length > 1 ? (
               <View className="mt-3 border-t border-iron-800 pt-2">
                 {weighed.slice(0, 6).map((m) => (

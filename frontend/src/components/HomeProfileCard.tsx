@@ -4,7 +4,7 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
 import { api } from '@/api/client';
-import type { AthleteProfile } from '@/api/types';
+import type { AthleteProfile, Metric } from '@/api/types';
 import { Card } from '@/components/ui/Card';
 import { Text } from '@/components/ui/Text';
 import { useSettings } from '@/state/settings';
@@ -14,10 +14,13 @@ export function HomeProfileCard() {
   const router = useRouter();
   const { settings } = useSettings();
   const [profile, setProfile] = useState<AthleteProfile | null>(null);
+  const [weighIn, setWeighIn] = useState<Metric | null>(null);
 
   const fetch = useCallback(async () => {
     try {
-      setProfile(await api.getProfile());
+      const [p, metrics] = await Promise.all([api.getProfile(), api.metrics().catch(() => [] as Metric[])]);
+      setProfile(p);
+      setWeighIn(metrics.find((m) => m.weight != null) ?? null);
     } catch {
       // Non-fatal: the card just stays hidden until profile loads.
     }
@@ -32,8 +35,7 @@ export function HomeProfileCard() {
   if (!profile) return null;
   const weightUnit = settings.units;
   const heightUnit = settings.units === 'lb' ? 'in' : 'cm';
-  const hasBodyStats =
-    profile.current_weight != null || profile.goal_weight != null || profile.height != null;
+  const hasBodyStats = weighIn != null || profile.goal_weight != null || profile.height != null;
 
   return (
     <Card className="mb-4 p-4">
@@ -60,7 +62,7 @@ export function HomeProfileCard() {
               Weight
             </Text>
             <Text variant="label" className="mt-0.5">
-              {profile.current_weight == null ? '—' : `${profile.current_weight} ${weightUnit}`}
+              {weighIn?.weight == null ? '—' : `${weighIn.weight} ${weightUnit}`}
             </Text>
           </View>
           <View className="flex-1 rounded-xl bg-iron-950 px-3 py-2.5">

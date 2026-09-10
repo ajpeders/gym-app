@@ -26,10 +26,18 @@ def test_summary_counts_session_and_volume(client, auth):
         headers=headers, json={"reps": 8, "weight": 65.0},
     )
 
+    # Still in progress: not a session yet, on any screen.
+    data = client.get("/api/stats/summary", headers=headers).json()
+    assert data["total_workouts"] == 0
+    assert data["this_week"] == 0
+    assert data["streak"] == 0
+
+    client.post(f"/api/sessions/{sid}/finish", headers=headers)
     summary = client.get("/api/stats/summary", headers=headers)
     assert summary.status_code == 200, summary.text
     data = summary.json()
-    assert data["total_workouts"] >= 1
-    assert data["this_week"] >= 1
+    assert data["total_workouts"] == 1
+    assert data["this_week"] == 1
+    assert data["streak"] == 1
     total_volume = sum(w["volume"] for w in data["volume_by_week"])
     assert total_volume == 1120.0

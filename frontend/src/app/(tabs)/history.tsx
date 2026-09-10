@@ -7,6 +7,7 @@ import { api } from '@/api/client';
 import type { Session, StatsSummary } from '@/api/types';
 import { useActiveWorkout } from '@/state/active-workout';
 import { Screen, ScreenHeader } from '@/components/ui/Screen';
+import { StatsStrip } from '@/components/StatsStrip';
 import { Text } from '@/components/ui/Text';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -16,36 +17,6 @@ import { formatDuration, relativeTime } from '@/lib/format';
 function formatVolume(value: number): string {
   const rounded = Math.round(value);
   return rounded >= 1000 ? `${Math.round(rounded / 100) / 10}k` : String(rounded);
-}
-
-function SummaryTile({
-  icon,
-  label,
-  value,
-  tone = 'brand',
-}: {
-  icon: React.ComponentProps<typeof Ionicons>['name'];
-  label: string;
-  value: string;
-  tone?: 'brand' | 'mint' | 'steel';
-}) {
-  const colors = {
-    brand: { box: 'border-brand/30 bg-brand/10', text: 'text-brand', icon: '#5eead4' },
-    mint: { box: 'border-mint/30 bg-mint/10', text: 'text-mint', icon: '#34d399' },
-    steel: { box: 'border-steel/30 bg-steel/10', text: 'text-steel', icon: '#60a5fa' },
-  }[tone];
-
-  return (
-    <View className={`flex-1 rounded-lg border px-3 py-3 ${colors.box}`}>
-      <Ionicons name={icon} size={17} color={colors.icon} />
-      <Text variant="heading" className={`mt-2 ${colors.text}`} numberOfLines={1}>
-        {value}
-      </Text>
-      <Text variant="caption" className="mt-0.5 text-iron-400" numberOfLines={1}>
-        {label}
-      </Text>
-    </View>
-  );
 }
 
 function StatBadge({
@@ -124,25 +95,7 @@ export default function HistoryScreen() {
 
         {stats ? (
           <View className="mb-5">
-            <View className="mb-2 flex-row gap-2">
-              <SummaryTile
-                icon="calendar-outline"
-                label="Last 7 days"
-                value={String(stats.this_week)}
-              />
-              <SummaryTile
-                icon="flame-outline"
-                label="Streak"
-                value={`${stats.streak ?? 0}d`}
-                tone="mint"
-              />
-              <SummaryTile
-                icon="barbell-outline"
-                label="Total"
-                value={String(stats.total_workouts)}
-                tone="steel"
-              />
-            </View>
+            <StatsStrip stats={stats} className="mb-2" />
             <Card className="p-4">
               <View className="flex-row items-center justify-between">
                 <View>

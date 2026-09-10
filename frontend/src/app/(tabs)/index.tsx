@@ -6,7 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { api } from '@/api/client';
 import { cachePlans } from '@/lib/offline';
-import type { Split, StatsSummary, TodayWorkout, Workout } from '@/api/types';
+import type { OverloadSuggestion, Split, StatsSummary, TodayWorkout, Workout } from '@/api/types';
 import { useAuth } from '@/state/auth';
 import { useActiveWorkout } from '@/state/active-workout';
 import { useStartSession } from '@/hooks/use-start-session';
@@ -16,6 +16,8 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { HomeNutritionCard } from '@/components/HomeNutritionCard';
 import { HomeProfileCard } from '@/components/HomeProfileCard';
+import { StatsStrip } from '@/components/StatsStrip';
+import { NextTargets } from '@/components/workout/NextTargets';
 
 type IoniconName = ComponentProps<typeof Ionicons>['name'];
 
@@ -61,19 +63,6 @@ function QuickLink({
         {subtitle}
       </Text>
     </Pressable>
-  );
-}
-
-function HomeStat({ value, label }: { value: string; label: string }) {
-  return (
-    <View className="min-w-0 flex-1 items-center px-2 py-2.5">
-      <Text variant="subheading" className="text-brand" numberOfLines={1}>
-        {value}
-      </Text>
-      <Text variant="caption" className="mt-0.5 text-iron-400" numberOfLines={1}>
-        {label}
-      </Text>
-    </View>
   );
 }
 
@@ -207,6 +196,10 @@ export default function HomeScreen() {
   const [workouts, setWorkouts] = useState<Workout[]>([]);
   const [today, setToday] = useState<TodayWorkout[]>([]);
   const [stats, setStats] = useState<StatsSummary | null>(null);
+  // What the plan's rule says to aim for on the day that is due. This is the
+  // one number from Insights that changes what you do at the gym, so it lives
+  // here, next to Start, rather than eight sections deep on another screen.
+  const [nextTargets, setNextTargets] = useState<OverloadSuggestion[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [blankStarting, setBlankStarting] = useState(false);
 
@@ -222,6 +215,8 @@ export default function HomeScreen() {
       setWorkouts(workoutList);
       setToday(todayList);
       setStats(summary);
+      const due = todayList.find((w) => w.up_next || w.scheduled_today);
+      setNextTargets(due ? await api.workoutSuggestions(String(due.id)).catch(() => []) : []);
       // Keep the plan on the device: starting a workout offline builds the
       // session from this cache, and Home is the screen you check before you
       // leave for the gym.
@@ -315,13 +310,7 @@ export default function HomeScreen() {
           }
         />
 
-        {stats ? (
-          <View className="mb-4 flex-row divide-x divide-iron-800 rounded-2xl border border-iron-800 bg-iron-900/70">
-            <HomeStat value={String(stats.this_week)} label="This week" />
-            <HomeStat value={`${stats.streak ?? 0}d`} label="Streak" />
-            <HomeStat value={String(stats.total_workouts)} label="Sessions" />
-          </View>
-        ) : null}
+        {stats ? <StatsStrip stats={stats} className="mb-4" /> : null}
 
         <SectionHeader
           title={ongoing ? 'Keep going' : primaryToday ? 'Up next' : 'Start'}
@@ -381,6 +370,9 @@ export default function HomeScreen() {
             onStart={primaryToday ? () => void onStartWorkout(primaryToday) : undefined}
           />
         ) : null}
+        {!ongoing && primaryToday && nextTargets.some((s) => s.action !== 'start') ? (
+          <NextTargets workoutName={primaryToday.name} suggestions={nextTargets} className="mt-3" />
+        ) : null}
 
         <SectionHeader title="Quick start" subtitle="No setup. Pick a path." />
         <View className="flex-row gap-3">
@@ -407,10 +399,10 @@ export default function HomeScreen() {
             onPress={() => router.push('/exercises')}
           />
           <QuickLink
-            icon="restaurant-outline"
-            title="Nutrition"
-            subtitle="Calories and protein."
-            onPress={() => router.push('/nutrition')}
+            icon="calendar-outline"
+            title="Catch up"
+            subtitle="Fill in a missed day."
+            onPress={() => router.push('/catch-up')}
           />
         </View>
 

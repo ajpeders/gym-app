@@ -76,13 +76,11 @@ test('a weigh-in is recorded and the profile reflects it', async ({ page, reques
   await api.post('/metrics', { weight: 82.5 });
   expect((await api.get('/metrics'))[0].weight).toBe(82.5);
 
-  // Weigh-ins and the profile's current weight are deliberately separate — one
-  // is a time series, the other is context the AI reads — so the profile only
-  // shows what was set on it.
-  await api.patch('/profile', { current_weight: 82.5 });
+  // Weigh-ins are the one source of weight. The profile reads the latest one
+  // rather than keeping a second number you overwrite by hand.
   await page.goto('/profile');
-  // It's an editable field, so the value lives in the input, not in the text.
-  await expect(page.locator('input[value="82.5"]').first()).toBeVisible({ timeout: 30_000 });
+  await expect(shown(page, /82\.5/)).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByLabel('Log a weigh-in')).toBeVisible();
 });
 
 test('the AI screens say they are not set up rather than hanging', async ({ page, request }) => {

@@ -214,10 +214,12 @@ export default function ProgressScreen() {
             </Text>
           </View>
         ) : null}
+        {/* Photos are the secondary record here; the scale is the one you
+          * check weekly, so Log weigh-in above is the primary action. */}
         <Button
           title={selectedDateLabel ? `Add photo for ${selectedDateLabel}` : 'Add progress photo'}
           icon="camera"
-          size="lg"
+          variant="secondary"
           className="mb-4"
           onPress={addPhoto}
         />

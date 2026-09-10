@@ -44,8 +44,10 @@ def _week_key(dt: datetime) -> str:
 def summary(
     db: SASession = Depends(get_db), user: User = Depends(get_current_user)
 ) -> StatsSummary:
+    # A session counts once it is finished. Profile counted one still in
+    # progress while History counted completed ones, and the two disagreed.
     workouts = db.scalars(
-        select(Session).where(Session.owner_id == user.id)
+        select(Session).where(Session.owner_id == user.id, Session.finished_at.is_not(None))
     ).all()
     total_workouts = len(workouts)
 
