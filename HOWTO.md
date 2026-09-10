@@ -102,8 +102,8 @@ admin view is there to remove.
 
 ## Import a history from Hevy or Strong
 
-Export the CSV from that app, then paste it into **Import → "Coming from Hevy
-or Strong?"**. The format is detected from the header row; sessions keep the
+Export the CSV from that app, then paste it into **History → "Coming from Hevy
+or Strong?"** (it creates sessions, so it lives with them). The format is detected from the header row; sessions keep the
 dates they happened on and warmups stay warmups. Movements the catalog can't
 place are listed back to you rather than dropped.
 
@@ -126,8 +126,29 @@ The same URL works from anywhere: a home-screen shortcut, an NFC tag on your
 gym bag, Tasker on Android. On the web build it's `/log-chat?text=…`.
 
 The phrase goes through the same parser as typing it, so "bench three by eight
-at sixty" becomes three sets. A shortcut that fires twice logs once — the
-screen sends a deep-linked phrase exactly once per arrival.
+at sixty" becomes three sets — read by rules on the server, no AI provider
+needed. A shortcut that fires twice logs once — the screen sends a deep-linked
+phrase exactly once per arrival. In the app itself, **Say a set** on the
+session screen does the same without a shortcut.
+
+## Let people reset a forgotten password
+
+The login screen has **Forgot password?**. It mails a six-digit code, good for
+thirty minutes, if the API can send mail:
+
+```sh
+# in the API's environment
+GYM_SMTP_HOST=smtp.example.com
+GYM_SMTP_PORT=587            # default
+GYM_SMTP_USER=gym@example.com
+GYM_SMTP_PASSWORD=...
+GYM_SMTP_FROM=gym@example.com   # defaults to the user, then gym@<host>
+GYM_SMTP_STARTTLS=true       # default
+```
+
+With no `GYM_SMTP_HOST` the screen says the server can't send email and
+points at whoever runs it: an admin can reset any password from **Admin**. The
+reply never says whether an address has an account.
 
 ## Turn on "Continue with Google" (or GitHub)
 

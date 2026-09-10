@@ -143,6 +143,14 @@ package, extracted from this app):
    IDs via a bespoke **token-overlap matcher** (`_match`/`_stem`): stemming,
    stop-word removal, abbreviation + phrase-synonym expansion, and a conservative
    two-sided-overlap fuzzy fallback.
+
+   **Notation is read by rules first** (`app/set_parse.py`). "bench 3x8 @60",
+   "squats 5,5,5 @100", "Bench 95 10, 90 11", "ohp 4 sets of 6 at 40" and the
+   number words a speech recogniser produces ("three by eight at sixty") are
+   parsed deterministically; `parse-sets` and `parse-days` only reach for the
+   model on prose the rules don't recognise. Same output shape, same matcher,
+   so no screen can tell which read it. This is what lets voice and text
+   logging, and catch-up's paste, work on an account with no AI provider.
 2. **Tool-calling companion coach** (`ai/companion_setup.py`, mounted at
    `/api/companion`) — derives its tools from gym's *own* OpenAPI via
    `EXPOSE`/`EXCLUDE` allowlists, calls back into the API over loopback
@@ -150,7 +158,8 @@ package, extracted from this app):
    `write_policy="confirm"`. Grounded in the athlete profile + recent training.
 
 **Provider selection is bring-your-own, with no silent default.** Each user
-configures Ollama (self-hosted) or Claude (API key) in their `Settings`.
+configures Ollama (self-hosted), Claude or OpenAI (API key) on the Spotter
+screen — the thing that needs it; Settings is preferences and account.
 `_provider_configured` is the single source of truth for "usable"; if the chosen
 provider isn't set up, the endpoint raises (→ a clear 503-style error) rather than
 falling back. Keys are write-only — accepted by PATCH `/settings`, never returned.
@@ -168,6 +177,20 @@ falling back. Keys are write-only — accepted by PATCH `/settings`, never retur
   homelab runs local Ollama at zero marginal cost; Claude is opt-in per user.
 - **Snapshot targets onto sessions** — a logged session copies the plan workout's
   targets, so history is immutable intent, decoupled from a mutable plan.
+- **One rule, one place, for every number an athlete sees.** A session counts
+  once it is finished (`stats/summary`); Home, History and the profile render
+  the same `StatsStrip`. Weight has one source, the weigh-in (`BodyMetric`);
+  the profile and Home read the latest rather than keeping a second field.
+  Catalog muscle tags go through `analysis.canonical_muscle` before they reach
+  the landmark table and through `muscleLabel` before they reach a screen.
+- **Catalog text is cleaned on the way out, not in the rows.**
+  `ExerciseOut.instructions` runs `catalog_text.clean_instructions` — the
+  sources' preambles, "Notes (Instructions):" lines and section headings are
+  a display problem — so the seed stays re-runnable and the CC-BY-SA data
+  stays as it came.
+- **A plan schedules nothing before it existed.** Catch-up starts at
+  `Split.created_at`; adopting a program at lunch is not a fortnight of
+  missed days.
 - **Offline-first writes, made replay-safe.** The client queues writes locally
   and auto-syncs (`frontend/src/lib/offline.ts`); the backend stays a plain REST
   API. Sets are queued unconditionally (they're what you can't lose); finishing,
@@ -238,9 +261,19 @@ falling back. Keys are write-only — accepted by PATCH `/settings`, never retur
 
 Expo (Expo Router) + React Native + TypeScript, NativeWind for styling, one
 codebase → iOS/Android and a static web bundle served by nginx (`gym-web`).
-`src/app/` is the router tree (tabs: Home / Workouts / Exercises / History /
-Coach / Settings); `src/api/` wraps the REST client; `src/state/` holds auth, settings,
-and live-workout context; `src/lib/` holds offline queue, export, formatting.
+`src/app/` is the router tree. The bar carries the four screens a workout
+needs — Home / Splits / Exercises / History — plus **More**, where everything
+else lives (Spotter, Insights, Progress, Calculators, Nutrition, profile,
+Settings). Signed out lands on a two-button front door (`(auth)/index`).
+`src/api/` wraps the REST client; `src/state/` holds auth, settings and
+live-workout context; `src/lib/` holds the offline queue, export, formatting,
+speech, and the plate maths (`plates.ts`, a mirror of the API's so the hint
+under the weight field works offline). The session screen is the product:
+thumb-sized inputs, one primary button, a mic that goes through the rules
+parser, and a finish summary before History.
+
+The screen-by-screen review that shaped this, with Alex's verdicts, is
+`docs/ux-review-2026-09-07.md`.
 
 **Testing.** Three layers, deliberately split by what each can catch. `pytest`
 covers the API and the pure logic pushed server-side for exactly that reason

@@ -516,14 +516,17 @@ Found while actually training with the app. Ordered by how much they hurt.
       the same exercises and targets as an online start. Covered end to end
       (`frontend/e2e/03-offline.spec.ts`), including a restart mid-session and a
       double flush that must not open a second session.
-- [~] **UI/UX pass** — a deliberate visual + flow review of every screen before
-      launch. In progress: the shared dark palette was refreshed 2026-08-16
-      from purple-navy to a deeper midnight/aqua system, with softer surfaces,
-      a clearer Home "Up next" hero, and more explicit ChatGPT/OpenAI setup
-      copy. **2026-09-07: full 31-page walkthrough with Alex's verdicts in
-      `docs/ux-review-2026-09-07.md`**, grouped into eight themes with a build
-      order: bugs → shell/header/names → logging loop → AI gating → one
-      source of truth → declutter → account → catalog data.
+- [x] **UI/UX pass** *(2026-09-10)* — the 31-page walkthrough of 2026-09-07
+      (`docs/ux-review-2026-09-07.md`, with Alex's verdict on every item) was
+      built in eight themes, one commit each: the six bugs it found; a front
+      door, a real header block, one name per screen, back arrows on web and
+      a More tab; the logging loop (thumb-sized inputs, one primary button, a
+      rules parser so voice and text logging need no AI, a finish summary);
+      AI setup on the Spotter screen and AI surfaces hidden without a
+      provider; one rule for a session and one source for weight; eight
+      screens decluttered; forgot-password, delete account, log-out confirm;
+      catalog instructions and muscle names made readable. Remaining polish
+      is post-launch product work, not review debt.
 - [~] **Launch checklist** — accounts/onboarding for a non-homelab user, EAS
       build + distribution, error reporting, and a data-export/delete story.
   - [x] **Data export / delete** *(2026-08-13)* — `DELETE /auth/me` already
