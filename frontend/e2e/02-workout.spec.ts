@@ -33,7 +33,10 @@ test('a planned day can be started, logged and finished', async ({ page, request
   }
 
   await page.getByRole('button', { name: 'Finish session' }).click();
-  // Finishing lands on History, where the bout is now a completed session.
+  // Finishing lands on a summary of the bout first, then Done goes to History.
+  await expect(page.getByText('Nice work')).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByText(/2 sets in/)).toBeVisible();
+  await page.getByRole('button', { name: 'Done' }).click();
   await expect(page.getByText(/completed session/i).first()).toBeVisible({ timeout: 20_000 });
   // ...and not, even briefly, one still in progress. The finish flow used to
   // clear the active session after the server call, so History rendered a

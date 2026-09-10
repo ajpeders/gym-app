@@ -6,7 +6,7 @@ import shutil
 import uuid as uuid_lib
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
-from sqlalchemy import func, or_, select
+from sqlalchemy import case, func, or_, select
 from sqlalchemy.orm import Session
 
 from ..config import get_settings
@@ -43,8 +43,14 @@ def list_exercises(
     user: User = Depends(get_current_user),
 ) -> ExerciseListOut:
     stmt = select(Exercise).where(_visible(user))
-    if q:
-        stmt = stmt.where(Exercise.name.ilike(f"%{q}%"))
+    # Every word must appear somewhere in the name or equipment, in any order:
+    # "barbell bench" finds "Bench Press" (barbell) and "Barbell Bench Press"
+    # alike. A single substring match found one incline variant and missed the
+    # plain bench.
+    words = [w for w in (q or "").split() if w]
+    for w in words:
+        like = f"%{w}%"
+        stmt = stmt.where(or_(Exercise.name.ilike(like), Exercise.equipment.ilike(like)))
     if equipment:
         stmt = stmt.where(func.lower(Exercise.equipment) == equipment.lower())
     if category:
@@ -59,9 +65,11 @@ def list_exercises(
         )
 
     total = db.scalar(select(func.count()).select_from(stmt.subquery())) or 0
-    rows = db.scalars(
-        stmt.order_by(Exercise.name).offset(offset).limit(limit)
-    ).all()
+    # What was typed at the start of a name outranks it buried in the middle.
+    order = [Exercise.name]
+    if q and q.strip():
+        order.insert(0, case((Exercise.name.ilike(f"{q.strip()}%"), 0), else_=1))
+    rows = db.scalars(stmt.order_by(*order).offset(offset).limit(limit)).all()
     return ExerciseListOut(
         items=[ExerciseOut.model_validate(r) for r in rows], total=total
     )

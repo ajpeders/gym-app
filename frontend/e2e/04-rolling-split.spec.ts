@@ -35,6 +35,8 @@ test('home offers the next day in the rotation, and advances when it is done', a
   await logSet(page, '60', '8');
   await expect(page.getByText('60 kg').first()).toBeVisible();
   await page.getByRole('button', { name: 'Finish session' }).click();
+  await expect(page.getByText('Nice work')).toBeVisible({ timeout: 20_000 });
+  await page.getByRole('button', { name: 'Done' }).click();
   await expect(page.getByText(/completed session/i).first()).toBeVisible({ timeout: 20_000 });
 
   // The cycle moved on: Pull is up next, from the log rather than the calendar.

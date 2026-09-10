@@ -15,6 +15,8 @@ import { Loading } from '@/components/ui/Feedback';
 import { ActiveExerciseCard } from '@/components/workout/ActiveExerciseCard';
 import { formatDuration } from '@/lib/format';
 import { confirm } from '@/lib/confirm';
+import { isLocalSessionId, resolveId } from '@/lib/offline';
+import { isAvailable, listen, type Listener } from '@/lib/speech';
 
 export default function ActiveWorkoutScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -36,6 +38,29 @@ export default function ActiveWorkoutScreen() {
 
   const [ready, setReady] = useState(false);
   const [finishing, setFinishing] = useState(false);
+
+  // Say a set. The words go to the same parser as typed text; the review
+  // screen shows what was heard before anything is written.
+  const [listening, setListening] = useState(false);
+  const [speechAvailable] = useState(() => isAvailable());
+  const [speechError, setSpeechError] = useState<string | null>(null);
+  const listener = useRef<Listener | null>(null);
+  function sayASet() {
+    if (!workout) return;
+    if (listening) {
+      listener.current?.stop();
+      return;
+    }
+    setSpeechError(null);
+    setListening(true);
+    listener.current = listen({
+      onTranscript: (text) =>
+        router.push(`/log-chat?sessionId=${workout.id}&text=${encodeURIComponent(text)}`),
+      onError: (reason) => setSpeechError(reason),
+      onEnd: () => setListening(false),
+    });
+    if (!listener.current) setListening(false);
+  }
 
   // Tick for the running-duration display.
   const [, setNow] = useState(Date.now());
@@ -65,10 +90,15 @@ export default function ActiveWorkoutScreen() {
   );
 
   async function onFinish() {
+    if (!workout) return;
     setFinishing(true);
     try {
+      const serverId = await resolveId(workout.id);
       await finish();
-      router.replace('/(tabs)/history');
+      // A landing moment: what you just did, then Done. A session finished
+      // offline has no server copy to show yet, so that one goes to History.
+      if (isLocalSessionId(serverId)) router.replace('/(tabs)/history');
+      else router.replace(`/session/${serverId}?finished=1`);
     } finally {
       setFinishing(false);
     }
@@ -161,26 +191,17 @@ export default function ActiveWorkoutScreen() {
           </Pressable>
         ) : null}
 
-        <View className="mb-3 flex-row gap-2">
-          <Button
-            title="Add exercise"
-            icon="add"
-            className="flex-1"
-            onPress={() => router.push('/session/add-exercise')}
-          />
-          <Button
-            title="Log by text"
-            variant="secondary"
-            icon="chatbubble-ellipses-outline"
-            className="flex-1"
-            onPress={() => router.push(`/log-chat?sessionId=${workout.id}`)}
-          />
-        </View>
-
         {/* exercises */}
         {workout.exercises.length === 0 ? (
           <Card className="mb-3">
-            <Text variant="muted">No exercises yet. Add one to start logging sets.</Text>
+            <Text variant="muted" className="mb-3">
+              No exercises yet. Add one to start logging sets.
+            </Text>
+            <Button
+              title="Add exercise"
+              icon="add"
+              onPress={() => router.push('/session/add-exercise')}
+            />
           </Card>
         ) : (
           workout.exercises
@@ -213,15 +234,47 @@ export default function ActiveWorkoutScreen() {
             ))
         )}
 
-        {workout.exercises.length > 0 ? (
-          <Button
-            title="Add another exercise"
-            variant="secondary"
-            icon="add"
-            className="mt-1"
-            onPress={() => router.push('/session/add-exercise')}
-          />
+        {/* Everything that isn't logging a set sits below the sets, as
+          * secondary: adding a movement, or saying / typing one. */}
+        <View className="mt-1 flex-row gap-2">
+          {workout.exercises.length > 0 ? (
+            <Button
+              title="Add exercise"
+              variant="secondary"
+              icon="add"
+              className="flex-1"
+              onPress={() => router.push('/session/add-exercise')}
+            />
+          ) : null}
+          {speechAvailable ? (
+            <Button
+              title={listening ? 'Listening…' : 'Say a set'}
+              variant="secondary"
+              icon={listening ? 'stop-circle-outline' : 'mic-outline'}
+              className="flex-1"
+              accessibilityLabel={listening ? 'Stop listening' : 'Say a set'}
+              onPress={sayASet}
+            />
+          ) : (
+            <Button
+              title="Type a set"
+              variant="secondary"
+              icon="chatbubble-ellipses-outline"
+              className="flex-1"
+              onPress={() => router.push(`/log-chat?sessionId=${workout.id}`)}
+            />
+          )}
+        </View>
+        {speechAvailable ? (
+          <Pressable
+            onPress={() => router.push(`/log-chat?sessionId=${workout.id}`)}
+            className="mt-2 self-center py-1 active:opacity-60">
+            <Text variant="caption" className="text-iron-400">
+              or type a set like “bench 3x8 @60”
+            </Text>
+          </Pressable>
         ) : null}
+        {speechError ? <Text className="mt-2 text-sm text-red-400">{speechError}</Text> : null}
       </ScrollView>
 
       <BottomAction>

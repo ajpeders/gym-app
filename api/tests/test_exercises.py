@@ -77,3 +77,30 @@ def test_cannot_edit_global_exercise(client, auth):
         f"/api/exercises/{global_ex['id']}", headers=headers, json={"name": "Hacked"}
     )
     assert resp.status_code == 404
+
+
+def test_search_matches_every_word_across_name_and_equipment(client, auth):
+    """"barbell bench" must find "Bench Press" (equipment: barbell) and
+    "Barbell Bench Press" alike. A substring search found one incline variant
+    and missed the plain bench."""
+    headers, _, _ = auth
+    client.post(
+        "/api/exercises",
+        headers=headers,
+        json={
+            "name": "Bench Press",
+            "category": "strength",
+            "equipment": "barbell",
+            "primary_muscles": ["chest"],
+            "instructions": [],
+        },
+    )
+    names = [e["name"] for e in client.get("/api/exercises?q=barbell%20bench", headers=headers).json()["items"]]
+    assert "Bench Press" in names
+    assert "Barbell Bench Press" in names
+    # The name that starts with what was typed comes first.
+    names = [e["name"] for e in client.get("/api/exercises?q=bench", headers=headers).json()["items"]]
+    assert names[0] == "Bench Press"
+    # Word order doesn't matter, and a word that matches nothing excludes.
+    assert client.get("/api/exercises?q=bench%20barbell", headers=headers).json()["total"] == 2
+    assert client.get("/api/exercises?q=bench%20cable", headers=headers).json()["total"] == 0

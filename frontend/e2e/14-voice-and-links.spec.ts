@@ -8,20 +8,27 @@
  */
 import { expect, test, type Page } from '@playwright/test';
 
-import { signIn } from './helpers';
+import { findExercise, signIn } from './helpers';
 
 const shown = (page: Page, text: string | RegExp) =>
   page.getByText(text).locator('visible=true').first();
 
 test('a deep-linked phrase is parsed on arrival', async ({ page, request }) => {
-  await signIn(page, request);
+  const account = await signIn(page, request);
+  const bench = await findExercise(request, account.token, 'bench');
 
   // What a Shortcut opens: gymapp://log-chat?text=… — same route on the web.
-  await page.goto('/log-chat?text=bench%203x8%20at%2060kg');
+  await page.goto(`/log-chat?text=${encodeURIComponent(`${bench.name} 3x8 at 60kg`)}`);
 
-  // The phrase is sent without waiting for a tap; with no AI configured the
-  // screen says so, which is the same honest failure every AI surface gives.
-  await expect(shown(page, 'bench 3x8 at 60kg')).toBeVisible({ timeout: 30_000 });
+  // The phrase is sent without waiting for a tap, and notation needs no
+  // model: the sets come back as a proposal to add, on an account with no AI.
+  await expect(shown(page, `${bench.name} 3x8 at 60kg`)).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByRole('button', { name: 'Add to session' })).toBeVisible({ timeout: 30_000 });
+});
+
+test('prose the rules cannot read still says AI is not set up', async ({ page, request }) => {
+  await signIn(page, request);
+  await page.goto('/log-chat?text=did%20some%20benching%20and%20it%20felt%20fine');
   await expect(shown(page, /set up|configure|settings/i)).toBeVisible({ timeout: 30_000 });
 });
 

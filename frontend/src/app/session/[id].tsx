@@ -1,7 +1,7 @@
 import { useCallback, useState } from 'react';
-import { Modal, Pressable, ScrollView, View } from 'react-native';
+import { Modal, Pressable, ScrollView, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Stack, useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
 import { api } from '@/api/client';
@@ -31,12 +31,36 @@ function Stat({ label, value }: { label: string; value: string }) {
 }
 
 export default function SessionDetailScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  // `finished=1` is how the active screen lands here: a summary of what was
+  // just done, with a Done button, rather than dropping straight onto History.
+  const { id, finished } = useLocalSearchParams<{ id: string; finished?: string }>();
+  const router = useRouter();
   const { settings } = useSettings();
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
+  const [draftName, setDraftName] = useState('');
+  const justFinished = finished === '1';
+
+  /** Edit mode doubles as rename: the title becomes a field, Done saves it. */
+  async function toggleEditing() {
+    if (!session) return;
+    if (!editing) {
+      setDraftName(session.name ?? '');
+      setEditing(true);
+      return;
+    }
+    const name = draftName.trim();
+    if (name && name !== (session.name ?? '')) {
+      try {
+        setSession(await api.updateSession(session.id, { name }));
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'That rename did not save');
+      }
+    }
+    setEditing(false);
+  }
   const [picking, setPicking] = useState<Picking>(null);
   const [busy, setBusy] = useState(false);
 
@@ -110,11 +134,11 @@ export default function SessionDetailScreen() {
             session ? (
               <View className="flex-row items-center">
                 <Pressable
-                  onPress={() => setEditing((e) => !e)}
+                  onPress={() => void toggleEditing()}
                   hitSlop={12}
                   accessibilityRole="button"
                   accessibilityLabel={editing ? 'Done editing' : 'Edit session'}
-                  className="pl-3 active:opacity-60">
+                  className="h-10 w-10 items-center justify-center active:opacity-60">
                   <Ionicons
                     name={editing ? 'checkmark' : 'create-outline'}
                     size={22}
@@ -132,7 +156,7 @@ export default function SessionDetailScreen() {
                   hitSlop={12}
                   accessibilityRole="button"
                   accessibilityLabel="Export session"
-                  className="pl-3 active:opacity-60">
+                  className="h-10 w-10 items-center justify-center active:opacity-60">
                   <Ionicons name="share-outline" size={22} color="#5eead4" />
                 </Pressable>
               </View>
@@ -145,7 +169,43 @@ export default function SessionDetailScreen() {
         <ErrorState message={error ?? 'Not found'} onRetry={fetch} />
       ) : (
         <ScrollView className="flex-1" contentContainerClassName="px-4 pt-3 pb-28">
-          <Text variant="title">{session.name ?? 'Session'}</Text>
+          {justFinished ? (
+            <Card elevated className="mb-4 border-brand/30 bg-brand/10 p-4">
+              <View className="flex-row items-center">
+                <View className="mr-3 h-11 w-11 items-center justify-center rounded-xl bg-brand">
+                  <Ionicons name="checkmark" size={22} color="#030712" />
+                </View>
+                <View className="flex-1">
+                  <Text variant="subheading">Nice work</Text>
+                  <Text variant="caption" className="mt-0.5 text-iron-300">
+                    {`${totalSets} ${totalSets === 1 ? 'set' : 'sets'} in ${formatDuration(
+                      session.started_at,
+                      session.finished_at,
+                    )}. It's in your log.`}
+                  </Text>
+                </View>
+              </View>
+              <Button
+                title="Done"
+                icon="checkmark"
+                className="mt-3"
+                onPress={() => router.replace('/(tabs)/history')}
+              />
+            </Card>
+          ) : null}
+          {editing ? (
+            <TextInput
+              value={draftName}
+              onChangeText={setDraftName}
+              placeholder="Session name"
+              placeholderTextColor="#64748b"
+              selectionColor="#5eead4"
+              accessibilityLabel="Session name"
+              className="rounded-lg border border-iron-700 bg-iron-900 px-3 py-2 text-2xl font-black text-iron-50"
+            />
+          ) : (
+            <Text variant="title">{session.name ?? 'Session'}</Text>
+          )}
           <Text variant="muted" className="mt-0.5">
             {formatDateTime(session.started_at)}
           </Text>

@@ -26,6 +26,7 @@ from ..models import (
     User,
 )
 from . import prompts
+from .. import set_parse
 from .base import (
     CHECKIN_SCHEMA,
     EDIT_SPLIT_SCHEMA,
@@ -36,6 +37,7 @@ from .base import (
     PROGRAM_SCHEMA,
     AIError,
     CheckinResult,
+    ParsedExercise,
     EditedSplit,
     EditedWorkout,
     ParsedDays,
@@ -572,7 +574,26 @@ def match_exercise(db: Session, user_id: int, name: str) -> tuple[int | None, st
     return ex_id, match
 
 
+def _local_units(db: Session, user: User) -> str:
+    s = _user_settings(db, user.id)
+    return s.units if s and s.units else "kg"
+
+
 async def parse_sets(db: Session, user: User, text: str, workout_id: int | None = None) -> dict:
+    # Notation is read by rules, not a model: same answer every time, in
+    # milliseconds, and on an account with no AI provider at all. The model is
+    # for prose the rules don't recognise.
+    local = set_parse.parse_sets_text(text)
+    if local:
+        catalog = _load_catalog(db, user.id)
+        return {
+            "provider": "local",
+            "model": "rules",
+            "units": _local_units(db, user),
+            "latency_ms": 0,
+            "items": _match_items([ParsedExercise.model_validate(i) for i in local], catalog),
+        }
+
     provider, units = _resolve(db, user)
 
     hint_names: list[str] = []
@@ -706,6 +727,25 @@ async def parse_days(db: Session, user: User, text: str) -> dict:
     Day labels come back verbatim ("Thu - Push", "Jul 30"); resolving them to
     real dates is the client's job, since only it knows the device's calendar.
     """
+    local = set_parse.parse_days_text(text)
+    if local:
+        catalog = _load_catalog(db, user.id)
+        return {
+            "provider": "local",
+            "model": "rules",
+            "units": _local_units(db, user),
+            "latency_ms": 0,
+            "days": [
+                {
+                    "day": d["day"],
+                    "items": _match_items(
+                        [ParsedExercise.model_validate(i) for i in d["exercises"]], catalog
+                    ),
+                }
+                for d in local
+            ],
+        }
+
     provider, units = _resolve(db, user)
 
     t0 = time.monotonic()

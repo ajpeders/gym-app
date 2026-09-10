@@ -17,6 +17,7 @@ import {
   formatTimeOfDay,
   titleCase,
 } from '@/lib/format';
+import { plateHint } from '@/lib/plates';
 
 interface Props {
   sessionExercise: SessionExercise;
@@ -29,8 +30,9 @@ interface Props {
   onSwapExercise?: () => void;
 }
 
+// Sized for a thumb between sets, not a fingertip at a desk.
 const numInput =
-  'min-h-[44px] w-full rounded-lg border border-iron-700 bg-iron-950 px-2 py-2 text-center text-base text-iron-50';
+  'min-h-[56px] w-full rounded-xl border border-iron-700 bg-iron-950 px-2 py-2 text-center text-xl font-bold text-iron-50';
 
 export function ActiveExerciseCard({
   sessionExercise,
@@ -86,6 +88,18 @@ export function ActiveExerciseCard({
   const [saving, setSaving] = useState(false);
 
   const name = sessionExercise.exercise?.name ?? 'Exercise';
+  const typedWeight = weight.trim() === '' ? null : parseFloat(weight);
+  const platesFor = plateHint(
+    typedWeight != null && !Number.isNaN(typedWeight) ? typedWeight : (last?.weight ?? null),
+    units,
+  );
+  // A plan target is a set worth offering before anything is logged: the
+  // quick button used to appear only once a set existed, which read as a
+  // toggle that did nothing on a first-ever exercise.
+  const target =
+    !isTimed && sessionExercise.target_reps != null
+      ? { reps: sessionExercise.target_reps, weight: sessionExercise.target_weight ?? null }
+      : null;
   // Tell them when the planned rest is up — the phone is in a pocket by then,
   // which is the entire reason a timer on screen isn't enough. Fires once per
   // rest, and only if the plan actually specified one.
@@ -278,7 +292,7 @@ export function ActiveExerciseCard({
             <Text variant="caption" className="w-12">
               RPE
             </Text>
-            <View className="w-8" />
+            <View className="w-10" />
           </View>
           {sets.map((s, i) => (
             <View key={s.id} className="rounded-lg bg-iron-850 px-1 py-2">
@@ -313,11 +327,11 @@ export function ActiveExerciseCard({
                 ) : null}
                 <Pressable
                   onPress={() => onRemoveSet(s.id)}
-                  hitSlop={8}
+                  hitSlop={6}
                   accessibilityRole="button"
                   accessibilityLabel={`Remove set ${i + 1}`}
-                  className="w-8 items-center active:opacity-60">
-                  <Ionicons name="close" size={17} color="#ef4444" />
+                  className="h-10 w-10 items-center justify-center rounded-lg active:bg-red-500/10">
+                  <Ionicons name="close" size={18} color="#ef4444" />
                 </Pressable>
               </View>
               {s.rest_seconds != null ? (
@@ -402,7 +416,7 @@ export function ActiveExerciseCard({
             </View>
           </>
         )}
-        <View className="flex-1">
+        <View className="w-20">
           <Text variant="caption" className="mb-1">
             RPE
           </Text>
@@ -417,17 +431,25 @@ export function ActiveExerciseCard({
             className={numInput}
           />
         </View>
-        <Pressable
-          disabled={saving}
-          onPress={addFromInputs}
-          accessibilityRole="button"
-          accessibilityLabel="Log set"
-          className="min-h-[44px] flex-1 items-center justify-center rounded-lg bg-brand px-3 py-3 active:bg-brand-600">
-          <Text numberOfLines={1} className="text-sm font-bold text-iron-950">
-            Log set
-          </Text>
-        </Pressable>
       </View>
+      {/* What to put on the bar for the number in the box (or the last set's).
+        * Works offline; it is arithmetic, not a request. */}
+      {!isTimed && !isBodyweight && platesFor != null ? (
+        <Text variant="caption" className="mt-1.5 text-iron-400">
+          {platesFor}
+        </Text>
+      ) : null}
+      {/* The one button that matters mid-workout: full width, thumb height. */}
+      <Pressable
+        disabled={saving}
+        onPress={addFromInputs}
+        accessibilityRole="button"
+        accessibilityLabel="Log set"
+        className="mt-2 min-h-[56px] items-center justify-center rounded-xl bg-brand px-3 active:bg-brand-600">
+        <Text numberOfLines={1} className="text-lg font-black text-iron-950">
+          Log set
+        </Text>
+      </Pressable>
 
       {/* rest timer — counts up; tap to start, tap again to stop. The result
           is saved with the next set logged. */}
@@ -466,18 +488,37 @@ export function ActiveExerciseCard({
         className="mt-2 min-h-[40px] rounded-lg border border-iron-700 bg-iron-950 px-3 py-2 text-sm text-iron-50"
       />
 
-      {/* quick-add buttons */}
+      {/* quick-add: repeat the last set, or log the plan's target before
+        * there is one. One tap, no typing. */}
       {quickButtons && last ? (
         <View className="mt-2 flex-row gap-2">
           <Pressable
             disabled={saving}
             onPress={repeatLast}
-            className="flex-1 flex-row items-center justify-center rounded-lg border border-brand/40 bg-brand/10 px-3 py-2 active:opacity-70">
-            <Ionicons name="repeat" size={16} color="#5eead4" />
-            <Text className="ml-1.5 text-sm font-bold text-brand">
+            accessibilityRole="button"
+            accessibilityLabel="Log the same set again"
+            className="min-h-[48px] flex-1 flex-row items-center justify-center rounded-xl border border-brand/40 bg-brand/10 px-3 py-2 active:opacity-70">
+            <Ionicons name="repeat" size={18} color="#5eead4" />
+            <Text className="ml-2 text-base font-bold text-brand">
               {isTimed
                 ? formatDurationSeconds(last.duration_seconds)
                 : `${formatLoad(last.weight, units)} x ${last.reps ?? '-'}`}
+            </Text>
+          </Pressable>
+        </View>
+      ) : quickButtons && target ? (
+        <View className="mt-2 flex-row gap-2">
+          <Pressable
+            disabled={saving}
+            onPress={() =>
+              void submit({ reps: target.reps, weight: target.weight, set_type: 'working' })
+            }
+            accessibilityRole="button"
+            accessibilityLabel="Log the target set"
+            className="min-h-[48px] flex-1 flex-row items-center justify-center rounded-xl border border-brand/40 bg-brand/10 px-3 py-2 active:opacity-70">
+            <Ionicons name="flash-outline" size={18} color="#5eead4" />
+            <Text className="ml-2 text-base font-bold text-brand">
+              {`Log target ${formatLoad(target.weight, units)} x ${target.reps}`}
             </Text>
           </Pressable>
         </View>
