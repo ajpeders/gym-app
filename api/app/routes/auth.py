@@ -11,6 +11,8 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from .. import oauth
+from ..mail import send_reset_code
+from datetime import timedelta
 from ..config import get_settings
 from ..db import get_db
 from ..accounts import purge_user
@@ -217,6 +219,87 @@ def login(payload: LoginIn, db: Session = Depends(get_db)) -> TokenOut:
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid email or password",
         )
+    _ensure_settings(db, user)
+    return TokenOut(token=create_token(user.id), user=UserOut.model_validate(user))
+
+
+class ForgotIn(BaseModel):
+    email: str
+
+
+class ForgotOut(BaseModel):
+    """Whether a code went out. Never whether the address has an account."""
+
+    delivered: bool
+    message: str
+
+
+class ResetIn(BaseModel):
+    email: str
+    code: str
+    password: str
+
+
+_RESET_MINUTES = 30
+
+
+@router.post("/forgot", response_model=ForgotOut)
+def forgot_password(payload: ForgotIn, db: Session = Depends(get_db)) -> ForgotOut:
+    """Start a reset: a six-digit code, hashed like a password, good for 30
+    minutes, mailed if this server can mail. The answer is the same whether
+    or not the address is registered, so it cannot be used to list accounts.
+    """
+    cfg = get_settings()
+    not_here = ForgotOut(
+        delivered=False,
+        message=(
+            "This server can't send email. Ask the person who runs it to reset "
+            "your password from the admin page."
+        ),
+    )
+    if not cfg.mail_configured:
+        return not_here
+    sent = ForgotOut(
+        delivered=True,
+        message="If that address has an account, a code is on its way. It works for 30 minutes.",
+    )
+    user = db.scalar(select(User).where(User.email == payload.email.lower().strip()))
+    if user is None:
+        return sent
+    code = f"{secrets.randbelow(1_000_000):06d}"
+    user.reset_code_hash = hash_password(code)
+    user.reset_expires_at = utcnow() + timedelta(minutes=_RESET_MINUTES)
+    db.commit()
+    try:
+        send_reset_code(user.email, code)
+    except Exception:  # noqa: BLE001 - the relay is someone else's box
+        user.reset_code_hash = None
+        user.reset_expires_at = None
+        db.commit()
+        return ForgotOut(delivered=False, message="The mail server refused to send. Try again later.")
+    return sent
+
+
+@router.post("/reset", response_model=TokenOut)
+def reset_password(payload: ResetIn, db: Session = Depends(get_db)) -> TokenOut:
+    """Finish a reset with the mailed code. Signs you in on success."""
+    user = db.scalar(select(User).where(User.email == payload.email.lower().strip()))
+    bad = HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="That code isn't right, or it has expired.")
+    if (
+        user is None
+        or not user.reset_code_hash
+        or user.reset_expires_at is None
+        # SQLite hands the stored value back naive; compare like with like.
+        or user.reset_expires_at.replace(tzinfo=None) < utcnow().replace(tzinfo=None)
+        or not verify_password(payload.code.strip(), user.reset_code_hash)
+    ):
+        raise bad
+    if len(payload.password) < 6:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Password must be at least 6 characters.")
+    user.password_hash = hash_password(payload.password)
+    user.reset_code_hash = None
+    user.reset_expires_at = None
+    db.commit()
     _ensure_settings(db, user)
     return TokenOut(token=create_token(user.id), user=UserOut.model_validate(user))
 

@@ -604,6 +604,21 @@ export const api = {
   login: (input: { email: string; password: string }) =>
     request<AuthResponse>('/auth/login', { method: 'POST', body: input, auth: false }),
   me: () => request<User>('/auth/me'),
+  deleteAccount: () => request<void>('/auth/me', { method: 'DELETE' }),
+  // Password reset. `delivered` is false on a server with no mail relay; the
+  // message says who can reset it instead.
+  forgotPassword: (email: string) =>
+    request<{ delivered: boolean; message: string }>('/auth/forgot', {
+      method: 'POST',
+      body: { email },
+      auth: false,
+    }),
+  resetPassword: (email: string, code: string, password: string) =>
+    request<AuthResponse>('/auth/reset', {
+      method: 'POST',
+      body: { email, code, password },
+      auth: false,
+    }),
   // Which social sign-ins this server can complete. Empty on an install with
   // no client ids, which is the default.
   socialProviders: () => request<{ providers: string[] }>('/auth/providers', { auth: false }),

@@ -29,6 +29,17 @@ class Settings(BaseSettings):
     github_client_secret: str = ""
     seed_on_start: bool = True
 
+    # --- Outgoing mail (optional) ---
+    # Only password resets send anything. With no host set the reset endpoint
+    # still works, but says the code could not be sent and points at the
+    # person who runs the server, who can reset a password from Admin.
+    smtp_host: str = ""
+    smtp_port: int = 587
+    smtp_user: str = ""
+    smtp_password: str = ""
+    smtp_from: str = ""
+    smtp_starttls: bool = True
+
     # --- AI (Phase 3) ---
     # Default provider when a user hasn't chosen one in their settings.
     ai_provider: str = "ollama"
@@ -66,6 +77,10 @@ class Settings(BaseSettings):
         if raw == "*" or not raw:
             return ["*"]
         return [o.strip() for o in raw.split(",") if o.strip()]
+
+    @property
+    def mail_configured(self) -> bool:
+        return bool(self.smtp_host.strip())
 
     @property
     def jwt_is_default(self) -> bool:

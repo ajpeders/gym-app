@@ -95,7 +95,12 @@ export default function LoginScreen() {
             <SocialSignIn onToken={(provider, token) => void onSocialToken(provider, token)} />
           </AuthForm>
 
-          <View className="mt-6 flex-row justify-center">
+          <View className="mt-4 flex-row justify-center">
+            <Link href="/forgot">
+              <Text className="text-brand font-bold">Forgot password?</Text>
+            </Link>
+          </View>
+          <View className="mt-4 flex-row justify-center">
             <Text variant="muted">No account? </Text>
             <Link href="/register">
               <Text className="text-brand font-bold">Sign up</Text>

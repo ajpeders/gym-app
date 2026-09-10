@@ -21,6 +21,10 @@ interface AuthContextValue {
   /** Finish a social sign-in: the server already verified the provider's
    * token and issued ours. */
   loginWithProvider: (provider: string, token: string) => Promise<void>;
+  /** Sign in with a token the server already issued (a password reset). */
+  loginWithToken: (token: string, user: User) => Promise<void>;
+  /** Delete this account and everything it owns, then sign out. */
+  deleteAccount: () => Promise<void>;
   register: (email: string, password: string, displayName: string) => Promise<void>;
   logout: () => Promise<void>;
   loadMe: () => Promise<User | null>;
@@ -138,6 +142,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(res.user);
   }, []);
 
+  const loginWithToken = useCallback(async (token: string, me: User) => {
+    await setItem(TOKEN_KEY, token);
+    await cacheUser(me);
+    setUser(me);
+  }, []);
+
   const register = useCallback(
     async (email: string, password: string, displayName: string) => {
       const res = await api.register({ email, password, display_name: displayName });
@@ -171,9 +181,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(null);
   }, []);
 
+  const deleteAccount = useCallback(async () => {
+    await api.deleteAccount();
+    await logout();
+  }, [logout]);
+
   const value = useMemo<AuthContextValue>(
-    () => ({ user, loading, login, loginWithProvider, register, logout, loadMe }),
-    [user, loading, login, loginWithProvider, register, logout, loadMe],
+    () => ({ user, loading, login, loginWithProvider, loginWithToken, register, logout, loadMe, deleteAccount }),
+    [user, loading, login, loginWithProvider, loginWithToken, register, logout, loadMe, deleteAccount],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

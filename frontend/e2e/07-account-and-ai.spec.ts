@@ -8,7 +8,7 @@
  */
 import { expect, test, type Page } from '@playwright/test';
 
-import { appReady, authed, signIn } from './helpers';
+import { API, appReady, authed, signIn } from './helpers';
 
 const shown = (page: Page, text: string | RegExp) =>
   page.getByText(text).locator('visible=true').first();
@@ -154,4 +154,18 @@ test('notification preferences persist on the account, not the device', async ({
       timeout: 20_000,
     })
     .toBe(true);
+});
+
+test('an account can delete itself, and is gone', async ({ page, request }) => {
+  const account = await signIn(page, request);
+  page.on('dialog', (d) => void d.accept()); // web confirm()
+
+  await page.goto('/settings');
+  await page.getByRole('button', { name: 'Delete my account' }).click();
+
+  // Signed out, at the front door...
+  await expect(page.getByRole('button', { name: 'Register' })).toBeVisible({ timeout: 30_000 });
+  // ...and the server no longer knows the token.
+  const me = await request.get(`${API}/auth/me`, { headers: { Authorization: `Bearer ${account.token}` } });
+  expect(me.status()).toBe(401);
 });

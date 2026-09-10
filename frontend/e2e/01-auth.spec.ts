@@ -76,6 +76,17 @@ test('logging out returns to the sign-in screen and stays there after a reload',
   await expect(door()).toBeVisible({ timeout: 20_000 });
 });
 
+test('a forgotten password has somewhere to go', async ({ page }) => {
+  await page.goto('/login');
+  await page.getByText('Forgot password?').click();
+  await page.waitForURL(/\/forgot/, { timeout: 30_000 });
+  await page.getByPlaceholder('you@example.com').locator('visible=true').fill('nobody@example.com');
+  await page.getByRole('button', { name: 'Send code' }).click();
+  // The e2e server has no mail relay: it must say so and name who can help,
+  // rather than promise an email.
+  await expect(page.getByText(/runs it to reset your password/i)).toBeVisible({ timeout: 20_000 });
+});
+
 test('no social buttons appear on a server with none configured', async ({ page, request }) => {
   // The default, and the common case for a self-hosted install: a button that
   // fails on tap is worse than one way in that works.

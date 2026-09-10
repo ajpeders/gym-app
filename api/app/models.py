@@ -36,6 +36,10 @@ class User(Base):
     # rather than "whoever has id 1".
     role: Mapped[str] = mapped_column(String, default="user", server_default="user")
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+    # A one-time password reset code, hashed like a password, and when it
+    # stops being accepted. Both null except during a reset.
+    reset_code_hash: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    reset_expires_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
 
     settings: Mapped[Optional["Settings"]] = relationship(
         back_populates="user", uselist=False, cascade="all, delete-orphan"

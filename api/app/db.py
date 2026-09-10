@@ -46,6 +46,8 @@ _ADDED_COLUMNS: list[tuple[str, str, str]] = [
     ("sets", "rest_seconds", "INTEGER"),
     ("athlete_profile", "calorie_target", "INTEGER"),
     ("athlete_profile", "protein_target", "FLOAT"),
+    ("user", "reset_code_hash", "VARCHAR"),
+    ("user", "reset_expires_at", "DATETIME"),
     # The DEFAULT backfills existing rows, so every plan that predates rolling
     # splits stays exactly what it already was: rigid.
     ("split", "mode", "VARCHAR NOT NULL DEFAULT 'rigid'"),

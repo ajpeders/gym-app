@@ -12,6 +12,7 @@ import { Text } from '@/components/ui/Text';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { shareText } from '@/lib/export';
+import { confirm } from '@/lib/confirm';
 import { cancelReminders, ensurePermission, scheduleWorkoutReminder } from '@/lib/notifications';
 
 function Segmented<T extends string>({
@@ -82,7 +83,9 @@ function Row({
 }
 
 export default function SettingsScreen() {
-  const { user, logout } = useAuth();
+  const { user, logout, deleteAccount } = useAuth();
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const { settings, update } = useSettings();
   const router = useRouter();
   const [saving, setSaving] = useState(false);
@@ -247,7 +250,48 @@ export default function SettingsScreen() {
         />
       ) : null}
 
-      <Button title="Log out" variant="danger" onPress={() => void logout()} />
+      <Button
+        title="Log out"
+        variant="danger"
+        onPress={() =>
+          confirm('Log out?', 'Anything saved on this device and not yet synced will wait for your next sign-in.', () => void logout())
+        }
+      />
+
+      {/* Promised on the onboarding screen: export or delete all of it here. */}
+      <Card className="mb-3 mt-6 border-red-500/30">
+        <Text variant="subheading">Delete account</Text>
+        <Text variant="muted" className="mt-1">
+          Your splits, every session and set, weigh-ins, photos and profile go with it. Export
+          first if you want a copy. This cannot be undone.
+        </Text>
+        {deleteError ? (
+          <Text variant="caption" className="mt-2 text-red-400">
+            {deleteError}
+          </Text>
+        ) : null}
+        <Button
+          title="Delete my account"
+          variant="danger"
+          icon="trash-outline"
+          className="mt-3"
+          loading={deleting}
+          onPress={() =>
+            confirm(
+              'Delete your account?',
+              'Everything this account owns is deleted permanently. There is no undo.',
+              () => {
+                setDeleting(true);
+                setDeleteError(null);
+                void deleteAccount()
+                  .catch((err) => setDeleteError(err instanceof Error ? err.message : 'Could not delete the account'))
+                  .finally(() => setDeleting(false));
+              },
+              true,
+            )
+          }
+        />
+      </Card>
 
       <Text variant="caption" className="mt-6 text-center text-iron-500">
         Exercise data from wger.de (CC-BY-SA 4.0) and free-exercise-db (public
