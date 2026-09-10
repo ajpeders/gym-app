@@ -82,7 +82,7 @@ export default function OnboardingScreen() {
           title="Set up AI"
           variant="secondary"
           className="mt-3"
-          onPress={() => void finish('/(tabs)/settings')}
+          onPress={() => void finish('/(tabs)/coach')}
         />
       </Card>
 

@@ -122,7 +122,7 @@ def resolve_provider(request: Request) -> Provider | None:
         if provider is None:
             if hint:
                 raise ValueError(
-                    f"{'Claude' if hint == 'claude' else 'ChatGPT' if hint == 'openai' else 'Ollama'} isn't set up — "
+                    f"{'Claude' if hint == 'claude' else 'OpenAI' if hint == 'openai' else 'Ollama'} isn't set up — "
                     "configure it in Settings first."
                 )
             raise ValueError(

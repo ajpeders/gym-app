@@ -96,17 +96,21 @@ test('the AI screens say they are not set up rather than hanging', async ({ page
   // With no provider it must say so plainly and point at the fix, rather than
   // spinning or failing silently.
   await expect(shown(page, /Set up your AI to use the spotter/i)).toBeVisible({ timeout: 20_000 });
-  await expect(shown(page, /Ollama server, Claude key, or OpenAI API key in Settings/i)).toBeVisible();
+  await expect(shown(page, /Ollama server, Claude key, or OpenAI API key/i)).toBeVisible();
+  // ...and the setup is right there, not a hop away in Settings.
+  await expect(page.getByText('Ollama server URL', { exact: true })).toBeVisible();
 });
 
-test('settings offer the providers and never silently pick one', async ({ page, request }) => {
+test('the spotter offers the providers and never silently picks one', async ({ page, request }) => {
   const account = await signIn(page, request);
   const api = authed(request, account.token);
 
   await page.goto('/');
   await appReady(page);
+  // Settings points at the Spotter, which is where the provider is set up.
   await page.getByLabel('Open settings').click();
-  await expect(shown(page, 'AI Provider')).toBeVisible({ timeout: 20_000 });
+  await page.getByText('AI provider', { exact: true }).click();
+  await expect(shown(page, 'Ollama')).toBeVisible({ timeout: 20_000 });
   // Nothing is configured, and each provider says so ("Set up", not "Ready")
   // rather than the screen implying a working default.
   await expect(shown(page, /^Set up$/)).toBeVisible();

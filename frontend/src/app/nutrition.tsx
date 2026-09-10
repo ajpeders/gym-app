@@ -20,6 +20,7 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Loading, ErrorState } from '@/components/ui/Feedback';
 import { parseServerDate } from '@/lib/format';
+import { useAiStatus } from '@/hooks/use-ai-status';
 
 const INPUT =
   'rounded-lg border border-iron-700 bg-iron-900 px-3 py-2.5 text-base text-iron-50';
@@ -116,6 +117,7 @@ function TargetRow({
 }
 
 export default function NutritionScreen() {
+  const { configured: aiConfigured } = useAiStatus();
   const [entries, setEntries] = useState<NutritionEntry[]>([]);
   const [calorieTarget, setCalorieTarget] = useState<number | null>(null);
   const [proteinTarget, setProteinTarget] = useState<number | null>(null);
@@ -475,7 +477,8 @@ export default function NutritionScreen() {
             />
           </Card>
 
-          {/* sentence entry */}
+          {/* sentence entry — only offered when there is a model to read it */}
+          {aiConfigured ? (
           <Card className="mb-4 rounded-[20px] p-4">
             <View className="mb-2 flex-row items-center">
               <Ionicons name="sparkles" size={15} color="#5eead4" />
@@ -536,6 +539,7 @@ export default function NutritionScreen() {
               />
             )}
           </Card>
+          ) : null}
 
           {actionError ? (
             <Text className="mb-3 text-sm text-red-400">{actionError}</Text>

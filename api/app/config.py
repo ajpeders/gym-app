@@ -32,7 +32,10 @@ class Settings(BaseSettings):
     # --- AI (Phase 3) ---
     # Default provider when a user hasn't chosen one in their settings.
     ai_provider: str = "ollama"
-    ollama_url: str = "http://192.168.0.40:11434"
+    # A hint for the setup field only, never applied. Neutral by default: a
+    # homelab address in the product is a leak, not a convenience. Override
+    # with GYM_OLLAMA_URL where a server wants to suggest its own.
+    ollama_url: str = "http://localhost:11434"
     ollama_model: str = "qwen3:8b"
     claude_api_key: str = ""
     claude_model: str = "claude-opus-4-8"  # configurable; claude-haiku-4-5 is the cheap option

@@ -165,7 +165,7 @@ export default function CatchUpScreen() {
         <Button
           title="Paste several days"
           variant="secondary"
-          icon="sparkles"
+          icon="document-text-outline"
           onPress={() => router.push('/catch-up-paste')}
           className="mb-4"
         />

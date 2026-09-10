@@ -10,6 +10,7 @@ import { Text } from '@/components/ui/Text';
 import { Card } from '@/components/ui/Card';
 import { Loading, ErrorState } from '@/components/ui/Feedback';
 import { useSettings } from '@/state/settings';
+import { useAiStatus } from '@/hooks/use-ai-status';
 
 type SaveState = 'idle' | 'saving' | 'saved' | 'error';
 
@@ -142,6 +143,8 @@ function NumericProfileField({
 }
 
 export default function ProfileScreen() {
+  const { configured: aiConfigured } = useAiStatus();
+  const [contextOpen, setContextOpen] = useState(false);
   const { settings } = useSettings();
   const [profile, setProfile] = useState<AthleteProfile | null>(null);
   const [stats, setStats] = useState<StatsSummary | null>(null);
@@ -255,7 +258,9 @@ export default function ProfileScreen() {
       </View>
 
       <Text variant="muted" className="mb-5">
-        Your spotter reads and writes this. Edit it by hand, or just talk to it.
+        {aiConfigured
+          ? 'Your spotter reads and writes this. Edit it by hand, or just talk to it.'
+          : 'Body, targets and training stats. Nutrition reads the targets from here.'}
       </Text>
 
       <Text variant="label" className="mb-2">
@@ -302,12 +307,14 @@ export default function ProfileScreen() {
           />
         </View>
         <Text variant="caption" className="mt-3 text-iron-400">
-          These are coach context fields. Weigh-ins and progress photos can still track changes over
-          time. Daily calorie and protein targets drive the nutrition screen.
+          Daily calorie and protein targets drive the nutrition screen. Weigh-ins track weight
+          over time.
         </Text>
       </Card>
 
-      {/* Today / session note */}
+      {/* Today / session note: the spotter writes it, so it only shows with one */}
+      {aiConfigured ? (
+      <>
       <Text variant="label" className="mb-2">
         TODAY
       </Text>
@@ -334,10 +341,12 @@ export default function ProfileScreen() {
           </>
         ) : (
           <Text variant="muted">
-            No note for today. Check in with your coach to set one.
+            No note for today. Check in with your spotter to set one.
           </Text>
         )}
       </Card>
+      </>
+      ) : null}
 
       {/* Training stats */}
       {stats ? (
@@ -450,7 +459,25 @@ export default function ProfileScreen() {
         </View>
       </Card>
 
-      {/* Free-text fields */}
+      {/* Free-text fields: four ways of telling the spotter about yourself.
+        * Collapsed by default, and absent when there is no spotter to read them. */}
+      {aiConfigured ? (
+      <>
+      <Pressable
+        onPress={() => setContextOpen((o) => !o)}
+        accessibilityRole="button"
+        accessibilityState={{ expanded: contextOpen }}
+        className="mb-3 flex-row items-center justify-between rounded-lg border border-iron-800 bg-iron-900 px-4 py-3 active:opacity-70">
+        <View className="flex-1 pr-3">
+          <Text variant="subheading">Spotter context</Text>
+          <Text variant="caption" className="mt-0.5 text-iron-400">
+            Goals, equipment, preferences and notes it should remember.
+          </Text>
+        </View>
+        <Ionicons name={contextOpen ? 'chevron-up' : 'chevron-down'} size={18} color="#94a3b8" />
+      </Pressable>
+      {contextOpen ? (
+      <>
       <ProfileField
         label="GOALS"
         value={profile.goals}
@@ -472,9 +499,13 @@ export default function ProfileScreen() {
       <ProfileField
         label="NOTES"
         value={profile.notes}
-        placeholder="anything durable your coach should remember"
+        placeholder="anything durable your spotter should remember"
         onCommit={(notes) => void save({ notes })}
       />
+      </>
+      ) : null}
+      </>
+      ) : null}
     </Screen>
   );
 }

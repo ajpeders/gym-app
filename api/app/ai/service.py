@@ -477,7 +477,7 @@ def _resolve(db: Session, user: User) -> tuple[Provider, str]:
     units = (s.units if s and s.units else "kg")
     if provider == "claude":
         if not _provider_configured(s, "claude"):
-            raise AIError("Claude isn't set up yet — add your API key in Settings.")
+            raise AIError("Claude isn't set up yet — add your API key on the Spotter screen.")
         p = AnthropicProvider(
             api_key=s.claude_api_key.strip(), model=_claude_model(s, cfg), timeout=cfg.ai_timeout
         )
@@ -485,7 +485,7 @@ def _resolve(db: Session, user: User) -> tuple[Provider, str]:
         return p, units
     if provider == "openai":
         if not _provider_configured(s, "openai"):
-            raise AIError("ChatGPT isn't set up yet — add your OpenAI API key in Settings.")
+            raise AIError("OpenAI isn't set up yet — add your API key on the Spotter screen.")
         return (
             OpenAICompatibleProvider(
                 base_url=cfg.openai_base_url,
@@ -498,7 +498,7 @@ def _resolve(db: Session, user: User) -> tuple[Provider, str]:
         )
     # No silent default: each user brings their own Ollama. Not set up -> error.
     if not _provider_configured(s, "ollama"):
-        raise AIError("Local AI isn't set up yet — add your Ollama server in Settings.")
+        raise AIError("Local AI isn't set up yet — add your Ollama server on the Spotter screen.")
     return (
         OllamaProvider(
             base_url=_normalize_url(s.ollama_url), model=_ollama_model(s, cfg), timeout=cfg.ai_timeout

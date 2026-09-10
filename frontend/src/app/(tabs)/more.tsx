@@ -66,7 +66,7 @@ export default function MoreScreen() {
         <ActionRow
           icon="settings-outline"
           title="Settings"
-          subtitle="Units, training behaviour, AI provider, your data."
+          subtitle="Units, training behaviour, your data, log out."
           onPress={() => router.push('/(tabs)/settings')}
         />
       </Card>

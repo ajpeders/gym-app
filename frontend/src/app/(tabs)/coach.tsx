@@ -7,7 +7,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import Markdown from 'react-native-markdown-display';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -20,6 +20,7 @@ import { Screen } from '@/components/ui/Screen';
 import { Text } from '@/components/ui/Text';
 import { Button } from '@/components/ui/Button';
 import { Loading } from '@/components/ui/Feedback';
+import { AiSetup } from '@/components/AiSetup';
 
 // Only things it can actually do: act on the log, or read it back. "What
 // should I train today?" used to be the first suggestion, which invited exactly
@@ -356,6 +357,8 @@ function CoachTopBar({
 export default function CoachScreen() {
   const router = useRouter();
   const { configured, loading: aiLoading } = useAiStatus();
+  const { setup } = useLocalSearchParams<{ setup?: string }>();
+  const [setupOpen, setSetupOpen] = useState(setup === '1');
   const { settings } = useSettings();
   // Which model the failure is actually about — the error has to name it, or
   // the fix ("change your model") is unactionable.
@@ -515,26 +518,34 @@ export default function CoachScreen() {
     );
   }
 
-  if (!configured) {
+  // The provider is configured here, where it is needed, rather than in
+  // Settings with a round trip back. `?setup=1` opens the same panel later.
+  if (!configured || setupOpen) {
     return (
-      <Screen scroll={false} padded={false}>
-        <View className="flex-1 items-center justify-center px-8">
-          <View className="mb-4 h-16 w-16 items-center justify-center rounded-2xl border border-brand/40 bg-brand/10">
-            <Ionicons name="sparkles" size={28} color="#5eead4" />
+      <Screen>
+        <View className="mb-5 flex-row items-start">
+          <View className="mr-3 h-12 w-12 items-center justify-center rounded-2xl border border-brand/40 bg-brand/10">
+            <Ionicons name="sparkles" size={22} color="#5eead4" />
           </View>
-          <Text variant="heading" className="text-center">
-            Set up your AI to use the spotter
-          </Text>
-          <Text variant="muted" className="mt-2 text-center">
-            Add your Ollama server, Claude key, or OpenAI API key in Settings,
-            then come back.
-          </Text>
-          <Button
-            title="Go to Settings"
-            className="mt-6 self-stretch"
-            onPress={() => router.push('/settings')}
-          />
+          <View className="flex-1">
+            <Text variant="heading">
+              {configured ? 'Spotter AI provider' : 'Set up your AI to use the spotter'}
+            </Text>
+            <Text variant="muted" className="mt-1">
+              Add your Ollama server, Claude key, or OpenAI API key. The rest of the app
+              works without one.
+            </Text>
+          </View>
         </View>
+        <AiSetup />
+        {configured ? (
+          <Button
+            title="Back to the Spotter"
+            variant="secondary"
+            className="mb-6"
+            onPress={() => setSetupOpen(false)}
+          />
+        ) : null}
       </Screen>
     );
   }
@@ -543,7 +554,7 @@ export default function CoachScreen() {
   const canSend = input.trim().length > 0 && !sending && !hasConfirm;
   const activeProvider =
     settings.ai_provider === 'openai'
-      ? 'ChatGPT'
+      ? 'OpenAI'
       : settings.ai_provider === 'claude'
         ? 'Claude'
         : 'Ollama';
@@ -552,7 +563,7 @@ export default function CoachScreen() {
     <Screen scroll={false} padded={false}>
       <CoachTopBar
         model={`${activeProvider} · ${activeModel ?? 'AI model'}`}
-        onSettings={() => router.push('/settings')}
+        onSettings={() => setSetupOpen(true)}
       />
       <KeyboardAvoidingView
         className="flex-1"
