@@ -18,7 +18,7 @@ import { Screen } from '@/components/ui/Screen';
 import { Text } from '@/components/ui/Text';
 import { Card } from '@/components/ui/Card';
 import { Loading, ErrorState } from '@/components/ui/Feedback';
-import { titleCase } from '@/lib/format';
+import { titleCase, muscleLabel } from '@/lib/format';
 import { NextTargets } from '@/components/workout/NextTargets';
 
 /**
@@ -218,7 +218,7 @@ export default function InsightsScreen() {
             <Text variant="muted" className="mt-1">
               {report.total_hard_sets === 0
                 ? 'Nothing logged in this window yet. Log a week first and this will say where the sets went.'
-                : `${gaps.map((g) => titleCase(g.muscle)).join(', ')} — below the range that reliably drives progress. Adding a set or two is usually enough.`}
+                : `${gaps.map((g) => muscleLabel(g.muscle)).join(', ')} — below the range that reliably drives progress. Adding a set or two is usually enough.`}
             </Text>
           </Card>
         ) : null}
@@ -235,7 +235,7 @@ export default function InsightsScreen() {
             .slice(0, 6)
             .map((r) => (
               <View key={r.muscle} className="mb-2 flex-row items-center justify-between">
-                <Text variant="label">{titleCase(r.muscle)}</Text>
+                <Text variant="label">{muscleLabel(r.muscle)}</Text>
                 <Text
                   variant="caption"
                   className={r.status === 'ready' ? 'text-brand' : 'text-iron-300'}>

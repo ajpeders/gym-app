@@ -9,14 +9,7 @@ import { Card } from '@/components/ui/Card';
 import { ExerciseThumb } from '@/components/ExerciseThumb';
 import { ProgressionNudge } from '@/components/workout/ProgressionNudge';
 import { notifyNow } from '@/lib/notifications';
-import {
-  formatClock,
-  formatDurationSeconds,
-  formatLoad,
-  formatRepRange,
-  formatTimeOfDay,
-  titleCase,
-} from '@/lib/format';
+import { formatClock, formatDurationSeconds, formatLoad, formatRepRange, formatTimeOfDay, titleCase, muscleLabel } from '@/lib/format';
 import { plateHint } from '@/lib/plates';
 
 interface Props {
@@ -245,7 +238,7 @@ export function ActiveExerciseCard({
             </Text>
           ) : sessionExercise.exercise?.primary_muscles?.length ? (
             <Text variant="caption" numberOfLines={1} className="mt-0.5">
-              {sessionExercise.exercise.primary_muscles.map(titleCase).join(', ')}
+              {sessionExercise.exercise.primary_muscles.map(muscleLabel).join(', ')}
             </Text>
           ) : null}
           </View>

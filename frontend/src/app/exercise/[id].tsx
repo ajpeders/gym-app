@@ -11,16 +11,25 @@ import { Screen } from '@/components/ui/Screen';
 import { Text } from '@/components/ui/Text';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
-import { Chip } from '@/components/ui/Chip';
+import { BottomAction } from '@/components/ui/BottomAction';
+import { formatExerciseStats, statsFor, useExerciseStats } from '@/hooks/use-exercise-stats';
+import { useSettings } from '@/state/settings';
+import { formatDate } from '@/lib/format';
 import { ExerciseThumb } from '@/components/ExerciseThumb';
 import { Loading, ErrorState } from '@/components/ui/Feedback';
-import { titleCase } from '@/lib/format';
+import { titleCase, muscleLabel } from '@/lib/format';
 
 export default function ExerciseDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const { activeId, addExercise, start, load } = useActiveWorkout();
   const { configured: aiConfigured } = useAiStatus();
+  const { settings } = useSettings();
+  // Your history with this movement, above the instructions: once you've
+  // logged it, the last time and the PR matter more than how to do it.
+  const stats = useExerciseStats(id ? [id] : []);
+  const mine = id ? statsFor(stats, id) : undefined;
+  const record = formatExerciseStats(mine, settings.units);
 
   const [exercise, setExercise] = useState<Exercise | null>(null);
   // Asking about the movement you're looking at.
@@ -146,14 +155,15 @@ export default function ExerciseDetailScreen() {
       ) : error || !exercise ? (
         <ErrorState message={error ?? 'Not found'} onRetry={fetch} />
       ) : (
-        <ScrollView className="flex-1" contentContainerClassName="px-4 pt-3 pb-28">
+        <ScrollView className="flex-1" contentContainerClassName="px-4 pt-3 pb-40">
           <Text variant="title">{exercise.name}</Text>
-          <View className="flex-row flex-wrap mt-2">
-            {exercise.category ? <Chip label={titleCase(exercise.category)} /> : null}
-            {exercise.equipment ? <Chip label={titleCase(exercise.equipment)} /> : null}
-            {exercise.level ? <Chip label={titleCase(exercise.level)} /> : null}
-            {exercise.is_custom ? <Chip label="Custom" active /> : null}
-          </View>
+          {/* Plain labels: chips looked tappable and did nothing. */}
+          <Text variant="muted" className="mt-1">
+            {[exercise.equipment, exercise.category, exercise.level, exercise.is_custom ? 'custom' : null]
+              .filter(Boolean)
+              .map((s) => titleCase(String(s)))
+              .join(' · ')}
+          </Text>
 
           {exercise.images?.length ? (
             <View className="my-3">
@@ -212,7 +222,7 @@ export default function ExerciseDetailScreen() {
             <Card className="mt-2 mb-3">
               <Text variant="label">Primary muscles</Text>
               <Text variant="body" className="mt-1">
-                {exercise.primary_muscles.map(titleCase).join(', ')}
+                {exercise.primary_muscles.map(muscleLabel).join(', ')}
               </Text>
               {exercise.secondary_muscles?.length ? (
                 <>
@@ -220,9 +230,23 @@ export default function ExerciseDetailScreen() {
                     Secondary muscles
                   </Text>
                   <Text variant="body" className="mt-1">
-                    {exercise.secondary_muscles.map(titleCase).join(', ')}
+                    {exercise.secondary_muscles.map(muscleLabel).join(', ')}
                   </Text>
                 </>
+              ) : null}
+            </Card>
+          ) : null}
+
+          {mine && mine.set_count > 0 ? (
+            <Card className="mb-3 border-brand/30 bg-brand/5">
+              <Text variant="label">Your record</Text>
+              <Text variant="body" className="mt-1">
+                {record ?? `${mine.set_count} sets logged`}
+              </Text>
+              {mine.last_performed_at ? (
+                <Text variant="caption" className="mt-1 text-iron-400">
+                  Last done {formatDate(mine.last_performed_at)} · {mine.set_count} sets logged
+                </Text>
               ) : null}
             </Card>
           ) : null}
@@ -290,13 +314,14 @@ export default function ExerciseDetailScreen() {
             </Card>
           ) : null}
 
+        </ScrollView>
+      )}
+      {/* Sticky, like Finish session: the primary action shouldn't be the
+        * last thing on a long page. */}
+      {exercise ? (
+        <BottomAction>
           {activeId ? (
-            <Button
-              title="Add to active session"
-              size="lg"
-              loading={adding}
-              onPress={onAddToWorkout}
-            />
+            <Button title="Add to active session" size="lg" loading={adding} onPress={onAddToWorkout} />
           ) : (
             <Button
               title="Start with this exercise"
@@ -306,8 +331,8 @@ export default function ExerciseDetailScreen() {
               onPress={onStartWithExercise}
             />
           )}
-        </ScrollView>
-      )}
+        </BottomAction>
+      ) : null}
     </Screen>
   );
 }

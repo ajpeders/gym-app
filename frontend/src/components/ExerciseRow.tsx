@@ -3,7 +3,7 @@ import { Pressable, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import type { Exercise } from '@/api/types';
-import { titleCase } from '@/lib/format';
+import { muscleLabel, titleCase } from '@/lib/format';
 import { Text } from '@/components/ui/Text';
 import { ExerciseThumb } from '@/components/ExerciseThumb';
 
@@ -15,7 +15,7 @@ interface ExerciseRowProps {
 }
 
 export function ExerciseRow({ exercise, onPress, subtitle, trailing }: ExerciseRowProps) {
-  const muscles = exercise.primary_muscles?.map(titleCase).join(', ');
+  const muscles = exercise.primary_muscles?.map(muscleLabel).join(', ');
 
   return (
     <Pressable

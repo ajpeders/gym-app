@@ -14,7 +14,7 @@ import { Button } from '@/components/ui/Button';
 import { Loading, ErrorState } from '@/components/ui/Feedback';
 import { ExerciseBrowser } from '@/components/ExerciseBrowser';
 import { ProgressionNudge } from '@/components/workout/ProgressionNudge';
-import { formatDateTime, formatDuration, formatLoad, titleCase } from '@/lib/format';
+import { formatDateTime, formatDuration, formatLoad, titleCase, muscleLabel } from '@/lib/format';
 import { promptExport, sessionToJson, sessionToText } from '@/lib/export';
 import { confirm } from '@/lib/confirm';
 
@@ -246,7 +246,7 @@ export default function SessionDetailScreen() {
                     <Text variant="subheading">{we.exercise?.name ?? 'Exercise'}</Text>
                     {we.exercise?.primary_muscles?.length ? (
                       <Text variant="muted" numberOfLines={1}>
-                        {we.exercise.primary_muscles.map(titleCase).join(', ')}
+                        {we.exercise.primary_muscles.map(muscleLabel).join(', ')}
                       </Text>
                     ) : null}
                   </View>

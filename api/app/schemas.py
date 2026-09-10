@@ -10,6 +10,7 @@ from pydantic import (
     EmailStr,
     Field,
     computed_field,
+    field_validator,
     field_serializer,
     field_validator,
     model_validator,
@@ -85,6 +86,15 @@ class ExerciseOut(BaseModel):
     is_custom: bool = False
     tracking_type: str = "weight_reps"
     owner_id: Optional[int] = None
+
+    @field_validator("instructions", mode="after")
+    @classmethod
+    def _readable_steps(cls, steps: list[str]) -> list[str]:
+        # Sources ship preambles and "Notes (Instructions):" headings; see
+        # app/catalog_text.py. Cleaned here so every surface reads the same.
+        from .catalog_text import clean_instructions
+
+        return clean_instructions(steps)
 
     @computed_field  # type: ignore[prop-decorator]
     @property

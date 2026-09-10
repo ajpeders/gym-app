@@ -100,6 +100,40 @@ export function parseRepRange(input: string): { min: number | null; max: number 
 }
 
 /** Load for a logged set: bodyweight moves have no external weight. */
+/**
+ * A muscle the way a person says it.
+ *
+ * The catalog mixes "Abs" with "Obliquus externus abdominis" and "Lats" with
+ * "Trapezius". The rows stay as their source wrote them; every screen reads
+ * them through here.
+ */
+const MUSCLE_LABELS: Record<string, string> = {
+  'obliquus externus abdominis': 'Obliques',
+  'rectus abdominis': 'Abs',
+  abdominals: 'Abs',
+  trapezius: 'Traps',
+  gastrocnemius: 'Calves',
+  soleus: 'Calves',
+  'biceps femoris': 'Hamstrings',
+  'latissimus dorsi': 'Lats',
+  'pectoralis major': 'Chest',
+  'anterior deltoid': 'Front delts',
+  deltoid: 'Shoulders',
+  'serratus anterior': 'Serratus',
+  brachialis: 'Brachialis',
+  'erector spinae': 'Lower back',
+  'gluteus maximus': 'Glutes',
+  'quadriceps femoris': 'Quads',
+  quadriceps: 'Quads',
+  'triceps brachii': 'Triceps',
+  'biceps brachii': 'Biceps',
+};
+
+export function muscleLabel(name: string): string {
+  const key = name.trim().toLowerCase();
+  return MUSCLE_LABELS[key] ?? titleCase(name);
+}
+
 export function formatLoad(weight: number | null | undefined, units: string): string {
   return weight == null ? 'BW' : `${weight} ${units}`;
 }
