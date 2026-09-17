@@ -4,7 +4,7 @@
 > a local (Ollama) or frontier (Claude) model. Native-first (Expo / React
 > Native) with a web build from the same codebase.
 
-Status: **Phases 0–4 shipped; UX pass done; launch-ready bar the EAS build** · Last updated: 2026-09-10
+Status: **Phases 0–4 shipped; UX pass done; launch-ready bar the EAS build; one open item (usable by others)** · Last updated: 2026-09-14
 
 ## Finishing the launch — the two steps only you can take
 
@@ -22,7 +22,11 @@ doesn't have:
    The buttons appear on their own once the server advertises a provider —
    HOWTO has the redirect URI.
 
-No open engineering remains: every checkbox below is ticked or partial. Three
+One piece of engineering remains, and it isn't needed for v1: making the repo
+runnable by outsiders (last section — `.env.example`, `docker-compose.yml` and
+`frontend/eas.json` still default to homelab hosts and LAN IPs, and
+`companion` installs from the private Forgejo). Every other checkbox is ticked
+or partial. Three
 things were decided against rather than deferred — on-device AI, Apple Health
 and camera form-check — and are recorded under "Not open work" with the
 reasoning. An unchecked box in this document always means work that's actually
@@ -145,9 +149,9 @@ one-shot generated programs.
 | Styling | **NativeWind** (Tailwind for RN) | keeps the Tailwind muscle memory from your other apps |
 | Backend | **Python FastAPI** + SQLAlchemy (~~Alembic~~ → hand-rolled additive migrations) | matches docuAI/discordbot AI-app pattern; Alembic deferred — `db.py` ALTERs new columns in idempotently |
 | DB | **SQLite** to start → Postgres if needed | lives in `state/gym-app/`, covered by homelab backup |
-| AI | **Provider abstraction**: Ollama (default) ⇄ Claude ⇄ ChatGPT, per user | Ollama at `192.168.0.40:11434` / `.47`; Claude via API key; on-device on capable phones (Core ML / `llama.rn` / ExecuTorch) — fully private, no signal needed |
+| AI | **Provider abstraction**: Ollama (default) ⇄ Claude ⇄ ChatGPT, per user | Ollama at `192.168.0.40:11434` / `.47`; Claude via API key; on-device AI was cut (see "Not open work") |
 | Exercise data | **free-exercise-db** (~870 exercises + images, public domain) | seeded into our DB at first boot |
-| Auth | Bearer/JWT token (single or few users) | defence-in-depth behind Traefik `local-only@file` |
+| Auth | Bearer/JWT token, real accounts with onboarding (optional Google/GitHub sign-in) | defence-in-depth behind Traefik `local-only@file` |
 | Deploy | `services/gym-app` → `include` `apps/gym-app/docker-compose.yml` | `api` + `web` containers, Traefik TLS, state volume |
 
 ## Architecture (sketch)
@@ -763,10 +767,13 @@ Built and tested, but not offered in the app.
 
 ## Open questions
 1. **App name** — keep `gym-app` or brand it?
-2. **Who uses it** — just you, or a few accounts (changes auth scope)?
-3. **Getting it on your phone** — Expo Go for dev, then EAS dev build / sideload, or eventual app-store push?
-4. **Default local model** — which Ollama model for parsing/coaching? Measured 2026-08-14: qwen2.5:7b and qwen3:8b both work, gemma can't tool-call at all. The in-app model check scores an installed model against what the app actually needs.
-5. **First milestone to build** — recommend Phase 0 + Phase 1 (a working tracker you can use), then layer AI.
+
+Answered (kept for the record):
+- **Who uses it** — real accounts shipped, so anyone the server lets sign up.
+- **Getting it on your phone** — EAS `preview` build → installable Android APK (see "Finishing the launch"); app stores not decided.
+- **Default local model** — measured 2026-08-14: qwen2.5:7b and qwen3:8b both work, gemma can't tool-call at all. The in-app model check scores an installed model against what the app actually needs.
+- **First milestone** — Phases 0–4 shipped.
+
 ## Make this usable by others (added 2026-08-27)
 
 - [ ] Universalize the README / docs / code for outside users: document setup
