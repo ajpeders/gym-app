@@ -16,6 +16,7 @@ export function Card({ children, onPress, elevated = false, className, ...rest }
     return (
       <Pressable
         onPress={onPress}
+        accessibilityRole="button"
         className={`${base} active:opacity-75 ${className ?? ''}`}
         {...rest}>
         {children}

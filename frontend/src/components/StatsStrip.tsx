@@ -6,7 +6,7 @@ import { Text } from '@/components/ui/Text';
 function Stat({ value, label }: { value: string; label: string }) {
   return (
     <View className="min-w-0 flex-1 items-center px-2 py-2.5">
-      <Text variant="subheading" className="text-brand" numberOfLines={1}>
+      <Text variant="stat" numberOfLines={1}>
         {value}
       </Text>
       <Text variant="caption" className="mt-0.5 text-iron-400" numberOfLines={1}>
@@ -30,7 +30,7 @@ function Stat({ value, label }: { value: string; label: string }) {
 export function StatsStrip({ stats, className }: { stats: StatsSummary; className?: string }) {
   return (
     <View
-      className={`flex-row divide-x divide-iron-800 rounded-2xl border border-iron-800 bg-iron-900/70 ${className ?? ''}`}>
+      className={`flex-row border-y border-iron-800 py-3 ${className ?? ''}`}>
       <Stat value={String(stats.this_week)} label="This week" />
       <Stat value={`${stats.streak ?? 0}d`} label="Streak" />
       <Stat value={String(stats.total_workouts)} label="Sessions" />

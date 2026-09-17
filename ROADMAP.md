@@ -53,7 +53,7 @@ works today), social sign-in built and waiting only on OAuth credentials, a
 daily readiness check-in in the shape a wearable would fill, and one-command
 self-hosting verified by running it on a machine with no homelab.
 
-Tested by 454 API tests, 61 frontend unit tests, and 68 end-to-end journeys
+Tested by 454 API tests, 61 frontend unit tests, and 71 end-to-end journeys
 through the real stack — all three in CI.
 
 **In scope, needs a human.** The EAS build. Everything that can be checked

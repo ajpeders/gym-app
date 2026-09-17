@@ -30,7 +30,7 @@ Three suites, all run in CI (`.forgejo/workflows/ci.yml`):
 ```sh
 cd api      && .venv/bin/python -m pytest -q   # 454 API tests
 cd frontend && npm test                        # unit: offline queue, parsers, plate maths
-cd frontend && npm run e2e                     # 68 journeys, real stack in a browser
+cd frontend && npm run e2e                     # 71 journeys, real stack in a browser
 ```
 
 `npm run e2e` builds the web bundle, starts an API against a throwaway copy of

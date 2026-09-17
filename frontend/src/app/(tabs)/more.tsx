@@ -2,7 +2,7 @@ import { useRouter } from 'expo-router';
 import { View } from 'react-native';
 
 import { useAiStatus } from '@/hooks/use-ai-status';
-import { Screen, ScreenHeader } from '@/components/ui/Screen';
+import { Screen, ScreenHeader, SectionHeader } from '@/components/ui/Screen';
 import { Card } from '@/components/ui/Card';
 import { ActionRow } from '@/components/ui/ActionRow';
 
@@ -21,7 +21,10 @@ export default function MoreScreen() {
     <Screen>
       <ScreenHeader title="More" subtitle="Tools, stats and settings." />
 
-      <Card className="mb-4 rounded-lg p-2">
+      <SectionHeader title="Training tools" className="mt-0" />
+      <Card className="mb-4 p-2">
+        <ActionRow icon="chatbubble-outline" title="Log by text" subtitle="Describe a workout to log it." onPress={() => router.push('/log-chat')} />
+        <ActionRow icon="calendar-outline" title="Catch up" subtitle="Log a previous workout." onPress={() => router.push('/catch-up')} />
         <ActionRow
           icon="chatbubbles-outline"
           title="Spotter"
@@ -56,7 +59,8 @@ export default function MoreScreen() {
         />
       </Card>
 
-      <Card className="mb-4 rounded-lg p-2">
+      <SectionHeader title="You" />
+      <Card className="mb-4 p-2">
         <ActionRow
           icon="person-outline"
           title="Athlete profile"

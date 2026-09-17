@@ -263,8 +263,10 @@ Expo (Expo Router) + React Native + TypeScript, NativeWind for styling, one
 codebase → iOS/Android and a static web bundle served by nginx (`gym-web`).
 `src/app/` is the router tree. The bar carries the four screens a workout
 needs — Home / Splits / Exercises / History — plus **More**, where everything
-else lives (Spotter, Insights, Progress, Calculators, Nutrition, profile,
-Settings). Signed out lands on a two-button front door (`(auth)/index`).
+else lives, in two groups: Training tools (Log by text, Catch up, Spotter,
+Insights, Progress, Calculators) and You (Nutrition, athlete profile,
+Settings). Home keeps only what starts a workout — the day's session, an empty
+session, log-by-text — plus the stats strip and the active plan. Signed out lands on a two-button front door (`(auth)/index`).
 `src/api/` wraps the REST client; `src/state/` holds auth, settings and
 live-workout context; `src/lib/` holds the offline queue, export, formatting,
 speech, and the plate maths (`plates.ts`, a mirror of the API's so the hint

@@ -61,12 +61,8 @@ export function ScreenHeader({
   action?: React.ReactNode;
   className?: string;
 }) {
-  // The header is a block with its own background, bleeding to the screen
-  // edge. It used to be text over a fixed 160px band painted by Screen, which
-  // ended wherever the band did — halfway through a subtitle, or across an
-  // empty Spotter gate with nothing under it.
   return (
-    <View className={`-mx-4 mb-5 rounded-b-3xl bg-iron-900/55 px-4 pb-5 pt-2 ${className ?? ''}`}>
+    <View className={`mb-6 pb-2 pt-2 ${className ?? ''}`}>
       {eyebrow ? <Text variant="eyebrow">{eyebrow}</Text> : null}
       <View className={`${eyebrow ? 'mt-1' : ''} flex-row items-start justify-between gap-3`}>
         <View className="flex-1">
@@ -97,7 +93,7 @@ export function SectionHeader({
   return (
     <View className={`mb-3 mt-6 flex-row items-end justify-between gap-3 ${className ?? ''}`}>
       <View className="flex-1">
-        <Text variant="heading" className="text-iron-50">
+        <Text variant="subheading" className="text-iron-100">
           {title}
         </Text>
         {subtitle ? (
