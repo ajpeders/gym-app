@@ -14,5 +14,5 @@ anthropic>=0.49.0
 # (Ollama/Claude) and the tool-calling coach at /api/companion. The repo is
 # public (2026-07-26), so this clones anonymously over https — no deploy key.
 # CI rewrites the URL to the internal forgejo hostname (see ci.yml).
-companion @ git+https://git.thelunadog.com/alex/companion.git@v0.6.0
+companion @ git+https://git.thelunadog.com/alex/companion.git@v0.7.1
 pytest==8.3.4
