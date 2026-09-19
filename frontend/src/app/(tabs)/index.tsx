@@ -204,6 +204,31 @@ export default function HomeScreen() {
       : 'makeup day';
   const primaryToday = workoutById([...workouts, ...splits.flatMap((split) => split.workouts)], dueToday[0]?.id);
   const firstName = user?.display_name.trim().split(/\s+/)[0] || 'there';
+  // A new account has no plan yet — zero splits covers both "brand new"
+  // (onboarded false) and "onboarded but never imported a plan". For them the
+  // first thing to do is log a set, so the logging actions get primary tier.
+  const isNewAccount = loaded && splits.length === 0;
+
+  const logActions = !ongoing ? (
+    <View className="mt-3 flex-row gap-2">
+      <Button
+        title="Empty session"
+        icon="add"
+        variant={isNewAccount ? 'primary' : 'ghost'}
+        className="flex-1"
+        loading={blankStarting}
+        disabled={starting}
+        onPress={() => void startBlankSession()}
+      />
+      <Button
+        title="Log by text"
+        icon="chatbubble-outline"
+        variant={isNewAccount ? 'secondary' : 'ghost'}
+        className="flex-1"
+        onPress={() => router.push('/log-chat')}
+      />
+    </View>
+  ) : null;
 
   return (
     <Screen scroll={false} padded={false}>
@@ -273,6 +298,9 @@ export default function HomeScreen() {
           </Card>
         ) : null}
 
+        {/* New account: logging is the first thing to do, so it leads the page. */}
+        {isNewAccount ? logActions : null}
+
         {!ongoing && loaded ? (
           <PrimaryWorkoutCard
             workout={primaryToday}
@@ -297,12 +325,7 @@ export default function HomeScreen() {
           <NextTargets workoutName={primaryToday.name} suggestions={nextTargets} className="mt-3" />
         ) : null}
 
-        {!ongoing ? (
-          <View className="mt-3 flex-row gap-2">
-            <Button title="Empty session" icon="add" variant="ghost" className="flex-1" loading={blankStarting} disabled={starting} onPress={() => void startBlankSession()} />
-            <Button title="Log by text" icon="chatbubble-outline" variant="ghost" className="flex-1" onPress={() => router.push('/log-chat')} />
-          </View>
-        ) : null}
+        {!ongoing && !isNewAccount ? logActions : null}
         {startError ? <FormError message={startError} /> : null}
 
         {stats ? (
