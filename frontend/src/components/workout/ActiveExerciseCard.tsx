@@ -312,14 +312,12 @@ export function ActiveExerciseCard({
                 <Text variant="body" className="w-12">
                   {s.rpe ?? '-'}
                 </Text>
-                {s.pending ? (
-                  <Ionicons
-                    name="cloud-upload-outline"
-                    size={14}
-                    color="#b0b6a8"
-                    style={{ marginRight: 4 }}
-                  />
-                ) : null}
+                <Ionicons
+                  name={s.pending ? 'cloud-upload-outline' : 'checkmark-circle'}
+                  size={14}
+                  color={s.pending ? '#fbbf24' : '#10b981'}
+                  style={{ marginRight: 4 }}
+                />
                 <Pressable
                   onPress={() => onRemoveSet(s.id)}
                   hitSlop={6}
