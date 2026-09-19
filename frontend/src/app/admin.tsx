@@ -218,7 +218,7 @@ export default function AdminScreen() {
                     onChangeText={setNewPassword}
                     accessibilityLabel={`New password for ${row.email}`}
                     placeholder="New password"
-                    placeholderTextColor="#64748b"
+                    placeholderTextColor="#929b89"
                     className="flex-1 rounded-lg border border-iron-700 bg-iron-950 px-3 py-2.5 text-base text-iron-100"
                   />
                   <Button title="Save" size="sm" onPress={() => void resetPassword(row)} />
@@ -254,7 +254,7 @@ export default function AdminScreen() {
                 <Ionicons
                   name={call.ok ? 'checkmark-circle' : 'alert-circle'}
                   size={13}
-                  color={call.ok ? '#5eead4' : '#fbbf24'}
+                  color={call.ok ? '#b6d69a' : '#fbbf24'}
                 />
                 <Text variant="caption" className="ml-1.5 flex-1 text-iron-300" numberOfLines={1}>
                   {call.endpoint} · {call.provider}

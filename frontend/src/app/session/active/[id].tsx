@@ -162,7 +162,7 @@ export default function ActiveWorkoutScreen() {
         <Card className="mb-3 p-4">
           <View className="flex-row items-center">
             <View className="mr-3 h-11 w-11 items-center justify-center rounded-xl bg-brand/10">
-              <Ionicons name="timer-outline" size={21} color="#5eead4" />
+              <Ionicons name="timer-outline" size={21} color="#b6d69a" />
             </View>
             <View className="min-w-0 flex-1">
               <Text variant="heading" numberOfLines={1}>
@@ -174,7 +174,7 @@ export default function ActiveWorkoutScreen() {
             </View>
             {settings.feature_flags.in_set_prompts ? (
               <View className="ml-2 flex-row items-center rounded-full bg-brand/10 px-2.5 py-1.5">
-                <Ionicons name="sparkles" size={13} color="#5eead4" />
+                <Ionicons name="sparkles" size={13} color="#b6d69a" />
                 <Text variant="caption" className="ml-1 font-bold text-brand">
                   Coach on
                 </Text>

@@ -30,7 +30,7 @@ export function ExerciseRow({ exercise, onPress, subtitle, trailing }: ExerciseR
           {subtitle ?? muscles ?? titleCase(exercise.equipment) ?? ''}
         </Text>
       </View>
-      {trailing ?? <Ionicons name="chevron-forward" size={18} color="#475569" />}
+      {trailing ?? <Ionicons name="chevron-forward" size={18} color="#727c69" />}
     </Pressable>
   );
 }

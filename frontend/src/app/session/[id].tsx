@@ -142,7 +142,7 @@ export default function SessionDetailScreen() {
                   <Ionicons
                     name={editing ? 'checkmark' : 'create-outline'}
                     size={22}
-                    color="#5eead4"
+                    color="#b6d69a"
                   />
                 </Pressable>
                 <Pressable
@@ -157,7 +157,7 @@ export default function SessionDetailScreen() {
                   accessibilityRole="button"
                   accessibilityLabel="Export session"
                   className="h-10 w-10 items-center justify-center active:opacity-60">
-                  <Ionicons name="share-outline" size={22} color="#5eead4" />
+                  <Ionicons name="share-outline" size={22} color="#b6d69a" />
                 </Pressable>
               </View>
             ) : null,
@@ -173,7 +173,7 @@ export default function SessionDetailScreen() {
             <Card elevated className="mb-4 border-brand/30 bg-brand/10 p-4">
               <View className="flex-row items-center">
                 <View className="mr-3 h-11 w-11 items-center justify-center rounded-xl bg-brand">
-                  <Ionicons name="checkmark" size={22} color="#030712" />
+                  <Ionicons name="checkmark" size={22} color="#121510" />
                 </View>
                 <View className="flex-1">
                   <Text variant="subheading">Nice work</Text>
@@ -198,8 +198,8 @@ export default function SessionDetailScreen() {
               value={draftName}
               onChangeText={setDraftName}
               placeholder="Session name"
-              placeholderTextColor="#64748b"
-              selectionColor="#5eead4"
+              placeholderTextColor="#929b89"
+              selectionColor="#b6d69a"
               accessibilityLabel="Session name"
               className="rounded-lg border border-iron-700 bg-iron-900 px-3 py-2 text-2xl font-black text-iron-50"
             />
@@ -219,7 +219,7 @@ export default function SessionDetailScreen() {
 
           {editing ? (
             <View className="mb-3 flex-row items-center rounded-lg border border-brand/40 bg-brand/10 px-3.5 py-2.5">
-              <Ionicons name="information-circle-outline" size={16} color="#5eead4" />
+              <Ionicons name="information-circle-outline" size={16} color="#b6d69a" />
               <Text variant="caption" className="ml-2 flex-1 text-brand">
                 Swapping keeps the sets — use it when you trained a different movement than
                 you logged.
@@ -265,7 +265,7 @@ export default function SessionDetailScreen() {
                         accessibilityRole="button"
                         accessibilityLabel="Swap exercise"
                         className="ml-2 h-9 w-9 items-center justify-center rounded-lg bg-brand/10 active:opacity-60">
-                        <Ionicons name="swap-horizontal" size={17} color="#5eead4" />
+                        <Ionicons name="swap-horizontal" size={17} color="#b6d69a" />
                       </Pressable>
                       <Pressable
                         onPress={() =>

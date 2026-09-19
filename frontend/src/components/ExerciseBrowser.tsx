@@ -104,13 +104,13 @@ export function ExerciseBrowser({ onSelect, renderTrailing }: ExerciseBrowserPro
     <View className="flex-1">
       <View className="mx-4 flex-row gap-2">
         <View className="min-w-0 flex-1 flex-row items-center rounded-xl border border-iron-700 bg-iron-900 px-3">
-          <Ionicons name="search" size={18} color="#64748b" />
+          <Ionicons name="search" size={18} color="#929b89" />
           <TextInput
             value={query}
             onChangeText={setQuery}
             placeholder={total ? `Search ${total} exercises` : 'Search exercises'}
-            placeholderTextColor="#64748b"
-            selectionColor="#5eead4"
+            placeholderTextColor="#929b89"
+            selectionColor="#b6d69a"
             autoCapitalize="none"
             className="min-h-[48px] flex-1 px-3 text-base text-iron-50"
           />
@@ -120,7 +120,7 @@ export function ExerciseBrowser({ onSelect, renderTrailing }: ExerciseBrowserPro
               hitSlop={8}
               accessibilityRole="button"
               accessibilityLabel="Clear search">
-              <Ionicons name="close-circle" size={18} color="#64748b" />
+              <Ionicons name="close-circle" size={18} color="#929b89" />
             </Pressable>
           ) : null}
         </View>
@@ -134,7 +134,7 @@ export function ExerciseBrowser({ onSelect, renderTrailing }: ExerciseBrowserPro
               ? 'border-brand/50 bg-brand/10'
               : 'border-iron-700 bg-iron-900'
           }`}>
-          <Ionicons name="options-outline" size={19} color={filtersOpen || activeFilters ? '#5eead4' : '#94a3b8'} />
+          <Ionicons name="options-outline" size={19} color={filtersOpen || activeFilters ? '#b6d69a' : '#b0b6a8'} />
           {activeFilters > 0 ? (
             <View className="ml-1.5 h-5 min-w-5 items-center justify-center rounded-full bg-brand px-1">
               <Text variant="caption" className="font-black text-iron-950">
@@ -215,7 +215,7 @@ export function ExerciseBrowser({ onSelect, renderTrailing }: ExerciseBrowserPro
 
       {loading ? (
         <View className="flex-1 items-center justify-center py-16">
-          <ActivityIndicator color="#5eead4" />
+          <ActivityIndicator color="#b6d69a" />
         </View>
       ) : error ? (
         <ErrorState message={error} onRetry={() => load(true)} />
@@ -243,7 +243,7 @@ export function ExerciseBrowser({ onSelect, renderTrailing }: ExerciseBrowserPro
           ))}
           {loadingMore ? (
             <View className="py-4">
-              <ActivityIndicator color="#5eead4" />
+              <ActivityIndicator color="#b6d69a" />
             </View>
           ) : null}
         </ScrollView>

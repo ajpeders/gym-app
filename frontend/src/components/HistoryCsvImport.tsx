@@ -51,11 +51,11 @@ export function HistoryCsvImport({ onImported }: { onImported?: () => void }) {
         onPress={() => setOpen(true)}
         accessibilityRole="button"
         className="mt-2 flex-row items-center rounded-lg border border-iron-800 bg-iron-900/60 px-3.5 py-3 active:opacity-70">
-        <Ionicons name="download-outline" size={16} color="#5eead4" />
+        <Ionicons name="download-outline" size={16} color="#b6d69a" />
         <Text variant="body" className="ml-2 flex-1 text-iron-100">
           Coming from Hevy or Strong?
         </Text>
-        <Ionicons name="chevron-down" size={16} color="#94a3b8" />
+        <Ionicons name="chevron-down" size={16} color="#b0b6a8" />
         {result ? (
           <Text variant="caption" className="ml-2 text-brand">
             Imported
@@ -72,7 +72,7 @@ export function HistoryCsvImport({ onImported }: { onImported?: () => void }) {
           Import a logged history
         </Text>
         <Pressable onPress={() => setOpen(false)} hitSlop={8} accessibilityLabel="Close">
-          <Ionicons name="close" size={18} color="#94a3b8" />
+          <Ionicons name="close" size={18} color="#b0b6a8" />
         </Pressable>
       </View>
       <Text variant="muted" className="mb-3 mt-0.5">
@@ -83,7 +83,7 @@ export function HistoryCsvImport({ onImported }: { onImported?: () => void }) {
         onChangeText={setCsvText}
         accessibilityLabel="CSV export"
         placeholder="Date,Workout Name,Exercise Name,..."
-        placeholderTextColor="#64748b"
+        placeholderTextColor="#929b89"
         multiline
         className="h-24 rounded-lg border border-iron-700 bg-iron-950 px-3 py-2.5 text-sm text-iron-100"
         style={{ textAlignVertical: 'top' }}

@@ -75,8 +75,8 @@ function Row({
         // The title is a sibling Text, so without this a screen reader
         // announces "switch, on" with no idea what it controls.
         accessibilityLabel={title}
-        trackColor={{ false: '#223047', true: '#5eead4' }}
-        thumbColor={value ? '#030712' : '#64748b'}
+        trackColor={{ false: '#343c2e', true: '#b6d69a' }}
+        thumbColor={value ? '#121510' : '#929b89'}
       />
     </View>
   );
@@ -129,13 +129,13 @@ export default function SettingsScreen() {
       <Card className="mb-4 rounded-lg p-5" onPress={() => router.push('/profile')}>
         <View className="flex-row items-center justify-between">
           <View className="mr-3 h-12 w-12 items-center justify-center rounded-2xl border border-brand/30 bg-brand/10">
-            <Ionicons name="person-outline" size={21} color="#5eead4" />
+            <Ionicons name="person-outline" size={21} color="#b6d69a" />
           </View>
           <View className="flex-1 pr-3">
             <Text variant="subheading">{user?.display_name ?? 'Your profile'}</Text>
             <Text variant="caption" className="mt-0.5 text-iron-300">{user?.email}</Text>
           </View>
-          <Ionicons name="chevron-forward" size={18} color="#475569" />
+          <Ionicons name="chevron-forward" size={18} color="#727c69" />
         </View>
         <View className="mt-4 border-t border-iron-800 pt-3">
           <Text variant="caption" className="text-iron-300">
@@ -214,7 +214,7 @@ export default function SettingsScreen() {
               Ollama, Claude or OpenAI. Set up on the Spotter screen; nothing else needs it.
             </Text>
           </View>
-          <Ionicons name="chevron-forward" size={18} color="#475569" />
+          <Ionicons name="chevron-forward" size={18} color="#727c69" />
         </View>
       </Card>
 

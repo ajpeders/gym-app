@@ -270,7 +270,7 @@ export function WorkoutEditor({
                         accessibilityRole="button"
                         accessibilityLabel="Export workout"
                         className="pl-3 active:opacity-60">
-                        <Ionicons name="share-outline" size={22} color="#5eead4" />
+                        <Ionicons name="share-outline" size={22} color="#b6d69a" />
                       </Pressable>
                     ) : null}
                     {onStart ? (
@@ -280,7 +280,7 @@ export function WorkoutEditor({
                         accessibilityRole="button"
                         accessibilityLabel="Start this workout"
                         className="pl-4 active:opacity-60">
-                        <Ionicons name="play-circle" size={24} color="#5eead4" />
+                        <Ionicons name="play-circle" size={24} color="#b6d69a" />
                       </Pressable>
                     ) : null}
                   </View>
@@ -303,7 +303,7 @@ export function WorkoutEditor({
           <Pressable
             onPress={() => setAiOpen(true)}
             className="mt-4 flex-row items-center justify-center rounded-lg border border-brand/40 bg-brand/10 py-2.5 active:opacity-80">
-            <Ionicons name="sparkles" size={16} color="#5eead4" />
+            <Ionicons name="sparkles" size={16} color="#b6d69a" />
             <Text className="ml-2 font-semibold text-brand">Edit with AI</Text>
           </Pressable>
         ) : null}
@@ -335,7 +335,7 @@ export function WorkoutEditor({
                       <Ionicons
                         name={isOpen ? 'chevron-up' : 'chevron-down'}
                         size={16}
-                        color="#64748b"
+                        color="#929b89"
                       />
                     </View>
                     <Text variant="caption" numberOfLines={1} className="mt-0.5 text-iron-400">
@@ -360,7 +360,7 @@ export function WorkoutEditor({
                       accessibilityLabel={`Move ${e.name} earlier`}
                       hitSlop={6}
                       className="h-11 w-11 items-center justify-center rounded-lg border border-iron-700 bg-iron-900 disabled:opacity-25">
-                      <Ionicons name="arrow-up" size={19} color="#94a3b8" />
+                      <Ionicons name="arrow-up" size={19} color="#b0b6a8" />
                     </Pressable>
                     <Pressable
                       onPress={() => move(idx, 1)}
@@ -368,7 +368,7 @@ export function WorkoutEditor({
                       accessibilityLabel={`Move ${e.name} later`}
                       hitSlop={6}
                       className="h-11 w-11 items-center justify-center rounded-lg border border-iron-700 bg-iron-900 disabled:opacity-25">
-                      <Ionicons name="arrow-down" size={19} color="#94a3b8" />
+                      <Ionicons name="arrow-down" size={19} color="#b0b6a8" />
                     </Pressable>
                     <Pressable
                       onPress={() => remove(idx)}
@@ -432,7 +432,7 @@ export function WorkoutEditor({
                             e.superset_group ? 'border-brand bg-brand' : 'border-iron-600 bg-iron-950'
                           }`}>
                           {e.superset_group ? (
-                            <Ionicons name="checkmark" size={16} color="#030712" />
+                            <Ionicons name="checkmark" size={16} color="#121510" />
                           ) : null}
                         </View>
                       </Pressable>
@@ -483,7 +483,7 @@ export function WorkoutEditor({
             className={`h-6 w-6 items-center justify-center rounded-md border ${
               floating ? 'border-brand bg-brand' : 'border-iron-600 bg-iron-950'
             }`}>
-            {floating ? <Ionicons name="checkmark" size={16} color="#030712" /> : null}
+            {floating ? <Ionicons name="checkmark" size={16} color="#121510" /> : null}
           </View>
         </Pressable>
 

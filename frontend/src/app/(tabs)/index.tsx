@@ -43,7 +43,7 @@ function PrimaryWorkoutCard({
       <Card elevated className="p-4">
         <View className="flex-row items-center">
           <View className="mr-3 h-14 w-14 items-center justify-center rounded-3xl border border-iron-700 bg-iron-850">
-            <Ionicons name="calendar-clear-outline" size={25} color="#94a3b8" />
+            <Ionicons name="calendar-clear-outline" size={25} color="#b0b6a8" />
           </View>
           <View className="min-w-0 flex-1">
             <Text variant="eyebrow">Your day</Text>
@@ -65,7 +65,7 @@ function PrimaryWorkoutCard({
       <Pressable onPress={onOpen} accessibilityRole="button" className="active:opacity-80">
         <View className="flex-row items-center">
           <View className="mr-3 h-16 w-16 items-center justify-center rounded-3xl bg-brand">
-            <Ionicons name={icon} size={29} color="#030712" />
+            <Ionicons name={icon} size={29} color="#121510" />
           </View>
           <View className="min-w-0 flex-1">
             <Text variant="eyebrow">{label}</Text>
@@ -76,7 +76,7 @@ function PrimaryWorkoutCard({
               {workout.exercises.length} exercises
             </Text>
           </View>
-          <Ionicons name="chevron-forward" size={18} color="#94a3b8" />
+          <Ionicons name="chevron-forward" size={18} color="#b0b6a8" />
         </View>
       </Pressable>
       {onStart ? (
@@ -230,7 +230,7 @@ export default function HomeScreen() {
               accessibilityLabel="Open settings"
               hitSlop={8}
               className="h-10 w-10 items-center justify-center rounded-full border border-iron-700 bg-iron-900 active:bg-iron-800">
-              <Ionicons name="settings-outline" size={19} color="#94a3b8" />
+              <Ionicons name="settings-outline" size={19} color="#b0b6a8" />
             </Pressable>
           }
         />
@@ -247,7 +247,7 @@ export default function HomeScreen() {
           <Card elevated className="mb-4 border-brand/35 bg-iron-900 p-4">
             <View className="flex-row items-center">
               <View className="mr-3 h-12 w-12 items-center justify-center rounded-2xl bg-brand">
-                <Ionicons name="barbell" size={23} color="#030712" />
+                <Ionicons name="barbell" size={23} color="#121510" />
               </View>
               <View className="flex-1">
                 <View className="mb-1 self-start rounded-full bg-brand px-2 py-0.5">
@@ -333,7 +333,7 @@ export default function HomeScreen() {
                   <Ionicons
                     name={activeSplit ? 'calendar-outline' : 'document-text-outline'}
                     size={20}
-                    color="#5eead4"
+                    color="#b6d69a"
                   />
                 </View>
                 <View className="min-w-0 flex-1">
@@ -346,7 +346,7 @@ export default function HomeScreen() {
                       : 'Paste a plan and review it before saving.'}
                   </Text>
                 </View>
-                <Ionicons name="chevron-forward" size={18} color="#64748b" />
+                <Ionicons name="chevron-forward" size={18} color="#929b89" />
               </View>
             </Card>
 

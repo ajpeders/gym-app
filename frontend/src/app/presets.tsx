@@ -124,7 +124,7 @@ export default function PresetsScreen() {
                       {preset.mode === 'rolling' ? 'rotation' : 'fixed weekdays'}
                     </Text>
                   </View>
-                  <Ionicons name={open ? 'chevron-up' : 'chevron-down'} size={18} color="#94a3b8" />
+                  <Ionicons name={open ? 'chevron-up' : 'chevron-down'} size={18} color="#b0b6a8" />
                 </View>
                 <Text variant="muted" className="mt-2" numberOfLines={open ? undefined : 2}>
                   {preset.description}

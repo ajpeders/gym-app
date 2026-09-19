@@ -96,7 +96,7 @@ export function SplitEditor({ visible, split, saving = false, onSave, onClose }:
                 <Ionicons
                   name={option.icon}
                   size={15}
-                  color={selected ? '#818cf8' : '#94a3b8'}
+                  color={selected ? '#818cf8' : '#b0b6a8'}
                 />
                 <Text
                   variant="caption"
@@ -130,7 +130,7 @@ export function SplitEditor({ visible, split, saving = false, onSave, onClose }:
           hitSlop={8}
           accessibilityRole="button"
           className="flex-row items-center active:opacity-70">
-          <Ionicons name="add" size={16} color="#5eead4" />
+          <Ionicons name="add" size={16} color="#b6d69a" />
           <Text variant="caption" className="ml-0.5 font-bold text-brand">
             Add rule
           </Text>
@@ -159,7 +159,7 @@ export function SplitEditor({ visible, split, saving = false, onSave, onClose }:
               hitSlop={8}
               accessibilityLabel={`Remove rule ${i + 1}`}
               className="ml-2 mt-6 h-9 w-9 items-center justify-center rounded-lg active:bg-iron-800">
-              <Ionicons name="close" size={18} color="#94a3b8" />
+              <Ionicons name="close" size={18} color="#b0b6a8" />
             </Pressable>
           </View>
         ))

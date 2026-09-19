@@ -43,8 +43,8 @@ function Field({
         keyboardType="decimal-pad"
         accessibilityLabel={label}
         placeholder={placeholder}
-        placeholderTextColor="#64748b"
-        selectionColor="#5eead4"
+        placeholderTextColor="#929b89"
+        selectionColor="#b6d69a"
         className={INPUT}
       />
     </View>

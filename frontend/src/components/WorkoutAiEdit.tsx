@@ -145,8 +145,8 @@ export function WorkoutAiEdit({ visible, units, initialWorking, onApply, onClose
               value={input}
               onChangeText={setInput}
               placeholder="e.g. add a 4th set to bench"
-              placeholderTextColor="#64748b"
-              selectionColor="#5eead4"
+              placeholderTextColor="#929b89"
+              selectionColor="#b6d69a"
               multiline
               editable={!sending}
               className="max-h-32 min-h-[44px] flex-1 rounded-lg border border-iron-700 bg-iron-900 px-4 py-2.5 text-base text-iron-50"
@@ -158,7 +158,7 @@ export function WorkoutAiEdit({ visible, units, initialWorking, onApply, onClose
               className={`ml-2 h-11 w-11 items-center justify-center rounded-lg ${
                 input.trim() && !sending ? 'bg-brand active:bg-brand-600' : 'bg-iron-800 opacity-50'
               }`}>
-              <Ionicons name="arrow-up" size={20} color="#030712" />
+              <Ionicons name="arrow-up" size={20} color="#121510" />
             </Pressable>
           </View>
         </BottomAction>
@@ -257,7 +257,7 @@ function EditProgress({ received = 0 }: { received?: number }) {
     <View className="mb-3 flex-row justify-start">
       <View className="w-[88%] rounded-2xl rounded-bl-md border border-iron-800 bg-iron-900/95 px-3.5 py-3">
         <View className="mb-2 flex-row items-center">
-          <Ionicons name="sparkles" size={15} color="#5eead4" />
+          <Ionicons name="sparkles" size={15} color="#b6d69a" />
           <Text variant="body" className="ml-2 text-iron-100">
             {EDIT_STAGES[stage]}
             <Text className="text-brand">…</Text>

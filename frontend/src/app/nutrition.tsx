@@ -383,8 +383,8 @@ export default function NutritionScreen() {
               }}
               accessibilityLabel="What did you eat"
               placeholder="What did you eat? e.g. chicken, or oats 300 cal 12g"
-              placeholderTextColor="#64748b"
-              selectionColor="#5eead4"
+              placeholderTextColor="#929b89"
+              selectionColor="#b6d69a"
               className={INPUT}
             />
 
@@ -435,8 +435,8 @@ export default function NutritionScreen() {
                       keyboardType="decimal-pad"
                       accessibilityLabel="Amount"
                       placeholder={picked.unit === 'item' ? '1' : '100'}
-                      placeholderTextColor="#64748b"
-                      selectionColor="#5eead4"
+                      placeholderTextColor="#929b89"
+                      selectionColor="#b6d69a"
                       className={INPUT}
                     />
                   </View>
@@ -603,8 +603,8 @@ export default function NutritionScreen() {
               value={editLabel}
               onChangeText={setEditLabel}
               placeholder="What did you eat?"
-              placeholderTextColor="#64748b"
-              selectionColor="#5eead4"
+              placeholderTextColor="#929b89"
+              selectionColor="#b6d69a"
               className={INPUT}
             />
             <View className="mt-2 flex-row gap-2">
@@ -617,8 +617,8 @@ export default function NutritionScreen() {
                   onChangeText={setEditCalories}
                   keyboardType="number-pad"
                   placeholder="0"
-                  placeholderTextColor="#64748b"
-                  selectionColor="#5eead4"
+                  placeholderTextColor="#929b89"
+                  selectionColor="#b6d69a"
                   className={INPUT}
                 />
               </View>
@@ -631,8 +631,8 @@ export default function NutritionScreen() {
                   onChangeText={setEditProtein}
                   keyboardType="decimal-pad"
                   placeholder="0"
-                  placeholderTextColor="#64748b"
-                  selectionColor="#5eead4"
+                  placeholderTextColor="#929b89"
+                  selectionColor="#b6d69a"
                   className={INPUT}
                 />
               </View>
@@ -646,8 +646,8 @@ export default function NutritionScreen() {
                   value={editDate}
                   onChangeText={setEditDate}
                   placeholder="YYYY-MM-DD"
-                  placeholderTextColor="#64748b"
-                  selectionColor="#5eead4"
+                  placeholderTextColor="#929b89"
+                  selectionColor="#b6d69a"
                   autoCapitalize="none"
                   className={INPUT}
                 />
@@ -660,8 +660,8 @@ export default function NutritionScreen() {
                   value={editTime}
                   onChangeText={setEditTime}
                   placeholder="HH:MM"
-                  placeholderTextColor="#64748b"
-                  selectionColor="#5eead4"
+                  placeholderTextColor="#929b89"
+                  selectionColor="#b6d69a"
                   autoCapitalize="none"
                   className={INPUT}
                 />

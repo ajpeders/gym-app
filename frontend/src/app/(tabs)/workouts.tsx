@@ -61,7 +61,7 @@ function WorkoutDayCard({
       <Pressable onPress={onOpen} accessibilityRole="button" className="active:opacity-80">
         <View className="flex-row items-center">
           <View className="mr-3 h-11 w-11 items-center justify-center rounded-2xl border border-brand/25 bg-brand/10">
-            <Ionicons name="barbell-outline" size={19} color="#5eead4" />
+            <Ionicons name="barbell-outline" size={19} color="#b6d69a" />
           </View>
           <View className="min-w-0 flex-1">
             <Text variant="subheading" numberOfLines={1}>
@@ -71,7 +71,7 @@ function WorkoutDayCard({
               {workout.exercises.length} exercises{meta ? ` · ${meta}` : ''}
             </Text>
           </View>
-          <Ionicons name="chevron-forward" size={17} color="#64748b" />
+          <Ionicons name="chevron-forward" size={17} color="#929b89" />
         </View>
       </Pressable>
       <View className="mt-3 flex-row gap-2">
@@ -221,7 +221,7 @@ export default function WorkoutsScreen() {
                     <Ionicons
                       name={showPlanPicker ? 'chevron-up' : 'chevron-down'}
                       size={16}
-                      color="#5eead4"
+                      color="#b6d69a"
                     />
                   </Pressable>
 
@@ -250,9 +250,9 @@ export default function WorkoutsScreen() {
                               </Text>
                             </View>
                             {selected ? (
-                              <Ionicons name="checkmark-circle" size={19} color="#5eead4" />
+                              <Ionicons name="checkmark-circle" size={19} color="#b6d69a" />
                             ) : (
-                              <Ionicons name="chevron-forward" size={16} color="#475569" />
+                              <Ionicons name="chevron-forward" size={16} color="#727c69" />
                             )}
                           </Pressable>
                         );
@@ -334,7 +334,7 @@ export default function WorkoutsScreen() {
                   className="mb-3 p-4">
                   <View className="flex-row items-center">
                     <View className="mr-3 h-12 w-12 items-center justify-center rounded-xl border border-brand/30 bg-brand/10">
-                      <Ionicons name="calendar" size={22} color="#5eead4" />
+                      <Ionicons name="calendar" size={22} color="#b6d69a" />
                     </View>
                     <View className="flex-1">
                       <Text variant="subheading" numberOfLines={1}>
@@ -344,7 +344,7 @@ export default function WorkoutsScreen() {
                         {trainingDays} training days · weekly split
                       </Text>
                     </View>
-                    <Ionicons name="chevron-forward" size={18} color="#475569" />
+                    <Ionicons name="chevron-forward" size={18} color="#727c69" />
                   </View>
                   <View className="mt-3 flex-row flex-wrap gap-2">
                     {s.is_active ? (
@@ -387,7 +387,7 @@ export default function WorkoutsScreen() {
                             {r.exercises.length} exercises
                           </Text>
                         </View>
-                        <Ionicons name="chevron-forward" size={18} color="#475569" />
+                        <Ionicons name="chevron-forward" size={18} color="#727c69" />
                       </View>
                     </Card>
                   ))}
@@ -416,7 +416,7 @@ export default function WorkoutsScreen() {
                 <Card key={workout.id} className="p-4">
                   <View className="flex-row items-center">
                     <View className="mr-3 h-11 w-11 items-center justify-center rounded-xl bg-brand/10">
-                      <Ionicons name="barbell-outline" size={20} color="#5eead4" />
+                      <Ionicons name="barbell-outline" size={20} color="#b6d69a" />
                     </View>
                     <View className="min-w-0 flex-1">
                       <Text variant="subheading" numberOfLines={1}>

@@ -28,8 +28,8 @@ export function Input({
       ) : null}
       <View className="relative">
         <TextInput
-          placeholderTextColor="#64748b"
-          selectionColor="#5eead4"
+          placeholderTextColor="#929b89"
+          selectionColor="#b6d69a"
           secureTextEntry={secureTextEntry && !revealed}
           className={`min-h-[50px] w-full rounded-xl border bg-iron-900 px-4 py-3 text-base text-iron-50 ${
             secureTextEntry ? 'pr-12' : ''
@@ -45,7 +45,7 @@ export function Input({
             <Ionicons
               name={revealed ? 'eye-off-outline' : 'eye-outline'}
               size={20}
-              color="#94a3b8"
+              color="#b0b6a8"
             />
           </Pressable>
         ) : null}

@@ -275,7 +275,7 @@ export default function SplitDetailScreen() {
                       <View className="ml-1 flex-row items-center">
                         {isDone ? (
                           <View className="mr-1 flex-row items-center rounded-full bg-brand/15 px-2 py-1">
-                            <Ionicons name="checkmark-circle" size={13} color="#5eead4" />
+                            <Ionicons name="checkmark-circle" size={13} color="#b6d69a" />
                             <Text variant="caption" className="ml-1 font-bold text-brand">
                               Done
                             </Text>
@@ -291,7 +291,7 @@ export default function SplitDetailScreen() {
                           <Ionicons
                             name="chevron-up"
                             size={16}
-                            color={index === 0 ? '#334155' : '#94a3b8'}
+                            color={index === 0 ? '#334155' : '#b0b6a8'}
                           />
                         </Pressable>
                         <Pressable
@@ -304,7 +304,7 @@ export default function SplitDetailScreen() {
                           <Ionicons
                             name="chevron-down"
                             size={16}
-                            color={index === ordered.length - 1 ? '#334155' : '#94a3b8'}
+                            color={index === ordered.length - 1 ? '#334155' : '#b0b6a8'}
                           />
                         </Pressable>
                       </View>
@@ -342,15 +342,15 @@ export default function SplitDetailScreen() {
                     trailing={
                       isDone ? (
                         <View className="ml-2 flex-row items-center rounded-full bg-brand/15 px-2 py-1">
-                          <Ionicons name="checkmark-circle" size={13} color="#5eead4" />
+                          <Ionicons name="checkmark-circle" size={13} color="#b6d69a" />
                           <Text variant="caption" className="ml-1 font-bold text-brand">
                             Done
                           </Text>
                         </View>
                       ) : primary ? (
-                        <Ionicons name="chevron-forward" size={16} color="#475569" />
+                        <Ionicons name="chevron-forward" size={16} color="#727c69" />
                       ) : (
-                        <Ionicons name="bed-outline" size={15} color="#475569" />
+                        <Ionicons name="bed-outline" size={15} color="#727c69" />
                       )
                     }
                   />
@@ -393,7 +393,7 @@ export default function SplitDetailScreen() {
                   <Ionicons
                     name="checkmark-circle"
                     size={16}
-                    color="#5eead4"
+                    color="#b6d69a"
                     style={{ marginTop: 2 }}
                   />
                   <Text variant="body" className="ml-2 flex-1 text-iron-200">
@@ -431,7 +431,7 @@ export default function SplitDetailScreen() {
                   {w.exercises.length} exercises
                 </Text>
               </View>
-              <Ionicons name="chevron-forward" size={18} color="#475569" />
+              <Ionicons name="chevron-forward" size={18} color="#727c69" />
             </View>
           </Card>
         ))}

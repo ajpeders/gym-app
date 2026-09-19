@@ -288,12 +288,12 @@ export function AiSetup() {
         </View>
         <View className="mt-3 flex-row items-center">
           {loading ? (
-            <ActivityIndicator size="small" color="#5eead4" />
+            <ActivityIndicator size="small" color="#b6d69a" />
           ) : (
             <Ionicons
               name={selectedInfo?.configured ? 'checkmark-circle' : 'alert-circle-outline'}
               size={17}
-              color={selectedInfo?.configured ? '#22c55e' : '#94a3b8'}
+              color={selectedInfo?.configured ? '#22c55e' : '#b0b6a8'}
             />
           )}
           <Text variant="caption" className="ml-2 flex-1 text-iron-300">
@@ -332,7 +332,7 @@ export function AiSetup() {
         <Card className="mb-3 border-brand/20 bg-brand/5">
           <View className="flex-row items-start">
             <View className="mr-3 h-10 w-10 items-center justify-center rounded-2xl border border-brand/30 bg-brand/10">
-              <Ionicons name="sparkles" size={18} color="#5eead4" />
+              <Ionicons name="sparkles" size={18} color="#b6d69a" />
             </View>
             <View className="flex-1">
               <Text variant="subheading">OpenAI, by API key</Text>
@@ -359,7 +359,7 @@ export function AiSetup() {
             autoCorrect={false}
             keyboardType="url"
             placeholder={urlPlaceholder}
-            placeholderTextColor="#64748b"
+            placeholderTextColor="#929b89"
             className="rounded-lg border border-iron-700 bg-iron-900 px-4 py-3 text-base text-iron-50"
           />
           {urlInput.trim() === '' ? (
@@ -386,7 +386,7 @@ export function AiSetup() {
 
           {modelsLoading ? (
             <View className="flex-row items-center py-2">
-              <ActivityIndicator color="#5eead4" />
+              <ActivityIndicator color="#b6d69a" />
               <Text variant="muted" className="ml-2">
                 Finding installed models…
               </Text>
@@ -438,7 +438,7 @@ export function AiSetup() {
                       ) : null}
                     </View>
                     {active ? (
-                      <Ionicons name="checkmark-circle" size={18} color="#5eead4" />
+                      <Ionicons name="checkmark-circle" size={18} color="#b6d69a" />
                     ) : null}
                   </Pressable>
                 );
@@ -488,7 +488,7 @@ export function AiSetup() {
                   autoCapitalize="none"
                   autoCorrect={false}
                   placeholder={cloudKeyPlaceholder}
-                  placeholderTextColor="#64748b"
+                  placeholderTextColor="#929b89"
                   className="rounded-lg border border-iron-700 bg-iron-900 px-4 py-3 text-base text-iron-50"
                 />
                 <Text variant="caption" className="mt-1.5 text-iron-400">
@@ -536,7 +536,7 @@ export function AiSetup() {
             autoCapitalize="none"
             autoCorrect={false}
             placeholder={placeholderModel}
-            placeholderTextColor="#64748b"
+            placeholderTextColor="#929b89"
             className="rounded-lg border border-iron-700 bg-iron-900 px-4 py-3 text-base text-iron-50"
           />
           <Text variant="caption" className="mt-1.5">
@@ -554,10 +554,10 @@ export function AiSetup() {
             checkingModel ? 'opacity-60' : ''
           }`}>
           {checkingModel ? (
-            <ActivityIndicator color="#5eead4" />
+            <ActivityIndicator color="#b6d69a" />
           ) : (
             <>
-              <Ionicons name="flash-outline" size={16} color="#5eead4" />
+              <Ionicons name="flash-outline" size={16} color="#b6d69a" />
               <Text className="ml-1.5 text-base font-semibold text-iron-50">Check this model</Text>
             </>
           )}

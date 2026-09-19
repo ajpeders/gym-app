@@ -52,7 +52,7 @@ export function ModalSheet({
           <View className="w-full max-w-[760px] self-center flex-row items-center justify-between px-4 py-3">
             <View className="min-w-0 flex-1 pr-3">
               <View className="flex-row items-center">
-                {icon ? <Ionicons name={icon} size={18} color="#5eead4" /> : null}
+                {icon ? <Ionicons name={icon} size={18} color="#b6d69a" /> : null}
                 <Text variant="heading" className={icon ? 'ml-2' : undefined} numberOfLines={1}>
                   {title}
                 </Text>

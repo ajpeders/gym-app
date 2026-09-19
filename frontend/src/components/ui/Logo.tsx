@@ -20,7 +20,7 @@ export function Logo({ size = 'md' }: { size?: Size }) {
   return (
     <View className="flex-row items-center">
       <View className={`items-center justify-center border border-brand/30 bg-brand ${box[size]}`}>
-        <Ionicons name="barbell" size={icon[size]} color="#030712" />
+        <Ionicons name="barbell" size={icon[size]} color="#121510" />
       </View>
       <View className="ml-3">
         <Text

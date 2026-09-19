@@ -195,7 +195,7 @@ export default function LogChatScreen() {
                   accessibilityRole="button"
                   accessibilityLabel="Open the active session"
                   className="flex-row items-center active:opacity-70">
-                  <Ionicons name="open-outline" size={16} color="#5eead4" />
+                  <Ionicons name="open-outline" size={16} color="#b6d69a" />
                   <Text className="ml-1.5 text-sm font-bold text-brand">Session</Text>
                 </Pressable>
               )
@@ -216,7 +216,7 @@ export default function LogChatScreen() {
           {turns.length === 0 ? (
             <View className="flex-1 justify-center py-6">
               <View className="mb-4 h-12 w-12 items-center justify-center rounded-2xl border border-brand/30 bg-brand/10">
-                <Ionicons name="sparkles" size={22} color="#5eead4" />
+                <Ionicons name="sparkles" size={22} color="#b6d69a" />
               </View>
               <Text variant="heading">Describe what you did</Text>
               <Text variant="muted" className="mb-4 mt-1">
@@ -234,7 +234,7 @@ export default function LogChatScreen() {
                   <Text variant="caption" numberOfLines={2} className="flex-1 text-iron-100">
                     {s}
                   </Text>
-                  <Ionicons name="arrow-forward" size={15} color="#64748b" />
+                  <Ionicons name="arrow-forward" size={15} color="#929b89" />
                 </Pressable>
               ))}
             </View>
@@ -307,7 +307,7 @@ export default function LogChatScreen() {
 
           {busy ? (
             <View className="mb-3 flex-row items-center">
-              <Ionicons name="sparkles" size={15} color="#5eead4" />
+              <Ionicons name="sparkles" size={15} color="#b6d69a" />
               <Text variant="body" className="ml-2 text-iron-100">
                 Working on it<Text className="text-brand">…</Text>
               </Text>
@@ -323,8 +323,8 @@ export default function LogChatScreen() {
               value={input}
               onChangeText={setInput}
               placeholder="Describe your sets…"
-              placeholderTextColor="#64748b"
-              selectionColor="#5eead4"
+              placeholderTextColor="#929b89"
+              selectionColor="#b6d69a"
               multiline
               editable={!busy}
               className="max-h-32 min-h-[44px] flex-1 rounded-lg border border-iron-700 bg-iron-900 px-4 py-2.5 text-base text-iron-50"
@@ -342,7 +342,7 @@ export default function LogChatScreen() {
                 className={`ml-2 h-11 w-11 items-center justify-center rounded-lg ${
                   listening ? 'bg-red-500/80' : 'bg-iron-800'
                 }`}>
-                <Ionicons name={listening ? 'stop' : 'mic'} size={19} color="#e2e8f0" />
+                <Ionicons name={listening ? 'stop' : 'mic'} size={19} color="#dce0d5" />
               </Pressable>
             ) : null}
             <Pressable
@@ -353,7 +353,7 @@ export default function LogChatScreen() {
               className={`ml-2 h-11 w-11 items-center justify-center rounded-lg ${
                 input.trim() && !busy ? 'bg-brand active:bg-brand-600' : 'bg-iron-800 opacity-50'
               }`}>
-              <Ionicons name="arrow-up" size={20} color="#030712" />
+              <Ionicons name="arrow-up" size={20} color="#121510" />
             </Pressable>
           </View>
         </View>

@@ -56,7 +56,7 @@ function ProfileField({
         onEndEditing={commit}
         onBlur={commit}
         placeholder={placeholder}
-        placeholderTextColor="#64748b"
+        placeholderTextColor="#929b89"
         multiline
         className="min-h-[64px] rounded-lg border border-iron-700 bg-iron-900 px-4 py-3 text-base text-iron-50"
         style={{ textAlignVertical: 'top' }}
@@ -112,7 +112,7 @@ function NumericProfileField({
           onBlur={commit}
           keyboardType="decimal-pad"
           placeholder={placeholder}
-          placeholderTextColor="#64748b"
+          placeholderTextColor="#929b89"
           className="min-h-[40px] flex-1 p-0 text-2xl font-black text-iron-50"
         />
         <Text variant="caption" className="ml-1 text-iron-400">
@@ -423,7 +423,7 @@ export default function ProfileScreen() {
             onSubmitEditing={addInjury}
             returnKeyType="done"
             placeholder="add injury (e.g. left shoulder)"
-            placeholderTextColor="#64748b"
+            placeholderTextColor="#929b89"
             className="flex-1 rounded-lg border border-iron-700 bg-iron-900 px-4 py-3 text-base text-iron-50"
           />
           <Pressable
@@ -453,7 +453,7 @@ export default function ProfileScreen() {
             Goals, equipment, preferences and notes it should remember.
           </Text>
         </View>
-        <Ionicons name={contextOpen ? 'chevron-up' : 'chevron-down'} size={18} color="#94a3b8" />
+        <Ionicons name={contextOpen ? 'chevron-up' : 'chevron-down'} size={18} color="#b0b6a8" />
       </Pressable>
       {contextOpen ? (
       <>

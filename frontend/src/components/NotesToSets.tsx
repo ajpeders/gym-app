@@ -103,11 +103,11 @@ export function NotesToSets({ onAdd }: { onAdd: (rows: DraftLoggedExercise[]) =>
             setResult(null);
           }}
           className="flex-row items-center rounded-lg border border-brand/40 bg-brand/10 px-3.5 py-3 active:opacity-70">
-          <Ionicons name="sparkles" size={16} color="#5eead4" />
+          <Ionicons name="sparkles" size={16} color="#b6d69a" />
           <Text variant="body" className="ml-2 flex-1 text-brand">
             Read my notes
           </Text>
-          <Ionicons name="chevron-down" size={16} color="#5eead4" />
+          <Ionicons name="chevron-down" size={16} color="#b6d69a" />
         </Pressable>
         {result ? (
           <Text variant="caption" className="mt-1.5 text-mint">
@@ -121,20 +121,20 @@ export function NotesToSets({ onAdd }: { onAdd: (rows: DraftLoggedExercise[]) =>
   return (
     <View className="mb-3 rounded-lg border border-brand/40 bg-brand/5 p-3.5">
       <View className="mb-2 flex-row items-center">
-        <Ionicons name="sparkles" size={16} color="#5eead4" />
+        <Ionicons name="sparkles" size={16} color="#b6d69a" />
         <Text variant="label" className="ml-2 flex-1 text-brand">
           Read my notes
         </Text>
         <Pressable onPress={() => setOpen(false)} hitSlop={8}>
-          <Ionicons name="close" size={18} color="#94a3b8" />
+          <Ionicons name="close" size={18} color="#b0b6a8" />
         </Pressable>
       </View>
       <TextInput
         value={text}
         onChangeText={setText}
         placeholder={PLACEHOLDER}
-        placeholderTextColor="#64748b"
-        selectionColor="#5eead4"
+        placeholderTextColor="#929b89"
+        selectionColor="#b6d69a"
         multiline
         editable={!busy}
         className="min-h-[120px] rounded-lg border border-iron-700 bg-iron-950 px-3.5 py-2.5 text-base text-iron-50"

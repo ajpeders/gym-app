@@ -39,7 +39,7 @@ export function ActionRow({
       } ${onPress && !disabled ? 'active:bg-brand/10' : ''} ${disabled ? 'opacity-60' : ''}`}>
       {icon ? (
         <View className="mr-3 h-9 w-9 items-center justify-center rounded-xl border border-iron-700 bg-iron-850">
-          <Ionicons name={icon} size={17} color={selected ? '#5eead4' : '#94a3b8'} />
+          <Ionicons name={icon} size={17} color={selected ? '#b6d69a' : '#b0b6a8'} />
         </View>
       ) : null}
       <View className="min-w-0 flex-1">
@@ -60,7 +60,7 @@ export function ActionRow({
           {meta}
         </Text>
       ) : null}
-      {trailing ?? (onPress ? <Ionicons name="chevron-forward" size={16} color="#64748b" /> : null)}
+      {trailing ?? (onPress ? <Ionicons name="chevron-forward" size={16} color="#929b89" /> : null)}
     </Wrapper>
   );
 }

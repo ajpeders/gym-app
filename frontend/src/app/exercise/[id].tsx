@@ -283,7 +283,7 @@ export default function ExerciseDetailScreen() {
                 onChangeText={setQuestion}
                 accessibilityLabel="Question about this exercise"
                 placeholder="e.g. where should the bar touch?"
-                placeholderTextColor="#64748b"
+                placeholderTextColor="#929b89"
                 className="rounded-lg border border-iron-700 bg-iron-950 px-3 py-2.5 text-base text-iron-100"
               />
               <Button

@@ -106,7 +106,7 @@ export default function OnboardingScreen() {
       <Button title="Continue to app" size="lg" loading={busy} onPress={() => void finish()} />
 
       <View className="mt-6 flex-row items-start">
-        <Ionicons name="lock-closed-outline" size={14} color="#64748b" />
+        <Ionicons name="lock-closed-outline" size={14} color="#929b89" />
         <Text variant="caption" className="ml-2 flex-1 text-iron-500">
           Your training stays on the server you point this app at. Export or
           delete all of it any time from Settings.

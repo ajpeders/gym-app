@@ -67,7 +67,7 @@ function DayRow({
 
         {day.logged ? (
           <View className="flex-row items-center">
-            <Ionicons name="checkmark-circle" size={18} color="#34d399" />
+            <Ionicons name="checkmark-circle" size={18} color="#7bc6a4" />
             <Text variant="caption" className="ml-1.5 text-mint">
               {day.sessions.length === 1 ? 'Logged' : `${day.sessions.length} logged`}
             </Text>
@@ -101,7 +101,7 @@ function DayRow({
           <Text variant="caption" className="text-iron-500">
             {s.exercise_count} {s.exercise_count === 1 ? 'exercise' : 'exercises'}
           </Text>
-          <Ionicons name="chevron-forward" size={14} color="#475569" />
+          <Ionicons name="chevron-forward" size={14} color="#727c69" />
         </Pressable>
       ))}
     </View>
@@ -184,7 +184,7 @@ export default function CatchUpScreen() {
               <Ionicons
                 name={outstanding ? 'alert-circle' : 'checkmark-circle'}
                 size={16}
-                color={outstanding ? '#fbbf24' : '#34d399'}
+                color={outstanding ? '#fbbf24' : '#7bc6a4'}
               />
               <Text
                 variant="caption"

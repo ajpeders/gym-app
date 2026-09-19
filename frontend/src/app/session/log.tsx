@@ -285,8 +285,8 @@ export default function LogSessionScreen() {
               value={dateStr}
               onChangeText={setDateStr}
               placeholder="YYYY-MM-DD"
-              placeholderTextColor="#64748b"
-              selectionColor="#5eead4"
+              placeholderTextColor="#929b89"
+              selectionColor="#b6d69a"
               autoCapitalize="none"
               className="rounded-lg border border-iron-700 bg-iron-900 px-4 py-2.5 text-base text-iron-50"
             />
@@ -350,7 +350,7 @@ export default function LogSessionScreen() {
                       onChangeText={(v) => updateSet(exIdx, setIdx, { reps: v })}
                       keyboardType="number-pad"
                       placeholder="-"
-                      placeholderTextColor="#64748b"
+                      placeholderTextColor="#929b89"
                       className={smallInput}
                     />
                   </View>
@@ -360,12 +360,12 @@ export default function LogSessionScreen() {
                       onChangeText={(v) => updateSet(exIdx, setIdx, { weight: v })}
                       keyboardType="decimal-pad"
                       placeholder="-"
-                      placeholderTextColor="#64748b"
+                      placeholderTextColor="#929b89"
                       className={smallInput}
                     />
                   </View>
                   <Pressable onPress={() => removeSet(exIdx, setIdx)} hitSlop={6} className="w-8 items-center">
-                    <Ionicons name="close-circle" size={20} color="#64748b" />
+                    <Ionicons name="close-circle" size={20} color="#929b89" />
                   </Pressable>
                 </View>
               ))}
@@ -373,7 +373,7 @@ export default function LogSessionScreen() {
               <Pressable
                 onPress={() => addSet(exIdx)}
                 className="mt-3 flex-row items-center justify-center rounded-md border border-iron-700 py-2 active:opacity-70">
-                <Ionicons name="add" size={16} color="#5eead4" />
+                <Ionicons name="add" size={16} color="#b6d69a" />
                 <Text className="ml-1 font-semibold text-brand">Add set</Text>
               </Pressable>
             </Card>

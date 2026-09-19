@@ -228,7 +228,7 @@ export function ActiveExerciseCard({
               <Ionicons
                 name="information-circle-outline"
                 size={15}
-                color="#5eead4"
+                color="#b6d69a"
                 style={{ marginLeft: 5 }}
               />
             </View>
@@ -250,7 +250,7 @@ export function ActiveExerciseCard({
             accessibilityRole="button"
             accessibilityLabel="Swap exercise"
             className="ml-2 h-9 w-9 items-center justify-center rounded-lg bg-brand/10 active:opacity-60">
-            <Ionicons name="swap-horizontal" size={17} color="#5eead4" />
+            <Ionicons name="swap-horizontal" size={17} color="#b6d69a" />
           </Pressable>
         ) : null}
         <Pressable
@@ -316,7 +316,7 @@ export function ActiveExerciseCard({
                   <Ionicons
                     name="cloud-upload-outline"
                     size={14}
-                    color="#94a3b8"
+                    color="#b0b6a8"
                     style={{ marginRight: 4 }}
                   />
                 ) : null}
@@ -368,8 +368,8 @@ export function ActiveExerciseCard({
               keyboardType="number-pad"
               accessibilityLabel="Seconds"
               placeholder={last?.duration_seconds != null ? String(last.duration_seconds) : '30'}
-              placeholderTextColor="#64748b"
-              selectionColor="#5eead4"
+              placeholderTextColor="#929b89"
+              selectionColor="#b6d69a"
               className={numInput}
             />
           </View>
@@ -389,8 +389,8 @@ export function ActiveExerciseCard({
                 // weight after every log.
                 accessibilityLabel={isBodyweight ? 'Added weight' : 'Weight'}
                 placeholder={last?.weight != null ? String(last.weight) : 'BW'}
-                placeholderTextColor="#64748b"
-                selectionColor="#5eead4"
+                placeholderTextColor="#929b89"
+                selectionColor="#b6d69a"
                 className={numInput}
               />
             </View>
@@ -404,8 +404,8 @@ export function ActiveExerciseCard({
                 keyboardType="number-pad"
                 accessibilityLabel="Reps"
                 placeholder={last?.reps != null ? String(last.reps) : '0'}
-                placeholderTextColor="#64748b"
-                selectionColor="#5eead4"
+                placeholderTextColor="#929b89"
+                selectionColor="#b6d69a"
                 className={numInput}
               />
             </View>
@@ -421,8 +421,8 @@ export function ActiveExerciseCard({
             keyboardType="decimal-pad"
             accessibilityLabel="RPE"
             placeholder="-"
-            placeholderTextColor="#64748b"
-            selectionColor="#5eead4"
+            placeholderTextColor="#929b89"
+            selectionColor="#b6d69a"
             className={numInput}
           />
         </View>
@@ -459,7 +459,7 @@ export function ActiveExerciseCard({
         <Ionicons
           name={restStartedAt != null ? 'stop-circle-outline' : 'timer-outline'}
           size={16}
-          color={restStartedAt != null ? '#5eead4' : '#94a3b8'}
+          color={restStartedAt != null ? '#b6d69a' : '#b0b6a8'}
         />
         <Text
           className={`ml-1.5 text-sm font-bold ${
@@ -478,8 +478,8 @@ export function ActiveExerciseCard({
         value={note}
         onChangeText={setNote}
         placeholder="Note for this set (optional)"
-        placeholderTextColor="#64748b"
-        selectionColor="#5eead4"
+        placeholderTextColor="#929b89"
+        selectionColor="#b6d69a"
         className="mt-2 min-h-[40px] rounded-lg border border-iron-700 bg-iron-950 px-3 py-2 text-sm text-iron-50"
       />
 
@@ -493,7 +493,7 @@ export function ActiveExerciseCard({
             accessibilityRole="button"
             accessibilityLabel="Log the same set again"
             className="min-h-[48px] flex-1 flex-row items-center justify-center rounded-xl border border-brand/40 bg-brand/10 px-3 py-2 active:opacity-70">
-            <Ionicons name="repeat" size={18} color="#5eead4" />
+            <Ionicons name="repeat" size={18} color="#b6d69a" />
             <Text className="ml-2 text-base font-bold text-brand">
               {isTimed
                 ? formatDurationSeconds(last.duration_seconds)
@@ -511,7 +511,7 @@ export function ActiveExerciseCard({
             accessibilityRole="button"
             accessibilityLabel="Log the target set"
             className="min-h-[48px] flex-1 flex-row items-center justify-center rounded-xl border border-brand/40 bg-brand/10 px-3 py-2 active:opacity-70">
-            <Ionicons name="flash-outline" size={18} color="#5eead4" />
+            <Ionicons name="flash-outline" size={18} color="#b6d69a" />
             <Text className="ml-2 text-base font-bold text-brand">
               {`Log target ${formatLoad(target.weight, units)} x ${target.reps}`}
             </Text>

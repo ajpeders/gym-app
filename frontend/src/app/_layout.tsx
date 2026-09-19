@@ -24,7 +24,7 @@ function Splash() {
       <View className="mb-4">
         <Logo size="md" />
       </View>
-      <ActivityIndicator color="#5eead4" />
+      <ActivityIndicator color="#b6d69a" />
     </View>
   );
 }
@@ -70,8 +70,8 @@ function RootNavigator() {
     <Stack
       screenOptions={{
         headerShown: false,
-        headerStyle: { backgroundColor: '#030712' },
-        headerTintColor: '#f8fafc',
+        headerStyle: { backgroundColor: '#121510' },
+        headerTintColor: '#f2f3ed',
         headerTitleStyle: { fontWeight: '900' },
         headerShadowVisible: false,
         // Consistent back control on every pushed screen (renders null at a
@@ -79,7 +79,7 @@ function RootNavigator() {
         // native default from doubling up beside it.
         headerBackVisible: false,
         headerLeft: () => <HeaderBack />,
-        contentStyle: { backgroundColor: '#030712' },
+        contentStyle: { backgroundColor: '#121510' },
       }}>
       <Stack.Screen name="(auth)" />
       <Stack.Screen name="(tabs)" />

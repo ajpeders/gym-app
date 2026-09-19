@@ -166,7 +166,7 @@ export function WeighIns() {
     <>
       <Card className="mb-4 rounded-[20px] p-4">
         <View className="mb-3 flex-row items-center">
-          <Ionicons name="scale-outline" size={16} color="#5eead4" />
+          <Ionicons name="scale-outline" size={16} color="#b6d69a" />
           <Text variant="label" className="ml-2 flex-1 text-brand">
             Weight
           </Text>
@@ -211,7 +211,7 @@ export function WeighIns() {
                       {m.weight} {unit}
                     </Text>
                     <Pressable onPress={() => remove(m)} hitSlop={8} className="active:opacity-60">
-                      <Ionicons name="trash-outline" size={15} color="#64748b" />
+                      <Ionicons name="trash-outline" size={15} color="#929b89" />
                     </Pressable>
                   </View>
                 ))}

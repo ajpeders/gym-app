@@ -258,7 +258,7 @@ export default function ProgressScreen() {
             <View className="mb-3 flex-row items-center justify-between">
               <Text variant="heading">New progress photo</Text>
               <Pressable onPress={() => setPending(null)} hitSlop={8}>
-                <Ionicons name="close" size={22} color="#94a3b8" />
+                <Ionicons name="close" size={22} color="#b0b6a8" />
               </Pressable>
             </View>
 
@@ -283,7 +283,7 @@ export default function ProgressScreen() {
                 <Ionicons
                   name={overrideDate ? 'ellipse-outline' : 'checkmark-circle'}
                   size={16}
-                  color={overrideDate ? '#64748b' : '#5eead4'}
+                  color={overrideDate ? '#929b89' : '#b6d69a'}
                 />
                 <Text
                   variant="caption"
@@ -328,7 +328,7 @@ export default function ProgressScreen() {
               value={notes}
               onChangeText={setNotes}
               placeholder="Notes (optional) — e.g. week 4, morning"
-              placeholderTextColor="#64748b"
+              placeholderTextColor="#929b89"
               className="mt-4 rounded-lg border border-iron-700 bg-iron-900 px-4 py-3 text-base text-iron-50"
             />
 

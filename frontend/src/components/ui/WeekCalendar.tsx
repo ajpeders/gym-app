@@ -73,7 +73,7 @@ export function WeekCalendar({
               {item.value}
             </Text>
             {item.hasPhoto ? (
-              <Ionicons name="camera" size={11} color="#34d399" style={{ marginTop: 6 }} />
+              <Ionicons name="camera" size={11} color="#7bc6a4" style={{ marginTop: 6 }} />
             ) : (
               <View
                 className={`mt-2 h-2 w-2 rounded-full ${

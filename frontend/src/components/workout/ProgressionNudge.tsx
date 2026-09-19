@@ -15,7 +15,7 @@ export function ProgressionNudge({ show }: { show?: boolean }) {
   if (!show) return null;
   return (
     <View className="mt-3 flex-row items-center rounded-lg bg-emerald-500/10 px-3 py-2">
-      <Ionicons name="trending-up" size={16} color="#34d399" />
+      <Ionicons name="trending-up" size={16} color="#7bc6a4" />
       <Text variant="caption" className="ml-2 flex-1 font-semibold text-emerald-400">
         Top of the range on every set — add weight next time.
       </Text>
