@@ -324,7 +324,7 @@ export default function WorkoutsScreen() {
               </View>
             ) : null}
 
-            <SectionHeader title="All splits" subtitle="Open a split to edit its weekly schedule." />
+            <SectionHeader title="All splits" subtitle="A split is your weekly plan of workouts. Open one to edit its schedule." />
             {splits.map((s) => {
               const trainingDays = s.workouts.length;
               return (

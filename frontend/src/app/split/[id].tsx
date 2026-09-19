@@ -246,6 +246,11 @@ export default function SplitDetailScreen() {
           {ordered.length} {ordered.length === 1 ? 'workout' : 'workouts'} ·{' '}
           {rolling ? 'rotation' : 'weekly split'}
         </Text>
+        {rolling ? (
+          <Text variant="caption" className="mt-1 text-iron-500">
+            Rolling split — the schedule frees up if you miss a day.
+          </Text>
+        ) : null}
 
         {actionError ? (
           <Text className="mt-2 text-sm text-red-400">{actionError}</Text>

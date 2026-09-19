@@ -325,6 +325,12 @@ export default function HomeScreen() {
           <NextTargets workoutName={primaryToday.name} suggestions={nextTargets} className="mt-3" />
         ) : null}
 
+        {!ongoing && dueLabel === 'makeup day' ? (
+          <Text variant="caption" className="mt-2 text-iron-500">
+            Makeup day — a scheduled workout you missed, now due to log.
+          </Text>
+        ) : null}
+
         {!ongoing && !isNewAccount ? logActions : null}
         {startError ? <FormError message={startError} /> : null}
 

@@ -425,6 +425,10 @@ export function ActiveExerciseCard({
           />
         </View>
       </View>
+      {/* RPE appears for the first time here, where the user types it. */}
+      <Text variant="caption" className="mt-1.5 text-iron-500">
+        RPE — Rate of Perceived Exertion: 1 (easy) to 10 (max).
+      </Text>
       {/* What to put on the bar for the number in the box (or the last set's).
         * Works offline; it is arithmetic, not a request. */}
       {!isTimed && !isBodyweight && platesFor != null ? (

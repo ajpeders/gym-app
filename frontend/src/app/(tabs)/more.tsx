@@ -24,7 +24,7 @@ export default function MoreScreen() {
       <SectionHeader title="Training tools" className="mt-0" />
       <Card className="mb-4 p-2">
         <ActionRow icon="chatbubble-outline" title="Log by text" subtitle="Describe a workout to log it." onPress={() => router.push('/log-chat')} />
-        <ActionRow icon="calendar-outline" title="Catch up" subtitle="Log a previous workout." onPress={() => router.push('/catch-up')} />
+        <ActionRow icon="calendar-outline" title="Catch up" subtitle="Log a session for a day you missed." onPress={() => router.push('/catch-up')} />
         <ActionRow
           icon="chatbubbles-outline"
           title="Spotter"
