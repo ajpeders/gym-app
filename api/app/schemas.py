@@ -46,11 +46,13 @@ class UserOut(BaseModel):
         return self.role == "admin" or bool(admin_email and self.email.lower() == admin_email)
 
 
-# NOTE: `email` is a plain string (not EmailStr) and the password minimum is 1,
-# so simple test credentials like "alex" / "1234" work on this LAN-only personal
-# instance. Tighten these if the app is ever exposed beyond a trusted network.
+# EmailStr validator on the public signup form: a typo at registration is the
+# cheapest support ticket this app can produce, and the providers used elsewhere
+# (Google/GitHub OAuth, the password reset email) validate their own shape first.
+# `display_name` and OAuth-supplied addresses stay plain strings — the providers
+# and the signup UI already enforce what they need.
 class RegisterIn(BaseModel):
-    email: str = Field(min_length=1)
+    email: EmailStr
     password: str = Field(min_length=1)
     display_name: str = ""
 

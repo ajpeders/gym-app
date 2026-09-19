@@ -28,7 +28,7 @@ live messages, or changes to production data.
   - **Do:** Trace each claimed capability from the UI through the API; tests alone are not proof of UI availability. Split CSV, JSON, Hevy/Strong, and retry handling into separate statuses. Cite existing implementation/tests for completed pieces and preserve genuine gaps.
   - **Done when:** Each status has code evidence; partial support lists its exact boundary. No new importer or data migration is built in this documentation task.
 
-- [ ] **GYM-03 — Stricter email validation on `/auth/register`** (ready)
+- [x] **GYM-03 — Stricter email validation on `/auth/register`** (ready)
   - **Why:** `api/app/schemas.py:53` documents a deliberate choice to accept `email: str = Field(min_length=1)` instead of `EmailStr`. POST `/auth/register` returns 201 for `"not-an-email"` (confirmed in live test against https://gym.thelunadog.com). Behaviour was deliberate once, but a string `min_length=1` also lets `"a"` through and will never diagnose a typo at signup — by far the cheapest user-support ticket this app can produce.
   - **Start here:** api/app/schemas.py (the RegisterIn / OAuthIn shapes), api/app/routes/auth.py (`/register`, `/login`, `/oauth/.../start` handlers), api/tests/test_auth.py.
   - **Do:** Decide product-side whether to switch to `pydantic.EmailStr` globally (forces RFC 5321-ish shape; OAuth providers still pass their own validator so no regression there) or only at `/auth/register` (keep OAuth inputs loose). Add the chosen validator to `RegisterIn`; keep the existing tests green. Cover the new behaviour with focused tests: accepts a normal address, rejects `not-an-email` and `a@b` at 422 with a useful message, accepts an OAuth-supplied address unchanged.

@@ -52,10 +52,22 @@ def test_me_requires_auth(client):
 
 
 def test_simple_username_and_short_password(client):
-    """Plain usernames and short passwords are allowed (LAN-only test instance)."""
-    reg = client.post("/api/auth/register", json={"email": "alex", "password": "1234"})
-    assert reg.status_code == 201, reg.text
-    login = client.post("/api/auth/login", json={"email": "alex", "password": "1234"})
+    """`/register` enforces an email shape on signup (GYM-03); passwords stay
+    minimal for the LAN instance. The same shape goes for `/login`, which
+    never tells a caller whether the email shape was the rejection reason.
+    """
+    bad = client.post("/api/auth/register", json={"email": "alex", "password": "1234"})
+    assert bad.status_code == 422, bad.text
+    assert "email" in bad.text.lower()
+
+    good = client.post(
+        "/api/auth/register", json={"email": "alex@example.com", "password": "1234"}
+    )
+    assert good.status_code == 201, good.text
+
+    login = client.post(
+        "/api/auth/login", json={"email": "alex@example.com", "password": "1234"}
+    )
     assert login.status_code == 200, login.text
 
 
