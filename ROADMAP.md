@@ -28,6 +28,30 @@ live messages, or changes to production data.
   - **Do:** Trace each claimed capability from the UI through the API; tests alone are not proof of UI availability. Split CSV, JSON, Hevy/Strong, and retry handling into separate statuses. Cite existing implementation/tests for completed pieces and preserve genuine gaps.
   - **Done when:** Each status has code evidence; partial support lists its exact boundary. No new importer or data migration is built in this documentation task.
 
+- [ ] **GYM-03 — Stricter email validation on `/auth/register`** (ready)
+  - **Why:** `api/app/schemas.py:53` documents a deliberate choice to accept `email: str = Field(min_length=1)` instead of `EmailStr`. POST `/auth/register` returns 201 for `"not-an-email"` (confirmed in live test against https://gym.thelunadog.com). Behaviour was deliberate once, but a string `min_length=1` also lets `"a"` through and will never diagnose a typo at signup — by far the cheapest user-support ticket this app can produce.
+  - **Start here:** api/app/schemas.py (the RegisterIn / OAuthIn shapes), api/app/routes/auth.py (`/register`, `/login`, `/oauth/.../start` handlers), api/tests/test_auth.py.
+  - **Do:** Decide product-side whether to switch to `pydantic.EmailStr` globally (forces RFC 5321-ish shape; OAuth providers still pass their own validator so no regression there) or only at `/auth/register` (keep OAuth inputs loose). Add the chosen validator to `RegisterIn`; keep the existing tests green. Cover the new behaviour with focused tests: accepts a normal address, rejects `not-an-email` and `a@b` at 422 with a useful message, accepts an OAuth-supplied address unchanged.
+  - **Done when:** A bad shape returns 422 with a validation error mentioning the field. OAuth providers still register successfully (the provider already validated). No regression on existing auth tests. This is a tightening only — do not change password rules here.
+
+- [ ] **GYM-04 — Make offline/syncing state visible to users** (ready)
+  - **Why:** `lib/offline.ts` persists queued writes silently; users have no way to tell a set is queued, is flushing, or just landed. Logs are reliable on paper but invisible in practice — a user who drops signal mid-session may stop trusting the counts.
+  - **Start here:** frontend/src/lib/offline.ts (queue, IDMAP, plans cache), frontend/src/api/client.ts (queue-drain triggers), frontend/src/app/(tabs)/_layout.tsx (where to show a global banner), frontend/src/app/session/active/[id].tsx (where it matters most — a set just queued).
+  - **Do:** Surface (a) "Offline — N writes queued, will sync when back online" in the tab bar or app header when the queue is non-empty, (b) per-set "Queued" / "Synced" badge on the active-session set card so the doubt goes away mid-workout, (c) "Syncing…" on app foreground or reconnect so the work isn't invisible. Reuse `useNetInfo` if already wired; do NOT add push notifications. Do NOT surface retry errors in red — write failures recover, a panic badge would teach the user to ignore it.
+  - **Done when:** A set logged with no connection shows a "queued" indicator on the card; on reconnect the indicator flips to "synced" and the banner clears. Empty queue = no banner. Tests in `offline.test.ts` cover the indicator derivation pure function.
+
+- [ ] **GYM-05 — Define the jargon: rolling, split, catch-up, makeup day, RPE** (ready)
+  - **Why:** Home/Splits/History use "rolling", "catch up", "makeup day", "RPE" without inline definitions. A first-time lifter hits these on day one. Code-level help exists in some screens (e.g. the Spotter skill file) but isn't surfaced on the screens that use the words.
+  - **Start here:** frontend/src/app/(tabs)/index.tsx (Home), frontend/src/app/(tabs)/workouts.tsx (Splits), frontend/src/app/(tabs)/history.tsx, frontend/src/app/(tabs)/more.tsx, frontend/src/components/coach/CoachCheckin.tsx, frontend/src/components/ui/Logo.tsx (for an icon-able tooltip pattern already in use).
+  - **Do:** Add a one-line plain-English line under each first-use term — short, not a tutorial. Examples: "Rolling split — schedule frees up if you miss a day", "RPE — Rate of Perceived Exertion, 1 (easy) to 10 (max)", "Catch up — log a session for a day you missed". Prefer inline muted text over info-icon tooltips; touch screens probe less than they read. Keep cards terse. Do NOT add a long glossary screen — a user who needs one isn't the one with a glossary screen.
+  - **Done when:** Every user-facing string in the terms list above has an inline definition on its first appearance in the app. No new component added unless the inline pattern doesn't fit; reuse the existing muted `Text` variant.
+
+- [ ] **GYM-06 — Bring logging into Home for new users** (ready)
+  - **Why:** The actual logging loop is two taps deep (Home → "Empty session" → add-exercise). Home already shows three actions including "Log by text" — that's surface area, but a first-time user lands on Home without a plan and is silently funnelled toward "Import your first split" before they ever log a set. Discoverability problem, not a feature problem.
+  - **Start here:** frontend/src/app/(tabs)/index.tsx, frontend/src/app/more.tsx, frontend/src/app/session/add-exercise.tsx, frontend/src/app/log-chat.tsx.
+  - **Do:** Make the "Empty session" and "Log by text" actions visibly primary on Home for a brand-new account (`onboarded === false` OR `splits.length === 0`). Keep the existing card structure; the fix is prominence, not a new card. Verify the action reaches the same screens it reaches today — this is a layout/props change, not a flow rewrite.
+  - **Done when:** A new account (zero splits) lands on Home and the first thing visible is one of the two logging actions at visual primary tier. Existing accounts are unchanged. Typecheck + a Playwright e2e covers the new-account path.
+
 > AI-assisted gym tracker. Log workouts, track progress, and get coaching from
 > a local (Ollama) or frontier (Claude) model. Native-first (Expo / React
 > Native) with a web build from the same codebase.
