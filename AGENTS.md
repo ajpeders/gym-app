@@ -11,8 +11,10 @@
 
 - API setup: `uv venv .venv && uv pip install -r requirements.txt`. Plain `pip` may fail building `pydantic-core` without a toolchain.
 - API focused test: `.venv/bin/python -m pytest tests/test_sessions.py -q` (replace the file or append `::test_name`). Full check: `python3 -m compileall -q app && .venv/bin/python -m pytest -q`.
-- Frontend install: `npm ci`. CI check: `npm run typecheck`; run `npm run export:web` when changing web/build behavior. There is no frontend test suite, and the `lint` script has no ESLint packages/config installed.
-- CI is `.forgejo/workflows/ci.yml`, not GitHub Actions configuration. It runs API compile then pytest, and frontend `npm ci` then TypeScript.
+- Frontend install: `npm ci`. Typecheck: `npm run typecheck`; run `npm run export:web` when changing web/build behavior.
+- Frontend unit tests (Vitest, pure `src/lib` logic — the offline queue is the one place a bug silently loses training): `npm test`, or focused: `npm test -- src/lib/offline.test.ts`. Screens and components are covered by the Playwright e2e suite in `frontend/e2e/` (`npm run e2e` builds the web bundle and runs it against a real API), not by unit tests.
+- `npm run lint` (`expo lint`) has no ESLint config in the repo — eslint is not a declared dependency and no config file exists — so lint is not run in CI.
+- CI is `.forgejo/workflows/ci.yml`, not GitHub Actions configuration. Three jobs: `api` (compile + pytest), `web` (npm ci, `tsc --noEmit`, `npm test`, advisory `expo-doctor`, `prebuild:check`), and `e2e` (real web build + Playwright against a real API/SQLite).
 
 ## Backend Traps
 

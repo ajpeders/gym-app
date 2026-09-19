@@ -1,5 +1,33 @@
 # gym-app — Roadmap
 
+## Agent-sized TODO queue — 2026-09-18
+
+These cards break selected existing priorities and observed gaps into small tasks.
+They are the execution queue; the broader roadmap below remains product context.
+Pick one card per change. Paths and commands are relative to this project root;
+`(new)` marks a file to create. Read applicable `AGENTS.md` first. Check whether the
+work has already landed before editing. If so, cite the implementation and checks
+instead of rebuilding it. Install dependencies using this project's documented setup.
+
+`ready` means no product decision is needed, not that every tool is installed.
+Honor explicit dependencies and blocked/parked labels. Do not expand a card into an
+architecture rewrite. If a contract or prerequisite is missing, record the blocker.
+Mark a card complete only with its acceptance evidence; report changed files, checks
+run, and remaining limitations. These TODOs do not authorize deployment, publishing,
+live messages, or changes to production data.
+
+- [x] **GYM-01 — Correct agent verification guidance for existing frontend tests** (ready)
+  - **Why:** Root AGENTS.md says there is no frontend test suite, but package.json now contains Vitest and Playwright scripts.
+  - **Start here:** AGENTS.md, frontend/package.json, frontend/vitest.config.ts, frontend/src/lib/offline.test.ts, .forgejo/workflows/ci.yml.
+  - **Do:** Replace the stale no-tests statement with accurate focused unit-test, typecheck, and optional browser-check commands. Inspect workflow coverage and distinguish available scripts from checks actually run by CI. Keep backend setup and naming guidance.
+  - **Done when:** All documented npm scripts exist. Verify a focused offline unit test from frontend with npm test -- src/lib/offline.test.ts and record any environment limitation. Do not imply browser tests run in CI unless configured.
+
+- [x] **GYM-02 — Reconcile the workout-import remaining-work checklist** (ready)
+  - **Why:** ROADMAP still calls CSV and retry-safe imports pending, while tests/test_csv_import.py, tests/test_idempotency.py and frontend/src/lib/import-key.test.ts now exist.
+  - **Start here:** ROADMAP.md, api/tests/test_csv_import.py, api/tests/test_idempotency.py, frontend/src/lib/import-key.test.ts, frontend/src/app/workout-import.tsx.
+  - **Do:** Trace each claimed capability from the UI through the API; tests alone are not proof of UI availability. Split CSV, JSON, Hevy/Strong, and retry handling into separate statuses. Cite existing implementation/tests for completed pieces and preserve genuine gaps.
+  - **Done when:** Each status has code evidence; partial support lists its exact boundary. No new importer or data migration is built in this documentation task.
+
 > AI-assisted gym tracker. Log workouts, track progress, and get coaching from
 > a local (Ollama) or frontier (Claude) model. Native-first (Expo / React
 > Native) with a web build from the same codebase.
@@ -95,7 +123,9 @@ by real accounts.
 
 **Known limits, accepted for v1.** No conflict resolution if the same session is
 edited on two devices at once (last write wins). 338 of 828 catalog rows have no
-image. Import retry creates a second split rather than reconciling. Adding a
+image. A retry of a *failed* import is safe (`Idempotency-Key`), but re-importing
+a plan you already have still needs you to pick "Update" — otherwise it lands as
+a second split rather than reconciling automatically. Adding a
 *new* exercise offline queues but shows nothing until it syncs. RPE-based
 calibration waits for real RPE data rather than shipping a model of nobody.
 
@@ -471,9 +501,14 @@ Found while actually training with the app. Ordered by how much they hurt.
       `workout-import.tsx` parses, shows a review step with per-day and
       per-exercise checkboxes plus editable set/rep/weight drafts, and creates
       user-owned custom exercises (deduped by name within a run) for anything
-      unmatched, so the shared catalog is never altered. **Still to do:**
-      CSV/JSON and app-export (Hevy/Strong) input, and making a retry safe —
-      re-running an import today creates a second split rather than reconciling.
+      unmatched, so the shared catalog is never altered. Status per capability:
+  - [x] **Pasted-text import** (notes/plain text, plan or routine) — `frontend/src/app/workout-import.tsx` (parse → per-day/per-exercise review → `api.importSplit`), served by `api/app/routes/splits.py:191-206` (`POST /api/splits/import`, one transaction, creates user-owned custom exercises for unmatched names). AI parse path: `api.parseWorkoutStream` (`frontend/src/app/workout-import.tsx:213`).
+  - [x] **CSV import (structured plan read without AI)** — `parseStructuredPlan` short-circuits the model for CSV/JSON pastes and matches names via `api.matchExercises` (`frontend/src/app/workout-import.tsx:161-199`, `frontend/src/api/client.ts`, served by `api/app/routes/exercises.py:92` `POST /api/exercises/match`). Review screen labels the source `CSV — no AI involved` (`frontend/src/app/workout-import.tsx:547-549`).
+  - [x] **JSON import (app's own export shape, incl. workout export)** — same structured path; `plan.source === 'json'` (`frontend/src/app/workout-import.tsx:167`). Round-trips with `lib/export.ts` text/JSON export.
+  - [x] **Hevy/Strong CSV history import** — UI: `frontend/src/components/HistoryCsvImport.tsx` ("Coming from Hevy or Strong?" on History) → `api.importCsv` (`frontend/src/api/client.ts:866-870`) → `POST /api/sessions/import-csv` (`api/app/routes/sessions.py:274-333`), format sniffed from the header row in `api/app/csv_io.py`. Sessions keep their real dates, warmups stay warmups, unmatched movements are reported (not dropped). Tested: `api/tests/test_csv_import.py` (sniffing, normalisation, warmup preservation, ordering, unmatched reporting, and export→re-import round-trip). Export side: `GET /api/sessions/export.csv` (`api/app/routes/sessions.py:336-379`).
+  - [x] **Retry-safe import (idempotency)** — the split import is one transaction and carries an `Idempotency-Key` derived from the parse nonce + reviewed payload (`frontend/src/lib/import-key.ts`, used at `frontend/src/app/workout-import.tsx:356-358`); the server replays the first answer instead of re-running (`api/app/routes/splits.py:191-206` via `replay_or_run`). Unit-tested in `frontend/src/lib/import-key.test.ts`; replay behaviour for the queued-write surface pinned by `api/tests/test_idempotency.py`.
+  - [~] **Re-running an import reconciles (still open)** — retry after a *failed/timed-out* save is safe, but deliberately re-importing the same plan does not reconcile by itself: with no plan selected the UI warns "Re-importing a plan you already have will leave you with two of it" (`frontend/src/app/workout-import.tsx:604-606`). Choosing an existing plan updates by day name instead — matching days updated in place, new ones added, absent ones removed (`replace_split_id`, `frontend/src/app/workout-import.tsx:588-607`). That is a user choice, not automatic reconciliation.
+  - [ ] **Whiteboard photo (vision) and PDF coach program** — not built; no route, no UI (`Import anything` next-step in Phase 1).
 - [x] **Duplicate in-progress workouts** — *resolved 2026-08-03.* At most one
       session may be open: `POST /sessions/start` finishes any stray (stamping it
       with its own last set, not "now"), and `GET /sessions/active` lets a client
