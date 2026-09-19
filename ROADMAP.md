@@ -4,7 +4,21 @@
 > a local (Ollama) or frontier (Claude) model. Native-first (Expo / React
 > Native) with a web build from the same codebase.
 
-Status: **Phases 0–4 shipped; UX pass done; launch-ready bar the EAS build; one open item (usable by others)** · Last updated: 2026-09-14
+Status: **Phases 0–4 shipped; UX pass done; launch-ready bar the EAS build; one open item (usable by others)** · Last updated: 2026-09-19
+
+## Pointed backlog (agent dispatch)
+
+Story points (1/2/3/5/8): 1–2 = mechanical, safe unattended; 3 = needs
+codebase context; 5–8 = design judgment. [human-assisted] = needs credentials
+or decisions only the user can supply. This is the open-work index; each item's
+full context lives in the sections below.
+
+| Pts | Item |
+|-----|------|
+| 1 | [human-assisted] EAS login/init + preview APK build (credentials only — see "Finishing the launch") |
+| 1 | [human-assisted] Create Google/GitHub OAuth client, set `GYM_*_CLIENT_ID` (buttons appear automatically) |
+| 2 | Universalize for outside users (see "Make this usable by others" — homelab hosts/LAN IPs in `.env.example`, compose, `eas.json`; `companion` installs from private Forgejo) |
+| 5 | Catch RN coach-chat client up to companion v0.6 (token/thinking streaming, trust-this-session, provider picker — docuAI's web ChatPanel is the behavioral spec) |
 
 ## Finishing the launch — the two steps only you can take
 
