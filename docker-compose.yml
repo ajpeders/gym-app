@@ -8,12 +8,11 @@ services:
       GYM_DATA_DIR: /data
       GYM_JWT_SECRET: ${GYM_JWT_SECRET:-}
       GYM_CORS_ORIGINS: ${GYM_CORS_ORIGINS:-*}
-      # Closed by default *for the deployed stack* — this compose file is the
-      # internet-facing one, so the safe value has to be the one you get by
-      # doing nothing. (The Python default in config.py stays true, which is
-      # what a local checkout and the test suite want.) Set
-      # GYM_ALLOW_REGISTRATION=true in .env to reopen signups.
-      GYM_ALLOW_REGISTRATION: ${GYM_ALLOW_REGISTRATION:-false}
+      # Signups are open: the public instance is linked as a live demo, and a
+      # demo nobody can sign into is not a demo. What keeps that from being an
+      # abuse endpoint is the gym-auth rate limit below, not this flag. Set
+      # GYM_ALLOW_REGISTRATION=false in .env to close them again.
+      GYM_ALLOW_REGISTRATION: ${GYM_ALLOW_REGISTRATION:-true}
       # --- AI (Phase 3): NL logging + coaching ---
       GYM_AI_PROVIDER: ${GYM_AI_PROVIDER:-ollama}
       GYM_OLLAMA_URL: ${GYM_OLLAMA_URL:-http://192.168.0.40:11434}
@@ -38,6 +37,22 @@ services:
       - traefik.http.routers.gym-api.tls=true
       - traefik.http.routers.gym-api.tls.certresolver=letsencrypt
       - traefik.http.services.gym-api.loadbalancer.server.port=8000
+      # The two credential endpoints get their own router purely so a rate
+      # limit can sit on them. Higher priority than gym-api (100) so it wins;
+      # exact Path rather than PathPrefix so the rest of /api/auth — notably
+      # /auth/me, which the frontend hits on every load — is untouched.
+      # Traefik resolves the real client IP here rather than Cloudflare's,
+      # because the websecure entrypoint trusts CF's forwarded headers.
+      - traefik.http.routers.gym-auth.rule=Host(`${GYM_DOMAIN}`) && (Path(`/api/auth/register`) || Path(`/api/auth/login`))
+      - traefik.http.routers.gym-auth.priority=200
+      - traefik.http.routers.gym-auth.entrypoints=websecure
+      - traefik.http.routers.gym-auth.tls=true
+      - traefik.http.routers.gym-auth.tls.certresolver=letsencrypt
+      - traefik.http.routers.gym-auth.middlewares=gym-auth-limit
+      - traefik.http.routers.gym-auth.service=gym-api
+      - traefik.http.middlewares.gym-auth-limit.ratelimit.average=10
+      - traefik.http.middlewares.gym-auth-limit.ratelimit.period=1m
+      - traefik.http.middlewares.gym-auth-limit.ratelimit.burst=5
     networks:
       - web
 

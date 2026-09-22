@@ -294,5 +294,7 @@ three run in CI.
 Traefik routes `https://${GYM_DOMAIN}/api` → `gym-api` (router priority 100, so it
 beats the web catch-all) and `https://${GYM_DOMAIN}/` → `gym-web`. Both are
 public — see the note in **Backend** on why there is no `local-only@file` here
-and what replaces it. The API build fetches `companion` via a BuildKit SSH-key
+and what replaces it. A third router, `gym-auth` (priority 200), exists only to
+put the `gym-auth-limit` rate limit on `/api/auth/register` and
+`/api/auth/login`. The API build fetches `companion` via a BuildKit SSH-key
 secret. See `HOWTO.md` → Deploy.

@@ -79,10 +79,12 @@ Traefik routes `https://${GYM_DOMAIN}` to the web frontend and
 `https://${GYM_DOMAIN}/api` to the API (the `/api` router has higher priority
 so it wins over the web catch-all). The instance is **internet-facing** — it is
 linked as the live demo from alex.thelunadog.com, so neither router carries the
-`local-only@file` middleware. What guards it instead is JWT auth on every data
-route plus `GYM_ALLOW_REGISTRATION=false`, which closes both signup doors
-(`POST /api/auth/register` and first-time OAuth sign-in) while leaving existing
-accounts able to log in.
+`local-only@file` middleware. Signups are open so the demo is usable. What
+guards it is JWT auth on every data route, plus a Traefik rate limit
+(`gym-auth-limit`: 10/min per IP, burst 5) on `/api/auth/register` and
+`/api/auth/login` so neither can be scripted. `GYM_ALLOW_REGISTRATION=false`
+closes both signup doors (`register` and first-time OAuth sign-in) if you ever
+need to, leaving existing accounts able to log in.
 
 ## State & backups
 
