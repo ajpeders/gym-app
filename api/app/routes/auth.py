@@ -144,11 +144,26 @@ async def oauth_callback(
     return RedirectResponse(f"{redirect_uri}{separator}token={create_token(user.id)}")
 
 
+def _reject_if_registration_closed() -> None:
+    """Guard both signup doors on an internet-facing instance.
+
+    Existing accounts keep signing in; only the creation of a new one is
+    refused. Called from /register and from the OAuth helper below, which is
+    the other way a User row gets created.
+    """
+    if not get_settings().allow_registration:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Registration is closed on this instance",
+        )
+
+
 def _find_or_create_oauth_user(db: Session, identity: oauth.VerifiedIdentity) -> User:
     """The account behind a verified email — existing or new."""
     user = db.scalar(select(User).where(User.email == identity.email.lower()))
     if user is not None:
         return user
+    _reject_if_registration_closed()
     user = User(
         email=identity.email.lower(),
         # No usable password: this account signs in through the provider. A
@@ -191,6 +206,7 @@ def _ensure_settings(db: Session, user: User):
 
 @router.post("/register", response_model=TokenOut, status_code=status.HTTP_201_CREATED)
 def register(payload: RegisterIn, db: Session = Depends(get_db)) -> TokenOut:
+    _reject_if_registration_closed()
     email = payload.email.lower()
     existing = db.scalar(select(User).where(User.email == email))
     if existing is not None:

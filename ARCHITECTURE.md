@@ -10,7 +10,7 @@ flows, and the decisions worth knowing before you change something. See
 Expo app (iOS / Android / web)
       │  HTTPS + Bearer JWT
       ▼
-Traefik  ── local-only@file (LAN/VPN) ── TLS
+Traefik  ── TLS (public: no IP allowlist)
       │        /api  → gym-api (higher priority)
       │        /     → gym-web (catch-all)
       ▼
@@ -23,8 +23,10 @@ FastAPI (gym-api) ──► SQLite  (state/gym-app/api/gym.db)
 
 Two containers (`gym-api`, `gym-web`) built from this repo and wired into the
 homelab `services/` stack via a compose `include:`. There is **no published host
-port** — the API is reachable only through Traefik (TLS + a `local-only`
-middleware that restricts to LAN/VPN). See `docker-compose.yml`.
+port** — the API is reachable only through Traefik, over TLS. Unlike most
+homelab services it carries no `local-only` IP allowlist, because the app is
+linked publicly from the portfolio; auth does the gating instead. See
+`docker-compose.yml`.
 
 ## Backend
 
@@ -290,6 +292,7 @@ three run in CI.
 ## Deploy
 
 Traefik routes `https://${GYM_DOMAIN}/api` → `gym-api` (router priority 100, so it
-beats the web catch-all) and `https://${GYM_DOMAIN}/` → `gym-web`, both behind
-`local-only@file`. The API build fetches `companion` via a BuildKit SSH-key
+beats the web catch-all) and `https://${GYM_DOMAIN}/` → `gym-web`. Both are
+public — see the note in **Backend** on why there is no `local-only@file` here
+and what replaces it. The API build fetches `companion` via a BuildKit SSH-key
 secret. See `HOWTO.md` → Deploy.

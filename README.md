@@ -77,8 +77,12 @@ This app plugs into the homelab `services/` stack via an `include:` in
 
 Traefik routes `https://${GYM_DOMAIN}` to the web frontend and
 `https://${GYM_DOMAIN}/api` to the API (the `/api` router has higher priority
-so it wins over the web catch-all). Access is restricted to LAN/VPN via the
-`local-only@file` middleware.
+so it wins over the web catch-all). The instance is **internet-facing** — it is
+linked as the live demo from alex.thelunadog.com, so neither router carries the
+`local-only@file` middleware. What guards it instead is JWT auth on every data
+route plus `GYM_ALLOW_REGISTRATION=false`, which closes both signup doors
+(`POST /api/auth/register` and first-time OAuth sign-in) while leaving existing
+accounts able to log in.
 
 ## State & backups
 

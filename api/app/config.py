@@ -29,6 +29,12 @@ class Settings(BaseSettings):
     github_client_secret: str = ""
     seed_on_start: bool = True
 
+    # Both signup doors (POST /auth/register and first-time OAuth sign-in) are
+    # open by default, which is right for a private or local instance. Set
+    # GYM_ALLOW_REGISTRATION=false on an internet-facing deployment to keep the
+    # existing accounts working while refusing new ones.
+    allow_registration: bool = True
+
     # --- Outgoing mail (optional) ---
     # Only password resets send anything. With no host set the reset endpoint
     # still works, but says the code could not be sent and points at the

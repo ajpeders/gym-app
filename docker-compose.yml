@@ -8,6 +8,12 @@ services:
       GYM_DATA_DIR: /data
       GYM_JWT_SECRET: ${GYM_JWT_SECRET:-}
       GYM_CORS_ORIGINS: ${GYM_CORS_ORIGINS:-*}
+      # Closed by default *for the deployed stack* — this compose file is the
+      # internet-facing one, so the safe value has to be the one you get by
+      # doing nothing. (The Python default in config.py stays true, which is
+      # what a local checkout and the test suite want.) Set
+      # GYM_ALLOW_REGISTRATION=true in .env to reopen signups.
+      GYM_ALLOW_REGISTRATION: ${GYM_ALLOW_REGISTRATION:-false}
       # --- AI (Phase 3): NL logging + coaching ---
       GYM_AI_PROVIDER: ${GYM_AI_PROVIDER:-ollama}
       GYM_OLLAMA_URL: ${GYM_OLLAMA_URL:-http://192.168.0.40:11434}
@@ -16,8 +22,8 @@ services:
       GYM_CLAUDE_MODEL: ${GYM_CLAUDE_MODEL:-claude-opus-4-8}
     volumes:
       - ../../state/gym-app/api:/data
-    # No raw host port — API is reached only through Traefik (TLS + local-only)
-    # on 443 via the labels below. (Removed 2026-07-08 security review: the old
+    # No raw host port — API is reached only through Traefik (TLS) on 443 via
+    # the labels below. (Removed 2026-07-08 security review: the old
     # `8000:8000` published plaintext HTTP + open Swagger on the whole LAN,
     # bypassing TLS/auth.) For Expo dev against a physical phone, temporarily
     # re-add `ports: ["127.0.0.1:8000:8000"]` + an `adb reverse`/ngrok tunnel,
@@ -31,7 +37,6 @@ services:
       - traefik.http.routers.gym-api.entrypoints=websecure
       - traefik.http.routers.gym-api.tls=true
       - traefik.http.routers.gym-api.tls.certresolver=letsencrypt
-      - traefik.http.routers.gym-api.middlewares=local-only@file
       - traefik.http.services.gym-api.loadbalancer.server.port=8000
     networks:
       - web
@@ -47,11 +52,13 @@ services:
     labels:
       - traefik.enable=true
       - traefik.docker.network=web
+      # Deliberately no `local-only@file` on either router: this instance is
+      # linked from the public portfolio. The gate is JWT auth plus
+      # GYM_ALLOW_REGISTRATION=false, not an IP allowlist.
       - traefik.http.routers.gym-web.rule=Host(`${GYM_DOMAIN}`)
       - traefik.http.routers.gym-web.entrypoints=websecure
       - traefik.http.routers.gym-web.tls=true
       - traefik.http.routers.gym-web.tls.certresolver=letsencrypt
-      - traefik.http.routers.gym-web.middlewares=local-only@file
       - traefik.http.services.gym-web.loadbalancer.server.port=80
     networks:
       - web
