@@ -11,3 +11,6 @@ data/
 
 # Playwright MCP browser snapshots/console logs from debugging sessions
 .playwright-mcp/
+
+# Agent instructions — kept on disk, not tracked.
+CLAUDE.md
